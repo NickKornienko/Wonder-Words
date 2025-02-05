@@ -1,10 +1,58 @@
-from app import app, handle_request
-from db.db import db
+from app import app
+import json
 
-# Ensure the app context is available
-with app.app_context():
-    # Call the add_conversation function
-    result = handle_request("Tell me a story about dragons")
-    print(result)
 
-    
+def get_user_input(prompt):
+    return input(prompt)
+
+
+def main():
+    with app.app_context():
+        client = app.test_client()
+        while True:
+            user_input = get_user_input("You: ")
+            if user_input.lower() in ['exit', 'quit']:
+                print("Exiting the chatbot. Goodbye!")
+                break
+
+            # Simulate a request to handle_request
+            request_data = json.dumps(
+                {"query": user_input, "user_id": "test_user"})
+            response = client.post(
+                '/handle_request', data=request_data, content_type='application/json')
+            response_data = response.get_json()
+
+            if response_data is None:
+                print(
+                    "Error: No response data received. The server might have encountered an error.")
+                print(f"Response status code: {response.status_code}")
+                print(f"Response data: {response.data.decode('utf-8')}")
+                continue
+
+            if "confirmation" in response_data:
+                print(f"Bot: {response_data['confirmation']}")
+                confirmation = get_user_input("You (y/n): ")
+                confirmation_data = json.dumps(
+                    {"query": user_input, "user_id": "test_user", "confirmation": confirmation})
+                confirm_response = client.post(
+                    '/confirm_new_story', data=confirmation_data, content_type='application/json')
+                confirm_response_data = confirm_response.get_json()
+
+                if confirm_response_data is None:
+                    print(
+                        "Error: No response data received. The server might have encountered an error.")
+                    print(
+                        f"Response status code: {confirm_response.status_code}")
+                    print(
+                        f"Response data: {confirm_response.data.decode('utf-8')}")
+                    continue
+
+                print(
+                    f"Bot: {confirm_response_data.get('response', confirm_response_data.get('message', 'Error'))}")
+            else:
+                print(
+                    f"Bot: {response_data.get('response', response_data.get('message', 'Error'))}")
+
+
+if __name__ == '__main__':
+    main()
