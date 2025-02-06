@@ -19,6 +19,19 @@ def log_message(conversation_id, sender_type, code, content):
     db.session.commit()
 
 
+def fetch_conversations_by_user(user_id):
+    conversations = Conversation.query.filter_by(user_id=user_id).all()
+    return conversations
+
+
+def fetch_messages_by_user_and_conversation(user_id, conversation_id):
+    messages = Message.query.join(Conversation).filter(
+        Conversation.user_id == user_id,
+        Message.conversation_id == conversation_id
+    ).order_by(Message.created_at).all()
+    return messages
+
+
 def generate_new_story(query):
     try:
         story = new_story_generator(query)
