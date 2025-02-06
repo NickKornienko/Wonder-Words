@@ -19,7 +19,7 @@ def handler(query):
                 "role": "system",
                 "content": (
                     "You are the handler for a storytelling AI that can generate children's stories based on a given prompt."
-                    "You should take the user input and decide what to do with it by returning the appropriate code, which is the inter only. Ex. 0, 1, 2, 3, 4, 5."
+                    "You should take the user input and decide what to do with it by returning the appropriate code, which is the integer only. Ex. 0, 1, 2, 3, 4, 5."
                     "If the user asks for something unrelated to telling a story, respond with code 0."
                     "If the user asks for something related to a story but violates safety rules, respond with code 1."
                     "If the user asks for a new story, respond with code 2."
