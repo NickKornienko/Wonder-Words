@@ -40,6 +40,7 @@ def handle_request():
     data = request.get_json()
     query = data.get('query')
     user_id = data.get('user_id', 'user_id_placeholder')
+    conversation_id = data.get('conversation_id')
 
     if query:
         try:
@@ -47,12 +48,18 @@ def handle_request():
         except ValueError:
             return jsonify({"message": "Invalid response from handler"})
 
-        if code == 2:  # If the user asks for a new story
-            return jsonify({"confirmation": "Are you sure you want to start a new story? Please confirm by sending 'yes' or 'no'."})
+        if conversation_id:
+            conversation = Conversation.query.get(conversation_id)
+            if not conversation:
+                return jsonify({"message": "Invalid conversation ID"})
+        else:
+            conversation = Conversation(user_id=user_id)
+            db.session.add(conversation)
+            db.session.commit()
+            conversation_id = conversation.id
 
-        conversation = Conversation(user_id=user_id)
-        db.session.add(conversation)
-        db.session.commit()
+        if code == 2 and conversation_id:  # If the user asks for a new story and there is an existing conversation
+            return jsonify({"confirmation": "Are you sure you want to start a new story? Please confirm by sending 'y' or 'n'.", "conversation_id": conversation_id})
 
         log_message(conversation.id, SenderType.USER, code, query)
 
@@ -66,7 +73,7 @@ def handle_request():
         else:
             response = f"Invalid code: {code}"
 
-        return jsonify({"response": response})
+        return jsonify({"response": response, "conversation_id": conversation_id})
     else:
         return jsonify({"message": "Query required"})
 
@@ -77,9 +84,10 @@ def confirm_new_story_route():
     query = data.get('query')
     user_id = data.get('user_id', 'user_id_placeholder')
     confirmation = data.get('confirmation')
+    conversation_id = data.get('conversation_id')
 
     if query and confirmation:
-        if confirmation.lower() == 'yes':
+        if confirmation.lower() == 'y':
             conversation = Conversation(user_id=user_id)
             db.session.add(conversation)
             db.session.commit()
@@ -87,9 +95,11 @@ def confirm_new_story_route():
             response = generate_new_story(query)
             log_message(conversation.id, SenderType.MODEL, 2, response)
 
-            return jsonify({"response": response})
-        else:
+            return jsonify({"message": "New story initiated.", "response": response, "conversation_id": conversation.id})
+        elif confirmation.lower() == 'n':
             return jsonify({"message": "New story request canceled."})
+        else:
+            return jsonify({"message": "Invalid confirmation. Please confirm by sending 'y' or 'n'."})
     else:
         return jsonify({"message": "Query and confirmation required"})
 
