@@ -72,7 +72,7 @@ def handle_request():
             conversation_id = conversation.id
 
         if code == 2 and conversation_id:  # If the user asks for a new story and there is an existing conversation
-            return jsonify({"confirmation": "Are you sure you want to start a new story? Please confirm by sending 'y' or 'n'.", "conversation_id": conversation_id})
+            return jsonify({"confirmation": "Are you sure you want to start a new story? Please confirm by clicking Yes or No.", "conversation_id": conversation_id})
 
         log_message(conversation.id, SenderType.USER, code, query)
 
