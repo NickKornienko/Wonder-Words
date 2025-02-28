@@ -112,7 +112,9 @@ class _StorytellingScreenState extends State<StorytellingScreen> {
           content: response['response'] ?? response['message'] ?? 'No response',
           isUser: false,
         ));
-        _conversationId = response['conversation_id'];
+        if (response['conversation_id'] != null) {
+          _conversationId = response['conversation_id'].toString();
+        }
       }
     });
   }
@@ -153,7 +155,9 @@ class _StorytellingScreenState extends State<StorytellingScreen> {
           content: response['response'] ?? 'New story created',
           isUser: false,
         ));
-        _conversationId = response['conversation_id'];
+        if (response['conversation_id'] != null) {
+          _conversationId = response['conversation_id'].toString();
+        }
       } else {
         _messages.add(Message(
           content: 'New story request canceled.',
