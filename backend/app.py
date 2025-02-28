@@ -1,8 +1,10 @@
 from flask import Flask, jsonify, request
+from flask_cors import CORS
 from db.db import db, init_db, Conversation, Message, SenderType
 from llm.llm import handler, new_story_generator, add_to_story
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
 
 # Initialize the SQLAlchemy db instance
 init_db(app)
@@ -72,7 +74,7 @@ def handle_request():
             conversation_id = conversation.id
 
         if code == 2 and conversation_id:  # If the user asks for a new story and there is an existing conversation
-            return jsonify({"confirmation": "Are you sure you want to start a new story? Please confirm by clicking Yes or No.", "conversation_id": conversation_id})
+            return jsonify({"confirmation": "Are you sure you want to start a new story? Please respond with 'yes' or 'no'.", "conversation_id": conversation_id})
 
         log_message(conversation.id, SenderType.USER, code, query)
 
