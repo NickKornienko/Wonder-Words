@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'services/story_service.dart';
 
 void main() {
@@ -31,10 +32,12 @@ class StorytellingScreen extends StatefulWidget {
 class _StorytellingScreenState extends State<StorytellingScreen> {
   final TextEditingController _promptController = TextEditingController();
   final StoryService _storyService = StoryService();
+  final FlutterTts _flutterTts = FlutterTts();
   final String _userId = 'user_${DateTime.now().millisecondsSinceEpoch}';
   String? _conversationId;
   bool _isLoading = false;
   bool _needsConfirmation = false;
+  bool _isSpeaking = false;
   String _pendingQuery = '';
   
   final List<Message> _messages = [
@@ -43,6 +46,45 @@ class _StorytellingScreenState extends State<StorytellingScreen> {
       isUser: false,
     ),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _initTts();
+  }
+
+  void _initTts() {
+    _flutterTts.setStartHandler(() {
+      setState(() {
+        _isSpeaking = true;
+      });
+    });
+
+    _flutterTts.setCompletionHandler(() {
+      setState(() {
+        _isSpeaking = false;
+      });
+    });
+
+    _flutterTts.setErrorHandler((error) {
+      setState(() {
+        _isSpeaking = false;
+      });
+    });
+  }
+
+  Future<void> _speak(String text) async {
+    if (text.isNotEmpty) {
+      if (_isSpeaking) {
+        await _flutterTts.stop();
+        setState(() {
+          _isSpeaking = false;
+        });
+      } else {
+        await _flutterTts.speak(text);
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -108,13 +150,17 @@ class _StorytellingScreenState extends State<StorytellingScreen> {
         _conversationId = response['conversation_id'].toString();
       } else {
         // Normal response
+        final storyContent = response['response'] ?? response['message'] ?? 'No response';
         _messages.add(Message(
-          content: response['response'] ?? response['message'] ?? 'No response',
+          content: storyContent,
           isUser: false,
         ));
         if (response['conversation_id'] != null) {
           _conversationId = response['conversation_id'].toString();
         }
+        
+        // Automatically speak the story
+        _speak(storyContent);
       }
     });
   }
@@ -151,13 +197,17 @@ class _StorytellingScreenState extends State<StorytellingScreen> {
       _pendingQuery = '';
       
       if (confirmation == 'y') {
+        final storyContent = response['response'] ?? 'New story created';
         _messages.add(Message(
-          content: response['response'] ?? 'New story created',
+          content: storyContent,
           isUser: false,
         ));
         if (response['conversation_id'] != null) {
           _conversationId = response['conversation_id'].toString();
         }
+        
+        // Automatically speak the story
+        _speak(storyContent);
       } else {
         _messages.add(Message(
           content: 'New story request canceled.',
@@ -237,6 +287,8 @@ class MessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final _StorytellingScreenState state = context.findAncestorStateOfType<_StorytellingScreenState>()!;
+    
     return Align(
       alignment: message.isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
@@ -251,11 +303,28 @@ class MessageBubble extends StatelessWidget {
         constraints: BoxConstraints(
           maxWidth: MediaQuery.of(context).size.width * 0.75,
         ),
-        child: Text(
-          message.content,
-          style: TextStyle(
-            color: message.isUser ? Colors.white : Colors.black,
-          ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              message.content,
+              style: TextStyle(
+                color: message.isUser ? Colors.white : Colors.black,
+              ),
+            ),
+            if (!message.isUser) // Only show speak button for AI messages
+              Align(
+                alignment: Alignment.centerRight,
+                child: IconButton(
+                  icon: Icon(
+                    state._isSpeaking ? Icons.stop : Icons.volume_up,
+                    color: message.isUser ? Colors.white : Colors.black,
+                    size: 20,
+                  ),
+                  onPressed: () => state._speak(message.content),
+                ),
+              ),
+          ],
         ),
       ),
     );
