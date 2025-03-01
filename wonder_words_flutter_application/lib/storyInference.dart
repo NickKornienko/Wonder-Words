@@ -2,33 +2,12 @@ import 'dart:developer';
 import 'dart:io';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wonder_words_flutter_application/main.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
-
-
-class StoryResponse {
-  final int userId;
-  final int id;
-  final String title;
-
-  const StoryResponse({required this.userId, required this.id, required this.title});
-
-  factory StoryResponse.fromJson(Map<String, dynamic> json) {
-    return switch (json) {
-      {'userId': int userId, 'id': int id, 'title': String title} => StoryResponse(
-        userId: userId,
-        id: id,
-        title: title,
-      ),
-      _ => throw const FormatException('Failed to load story.'),
-    };
-  }
-}
 
 class OpenAI {
   final String baseURL;
