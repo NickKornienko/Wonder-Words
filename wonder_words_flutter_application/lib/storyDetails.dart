@@ -5,8 +5,18 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wonder_words_flutter_application/storyInference.dart';
-import 'package:wonder_words_flutter_application/storyResponse.dart';
+import 'package:wonder_words_flutter_application/storyRequest.dart';
 
+Future<String> _loadApiKeyFromConfigFile(String configFileName) async {
+  try {
+    // using rootBundle to access the config file
+    final content = await rootBundle.loadString('tokens/hf_token.json');
+    final jsonObject = jsonDecode(content);
+    return jsonObject["hf_token"];
+  } catch (e) {
+    throw Exception('Error reading API key from file: $e');
+  }
+}
 
 class StoryDetails extends StatefulWidget {
   final Function(Map<String, dynamic>) onSubmit;
@@ -28,41 +38,48 @@ class _StoryDetailsState extends State<StoryDetails> {
     }
   }
   final TextEditingController _titleController = TextEditingController();
-  final TextEditingController _genreController = TextEditingController();
+  final TextEditingController _promptController = TextEditingController();
   final TextEditingController _vocabularyController = TextEditingController();
   Map<String, dynamic> _submittedData = {};
+  StoryRequest? storyRequest;
 
 // to-do: read from user db table 'userId': _userIdController.text to _handleSubmit / buildContext
 // to-do: read  from a request db table 'id': _idController.text, to _handleSubmit/buildContext
 // to-do: write to the training/RLHF db a 'userPrompt' from template for inference input based on the user's input to the buildContext controller text
 
 
-  void _handleSubmit() {
+  void _handleSubmit(String model) async {
     setState(() {
       _submittedData = {
         'title': _titleController.text,
-        'genre': _genreController.text,
+        'prompt': _promptController.text,
         'vocabulary': _vocabularyController.text,
       };
     });
+    StoryRequest storyRequest = StoryRequest.fromJson(_submittedData);
+    // Print the storyRequest object to verify the data
+    //print(storyRequest.formatStoryRequest(model = 'llama'));
     //to-do: remove print statement and replace with a call to the API
-    print('Submitted Data: $_submittedData');
-    //WidgetsFlutterBinding.ensureInitialized();
-    //final hfKey = await _loadApiKeyFromConfigFile('hf_token.json');
+    if (model == 'llama') {
+      WidgetsFlutterBinding.ensureInitialized();
+      final hfKey = await _loadApiKeyFromConfigFile('hf_token.json');
 
-    //final openai = OpenAI(baseURL: 'https://zq0finoawyna397e.us-east-1.aws.endpoints.huggingface.cloud/v1/chat', apiKey: hfKey); // Replace with your actual key
+      final openai = OpenAI(baseURL: 'https://zq0finoawyna397e.us-east-1.aws.endpoints.huggingface.cloud/v1/chat', apiKey: hfKey); // Replace with your actual key
 
-    //final response = await openai.chatCompletionsCreate({
-    //  "model": "tgi",
-    //  "messages": [
-    //    {"role": "user", "content": "Hi!"}
-    //  ],
-    //  'max_tokens': 150,
-    //  'stream': false
-    //});
+      final response = await openai.chatCompletionsCreate({
+        "model": "tgi",
+        "messages": [
+          {"role": "user", "content": storyRequest.formatStoryRequest(model = 'llama')}
+        ],
+        'max_tokens': 150,
+        'stream': false
+      });
 
-    // Process the response (assuming it's a stream-like structure)
-    //print(response);
+      // Process the response (assuming it's a stream-like structure)
+      print(response);
+      // else if model == 'gpt':
+      // to-do: call the gpt API
+    }
   }
 
   @override
@@ -77,10 +94,10 @@ class _StoryDetailsState extends State<StoryDetails> {
           ),
         ),
         TextField(
-          controller: _genreController,
+          controller: _promptController,
           decoration: InputDecoration(
             border: OutlineInputBorder(),
-            labelText: 'What genre do you want this story to be?',
+            labelText: 'What do you want this story to be?',
           ),
         ),
         TextField(
@@ -92,7 +109,7 @@ class _StoryDetailsState extends State<StoryDetails> {
         ),
         SizedBox(height: 16.0),
         ElevatedButton(
-          onPressed: _handleSubmit,
+          onPressed: () => _handleSubmit('llama'),
           child: Text('Submit'),
         )
       ],

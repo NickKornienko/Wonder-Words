@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:wonder_words_flutter_application/storyInference.dart';
-import 'package:wonder_words_flutter_application/storyResponse.dart';
+import 'package:wonder_words_flutter_application/storyRequest.dart';
 import 'package:wonder_words_flutter_application/storyDetails.dart';
 import 'dart:io';
 
