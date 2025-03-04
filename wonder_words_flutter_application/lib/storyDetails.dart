@@ -20,8 +20,13 @@ Future<String> _loadApiKeyFromConfigFile(String configFileName) async {
 
 class StoryDetails extends StatefulWidget {
   final Function(Map<String, dynamic>) onSubmit;
-
-  StoryDetails({required this.onSubmit});
+  final String model;
+  List<String> models = ['gpt', 'llama'];
+  StoryDetails({required this.onSubmit, required this.model}) {
+    if (!models.contains(model)) {
+      throw ArgumentError('Invalid model: $model. Valid models are: ${models.join(', ')}');
+    }
+  }
 
   @override
   _StoryDetailsState createState() => _StoryDetailsState();
@@ -57,9 +62,6 @@ class _StoryDetailsState extends State<StoryDetails> {
       };
     });
     StoryRequest storyRequest = StoryRequest.fromJson(_submittedData);
-    // Print the storyRequest object to verify the data
-    //print(storyRequest.formatStoryRequest(model = 'llama'));
-    //to-do: remove print statement and replace with a call to the API
     if (model == 'llama') {
       WidgetsFlutterBinding.ensureInitialized();
       final hfKey = await _loadApiKeyFromConfigFile('hf_token.json');
@@ -69,7 +71,7 @@ class _StoryDetailsState extends State<StoryDetails> {
       final response = await openai.chatCompletionsCreate({
         "model": "tgi",
         "messages": [
-          {"role": "user", "content": storyRequest.formatStoryRequest(model = 'llama')}
+          {"role": "user", "content": storyRequest.formatStoryRequest(model)}
         ],
         'max_tokens': 150,
         'stream': false

@@ -22,21 +22,49 @@ class _StoryDetailsFormState extends State<StoryDetailsForm> {
     });
   }
 
+  String _model = 'llama';
+
+  void _toggleModel() {
+    setState(() {
+      _model = _model == 'llama' ? 'gpt' : 'llama';
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
         appBar: AppBar(
-          title: Text("Wonder Words"),
+          title: const Text("Wonder Words"),
         ),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: StoryDetails(onSubmit: _handleSubmittedData),
+        body: SingleChildScrollView(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      const Text('llama'),
+                      Switch(
+                        value: _model == 'gpt',
+                        onChanged: (value) {
+                          _toggleModel();
+                        },
+                      ),
+                      const Text('gpt'),
+                    ],
+                  ),
+                  StoryDetails(onSubmit: _handleSubmittedData, model: _model),
+                  const SizedBox(height: 20),
+                ],
+              ),
+            ),
           ),
         ),
       ),
     );
   }
-
 }
