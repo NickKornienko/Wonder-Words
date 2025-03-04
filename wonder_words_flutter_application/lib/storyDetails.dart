@@ -20,9 +20,10 @@ Future<String> _loadApiKeyFromConfigFile(String configFileName) async {
 
 class StoryDetails extends StatefulWidget {
   final Function(Map<String, dynamic>) onSubmit;
+  final Function(String) onResponse;
   final String model;
   List<String> models = ['gpt', 'llama'];
-  StoryDetails({required this.onSubmit, required this.model}) {
+  StoryDetails({required this.onSubmit, required this.model, required this.onResponse}) {
     if (!models.contains(model)) {
       throw ArgumentError('Invalid model: $model. Valid models are: ${models.join(', ')}');
     }
@@ -78,7 +79,9 @@ class _StoryDetailsState extends State<StoryDetails> {
       });
 
       // Process the response (assuming it's a stream-like structure)
-      print(response);
+      // the response should be sent to the storyDetailsForm.dart class build widget for inclusion in textbox
+      print(response['choices'][0]['message']['content']);
+      widget.onResponse(response['choices'][0]['message']['content']);
       // else if model == 'gpt':
       // to-do: call the gpt API
     }

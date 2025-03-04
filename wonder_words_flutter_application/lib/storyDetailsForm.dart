@@ -14,11 +14,16 @@ class StoryDetailsForm extends StatefulWidget {
 
 class _StoryDetailsFormState extends State<StoryDetailsForm> {
    Map<String, dynamic> _submittedData = {};
-
   void _handleSubmittedData(Map<String, dynamic> onSubmit) {
     setState(() {
       _submittedData = onSubmit;
       print('Submitted Data: $_submittedData');
+    });
+  }
+  String _responseText = '';
+  void _handleResponse(String response) {
+    setState(() {
+      _responseText = response;
     });
   }
 
@@ -45,20 +50,36 @@ class _StoryDetailsFormState extends State<StoryDetailsForm> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
-                      const Text('llama'),
-                      Switch(
-                        value: _model == 'gpt',
-                        onChanged: (value) {
-                          _toggleModel();
-                        },
-                      ),
-                      const Text('gpt'),
-                    ],
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    const Text('llama'),
+                    Switch(
+                    value: _model == 'gpt',
+                    onChanged: (value) {
+                      _toggleModel();
+                    },
+                    ),
+                    const Text('gpt'),
+                  ],
                   ),
-                  StoryDetails(onSubmit: _handleSubmittedData, model: _model),
+                  StoryDetails(onSubmit: _handleSubmittedData, model: _model, onResponse: _handleResponse),
                   const SizedBox(height: 20),
+                  ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: 200.0, // Adjust the max height as needed
+                  ),
+                  child: SingleChildScrollView(
+                    child: TextField(
+                    controller: TextEditingController(text: _responseText),
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      labelText: 'Response',
+                    ),
+                    readOnly: true,
+                    maxLines: null,
+                    ),
+                  ),
+                  ),
                 ],
               ),
             ),
