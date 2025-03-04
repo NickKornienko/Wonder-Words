@@ -7,12 +7,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:wonder_words_flutter_application/storyInference.dart';
 import 'package:wonder_words_flutter_application/storyRequest.dart';
 
-Future<String> _loadApiKeyFromConfigFile(String configFileName) async {
+Future<String> _loadApiKeyFromConfigFile(String configFileName, String tokenKey) async {
   try {
     // using rootBundle to access the config file
-    final content = await rootBundle.loadString('tokens/hf_token.json');
+    final content = await rootBundle.loadString('tokens/$configFileName');
     final jsonObject = jsonDecode(content);
-    return jsonObject["hf_token"];
+    return jsonObject[tokenKey];
   } catch (e) {
     throw Exception('Error reading API key from file: $e');
   }
@@ -63,9 +63,10 @@ class _StoryDetailsState extends State<StoryDetails> {
       };
     });
     StoryRequest storyRequest = StoryRequest.fromJson(_submittedData);
+    print("Using model: $model");
     if (model == 'llama') {
       WidgetsFlutterBinding.ensureInitialized();
-      final hfKey = await _loadApiKeyFromConfigFile('hf_token.json');
+      final hfKey = await _loadApiKeyFromConfigFile('tokens.json', 'hf_token');
 
       final openai = OpenAI(baseURL: 'https://zq0finoawyna397e.us-east-1.aws.endpoints.huggingface.cloud/v1/chat', apiKey: hfKey); // Replace with your actual key
 
@@ -80,10 +81,29 @@ class _StoryDetailsState extends State<StoryDetails> {
 
       // Process the response (assuming it's a stream-like structure)
       // the response should be sent to the storyDetailsForm.dart class build widget for inclusion in textbox
-      print(response['choices'][0]['message']['content']);
       widget.onResponse(response['choices'][0]['message']['content']);
-      // else if model == 'gpt':
+    }
+
+    if (model == 'gpt') {
       // to-do: call the gpt API
+      print('gpt model selected');
+      WidgetsFlutterBinding.ensureInitialized();
+      final openaiKey = await _loadApiKeyFromConfigFile('tokens.json', 'openai_token');
+
+      final openai = OpenAI(baseURL: 'https://api.openai.com/v1/chat/', apiKey: openaiKey); // Replace with your actual key
+      print(storyRequest.formatStoryRequest(model));
+      final response = await openai.chatCompletionsCreate({
+        "model": "gpt-4o-mini",
+        "messages": [
+          {"role": "user", "content": storyRequest.formatStoryRequest(model)}
+        ],
+        'max_tokens': 150,
+        'stream': false
+      });
+      print(response['choices'][0]['message']['content']);
+      // Process the response (assuming it's a stream-like structure)
+      // the response should be sent to the storyDetailsForm.dart class build widget for inclusion in textbox
+      widget.onResponse(response['choices'][0]['message']['content']);
     }
   }
 
@@ -114,7 +134,7 @@ class _StoryDetailsState extends State<StoryDetails> {
         ),
         SizedBox(height: 16.0),
         ElevatedButton(
-          onPressed: () => _handleSubmit('llama'),
+          onPressed: () => _handleSubmit(widget.model),
           child: Text('Submit'),
         )
       ],

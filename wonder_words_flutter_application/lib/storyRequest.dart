@@ -50,7 +50,26 @@ class StoryRequest {
             ### Story:
 
         ''';
-      // to-do: else if model == 'gpt':
+    }
+    if (model == 'gpt') {
+        return '''<|im_start|>user\n 
+            Below is an instruction (story request) that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.
+
+            ### Title: 
+            ${title}
+            
+            ### Instruction (story request):
+            ${prompt}
+
+            ### Word List:
+            ${vocabulary} 
+            <|im_end|>\n
+
+            <|im_start|>assistant\n 
+            Here's the full story titled '${title}' about '${prompt}' with the vocabulary '${vocabulary}':
+            ### Story:
+
+        ''';
     }
     return '';
   }

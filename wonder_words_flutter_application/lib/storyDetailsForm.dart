@@ -14,6 +14,7 @@ class StoryDetailsForm extends StatefulWidget {
 
 class _StoryDetailsFormState extends State<StoryDetailsForm> {
    Map<String, dynamic> _submittedData = {};
+   String _model = 'llama'; // Add a state variable for the model
   void _handleSubmittedData(Map<String, dynamic> onSubmit) {
     setState(() {
       _submittedData = onSubmit;
@@ -27,11 +28,10 @@ class _StoryDetailsFormState extends State<StoryDetailsForm> {
     });
   }
 
-  String _model = 'llama';
-
   void _toggleModel() {
     setState(() {
       _model = _model == 'llama' ? 'gpt' : 'llama';
+      print('Model changed to: $_model');
     });
   }
 
