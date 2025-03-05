@@ -22,10 +22,15 @@ class StoryDetails extends StatefulWidget {
   final Function(Map<String, dynamic>) onSubmit;
   final Function(String) onResponse;
   final String model;
+  final String taskType;
   List<String> models = ['gpt', 'llama'];
-  StoryDetails({required this.onSubmit, required this.model, required this.onResponse}) {
+  List<String> taskTypes = ['story-generation', 'prompt-generation'];
+  StoryDetails({required this.onSubmit, required this.model, required this.taskType, required this.onResponse}) {
     if (!models.contains(model)) {
       throw ArgumentError('Invalid model: $model. Valid models are: ${models.join(', ')}');
+    }
+    if (!taskTypes.contains(taskType)) {
+      throw ArgumentError('Invalid task type: $taskType. Valid task types are: ${taskTypes.join(', ')}');
     }
   }
 
@@ -54,7 +59,7 @@ class _StoryDetailsState extends State<StoryDetails> {
 // to-do: write to the training/RLHF db a 'userPrompt' from template for inference input based on the user's input to the buildContext controller text
 
 
-  void _handleSubmit(String model) async {
+  void _handleSubmit(String model, String taskType) async {
     setState(() {
       _submittedData = {
         'title': _titleController.text,
@@ -64,6 +69,7 @@ class _StoryDetailsState extends State<StoryDetails> {
     });
     StoryRequest storyRequest = StoryRequest.fromJson(_submittedData);
     print("Using model: $model");
+    print("Using task type: $taskType");
     if (model == 'llama') {
       WidgetsFlutterBinding.ensureInitialized();
       final hfKey = await _loadApiKeyFromConfigFile('tokens.json', 'hf_token');
@@ -73,7 +79,7 @@ class _StoryDetailsState extends State<StoryDetails> {
       final response = await openai.chatCompletionsCreate({
         "model": "tgi",
         "messages": [
-          {"role": "user", "content": storyRequest.formatStoryRequest(model)}
+          {"role": "user", "content": storyRequest.formatStoryRequest(taskType)}
         ],
         'max_tokens': 150,
         'stream': false
@@ -95,7 +101,7 @@ class _StoryDetailsState extends State<StoryDetails> {
       final response = await openai.chatCompletionsCreate({
         "model": "gpt-4o-mini",
         "messages": [
-          {"role": "user", "content": storyRequest.formatStoryRequest(model)}
+          {"role": "user", "content": storyRequest.formatStoryRequest(taskType)}
         ],
         'max_tokens': 150,
         'stream': false
@@ -118,6 +124,7 @@ class _StoryDetailsState extends State<StoryDetails> {
             labelText: 'Whats the title of your new story?',
           ),
         ),
+        const SizedBox(height: 20),
         TextField(
           controller: _promptController,
           decoration: InputDecoration(
@@ -125,6 +132,7 @@ class _StoryDetailsState extends State<StoryDetails> {
             labelText: 'What do you want this story to be?',
           ),
         ),
+        const SizedBox(height: 20),
         TextField(
           controller: _vocabularyController,
           decoration: InputDecoration(
@@ -134,7 +142,7 @@ class _StoryDetailsState extends State<StoryDetails> {
         ),
         SizedBox(height: 16.0),
         ElevatedButton(
-          onPressed: () => _handleSubmit(widget.model),
+          onPressed: () => _handleSubmit(widget.model, widget.taskType),
           child: Text('Submit'),
         )
       ],
