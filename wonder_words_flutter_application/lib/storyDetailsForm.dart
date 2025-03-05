@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:wonder_words_flutter_application/storyInference.dart';
-import 'package:wonder_words_flutter_application/storyRequest.dart';
 import 'package:wonder_words_flutter_application/storyDetails.dart';
-import 'dart:io';
 
 class StoryDetailsForm extends StatefulWidget {
   @override
@@ -14,6 +11,8 @@ class _StoryDetailsFormState extends State<StoryDetailsForm> {
   String _model = 'llama'; // Add a state variable for the model
   String _taskType = 'story-generation'; // Add a state variable for the task type
   String _responseText = '';
+  String _promptResponseText = '';
+  String _formattedRequestText = '';
   final TextEditingController _additionalTextController = TextEditingController(); // Add a controller for the new text box
 
   void _handleSubmittedData(Map<String, dynamic> onSubmit) {
@@ -23,9 +22,18 @@ class _StoryDetailsFormState extends State<StoryDetailsForm> {
     });
   }
 
-  void _handleResponse(String response) {
+  void _handleResponse(String response, String formattedRequest, String promptResponse) {
     setState(() {
-      _responseText = response;
+      // only set if the parameters are not null or empty strings
+      if (response.isNotEmpty) {
+        _responseText = response;
+      }
+      if (formattedRequest.isNotEmpty) {
+        _formattedRequestText = formattedRequest;
+      }
+      if (promptResponse.isNotEmpty) {
+        _promptResponseText = promptResponse;
+      }
     });
   }
 
@@ -83,15 +91,14 @@ class _StoryDetailsFormState extends State<StoryDetailsForm> {
                       const Text('prompt-generation'),
                     ],
                   ),
-                  const SizedBox(height: 20),
                   StoryDetails(
                     onSubmit: _handleSubmittedData,
                     model: _model,
                     taskType: _taskType,
                     onResponse: _handleResponse,
                   ),
+                  const SizedBox(height: 20),
                   if (_taskType == 'story-generation') ...[
-                    const SizedBox(height: 20),
                     ConstrainedBox(
                       constraints: BoxConstraints(
                         maxHeight: 200.0, // Adjust the max height as needed
@@ -117,10 +124,10 @@ class _StoryDetailsFormState extends State<StoryDetailsForm> {
                       ),
                       child: SingleChildScrollView(
                         child: TextField(
-                          controller: TextEditingController(text: _responseText),
+                          controller: TextEditingController(text: _formattedRequestText),
                           decoration: const InputDecoration(
                             border: OutlineInputBorder(),
-                            labelText: 'Prompt Response',
+                            labelText: 'AI Prompt',
                           ),
                           readOnly: true,
                           maxLines: null,
@@ -134,10 +141,10 @@ class _StoryDetailsFormState extends State<StoryDetailsForm> {
                       ),
                       child: SingleChildScrollView(
                         child: TextField(
-                          controller: _additionalTextController,
+                          controller: TextEditingController(text: _promptResponseText),
                           decoration: const InputDecoration(
                             border: OutlineInputBorder(),
-                            labelText: 'AI Prompt',
+                            labelText: 'Prompt Response',
                           ),
                           readOnly: true,
                           maxLines: null,

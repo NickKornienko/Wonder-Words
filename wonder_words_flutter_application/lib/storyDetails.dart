@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
-import 'dart:io';
 import 'package:flutter/services.dart' show rootBundle;
 import 'dart:convert';
-import 'package:flutter_test/flutter_test.dart';
 import 'package:wonder_words_flutter_application/storyInference.dart';
 import 'package:wonder_words_flutter_application/storyRequest.dart';
 
@@ -20,7 +18,7 @@ Future<String> _loadApiKeyFromConfigFile(String configFileName, String tokenKey)
 
 class StoryDetails extends StatefulWidget {
   final Function(Map<String, dynamic>) onSubmit;
-  final Function(String) onResponse;
+  final Function(String, String, String) onResponse; // Modify the callback function to accept three parameters
   final String model;
   final String taskType;
   List<String> models = ['gpt', 'llama'];
@@ -37,8 +35,7 @@ class StoryDetails extends StatefulWidget {
   @override
   _StoryDetailsState createState() => _StoryDetailsState();
 }
-//   to-do: final TextEditingController _idController = TextEditingController();
-// to-do: final TextEditingController _userPromptController = TextEditingController();
+
 class _StoryDetailsState extends State<StoryDetails> {
   final _formKey = GlobalKey<FormState>();
 
@@ -48,16 +45,12 @@ class _StoryDetailsState extends State<StoryDetails> {
       widget.onSubmit(_submittedData);
     }
   }
+
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _promptController = TextEditingController();
   final TextEditingController _vocabularyController = TextEditingController();
   Map<String, dynamic> _submittedData = {};
   StoryRequest? storyRequest;
-
-// to-do: read from user db table 'userId': _userIdController.text to _handleSubmit / buildContext
-// to-do: read  from a request db table 'id': _idController.text, to _handleSubmit/buildContext
-// to-do: write to the training/RLHF db a 'userPrompt' from template for inference input based on the user's input to the buildContext controller text
-
 
   void _handleSubmit(String model, String taskType) async {
     setState(() {
@@ -87,7 +80,11 @@ class _StoryDetailsState extends State<StoryDetails> {
 
       // Process the response (assuming it's a stream-like structure)
       // the response should be sent to the storyDetailsForm.dart class build widget for inclusion in textbox
-      widget.onResponse(response['choices'][0]['message']['content']);
+      if (taskType == 'story-generation') {
+        widget.onResponse(response['choices'][0]['message']['content'], storyRequest.formatStoryRequest(taskType), '');
+      } else if (taskType == 'prompt-generation') {
+        widget.onResponse('', storyRequest.formatStoryRequest(taskType), response['choices'][0]['message']['content']);
+      }
     }
 
     if (model == 'gpt') {
@@ -106,10 +103,13 @@ class _StoryDetailsState extends State<StoryDetails> {
         'max_tokens': 150,
         'stream': false
       });
-      print(response['choices'][0]['message']['content']);
       // Process the response (assuming it's a stream-like structure)
       // the response should be sent to the storyDetailsForm.dart class build widget for inclusion in textbox
-      widget.onResponse(response['choices'][0]['message']['content']);
+      if (taskType == 'story-generation') {
+        widget.onResponse(response['choices'][0]['message']['content'], storyRequest.formatStoryRequest(taskType), '');
+      } else if (taskType == 'prompt-generation') {
+        widget.onResponse('', storyRequest.formatStoryRequest(taskType), response['choices'][0]['message']['content']);
+      }
     }
   }
 
