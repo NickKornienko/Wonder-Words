@@ -32,12 +32,12 @@ class StoryRequest {
   // format template of the StoryRequest object
   String formatStoryRequest(String promptType) {
       String starterPrompt = '''<|im_start|>user\n 
-              Below is an instruction (story request) that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.
+              Below is a story request that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.
 
               ### Title: 
               ${title}
               
-              ### Instruction (story request):
+              ### Story Request:
               ${prompt}
 
               ### Word List:
@@ -54,19 +54,18 @@ class StoryRequest {
     }
     if (promptType == 'prompt-generation') {
         return '''<|im_start|>user\n 
-            Below is an instruction (prompt evaluation request) that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.
+            Below is a prompt evaluation request that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.
+            Do not include any additional information or context in your response, and only provide the updated prompt.
             
             ## Instruction (prompt evaluation request):
             Identify any potential issues with the prompt. Is it clear, specific, and relevant to the task? Edit this prompt for improvement.
 
-            ## Prompt: 
+            ## Prompt for Evaluation: 
             ${starterPrompt}
 
             <|im_end|>\n
 
             <|im_start|>assistant\n 
-            The new and improved prompt 
-
             ## Prompt:
 
         ''';
