@@ -41,3 +41,5 @@ table_names = ['users', 'stories', 'prompts']
 dataframes = [user_df, story_df, prompt_df]
 for table_name, df in zip(table_names, dataframes):
     df.to_sql(table_name, con=engine, if_exists='append')
+    
+connection.close()

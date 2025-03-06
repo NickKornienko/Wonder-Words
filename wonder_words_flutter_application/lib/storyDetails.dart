@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'dart:convert';
+import 'package:http/http.dart';
 import 'package:wonder_words_flutter_application/storyInference.dart';
 import 'package:wonder_words_flutter_application/storyRequest.dart';
+
 
 Future<String> _loadApiKeyFromConfigFile(String configFileName, String tokenKey) async {
   try {
@@ -14,6 +16,31 @@ Future<String> _loadApiKeyFromConfigFile(String configFileName, String tokenKey)
     throw Exception('Error reading API key from file: $e');
   }
 }
+
+Future log_message(int conversationId, String senderType, int code, String content) async {
+  String url = 'http://127.0.0.1:5000/log_message';
+  Map<String, dynamic> data = {
+    'conversation_id': conversationId,
+    'sender_type': senderType,
+    'code': code,
+    'content': content,
+  };
+
+  Response response = await post(
+    Uri.parse(url),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode(data),
+  );
+
+  if (response.statusCode == 200) {
+    return response.body;
+  } else {
+    print(response.body);
+    print(response.statusCode);
+    throw Exception('Failed to send data');
+  }
+}
+
 
 class StoryDetails extends StatefulWidget {
   final Function(Map<String, dynamic>) onSubmit;
@@ -59,6 +86,7 @@ class _StoryDetailsState extends State<StoryDetails> {
         'vocabulary': _vocabularyController.text,
       };
     });
+
     StoryRequest storyRequest = StoryRequest.fromJson(_submittedData);
     print("Using model: $model");
     print("Using task type: $taskType");
@@ -84,6 +112,11 @@ class _StoryDetailsState extends State<StoryDetails> {
       } else if (taskType == 'prompt-generation') {
         widget.onResponse('', storyRequest.formatStoryRequest(taskType), response['choices'][0]['message']['content']);
       }
+
+      var data = await log_message(1, 'user', 1, storyRequest.formatStoryRequest(taskType));
+      var decodedData = jsonDecode(data);
+      print('data: $decodedData');
+      print('response: $response');
     }
 
     if (model == 'gpt') {
@@ -109,6 +142,11 @@ class _StoryDetailsState extends State<StoryDetails> {
       } else if (taskType == 'prompt-generation') {
         widget.onResponse('', storyRequest.formatStoryRequest(taskType), response['choices'][0]['message']['content']);
       }
+
+      var data = await log_message(1, 'USER', 1, storyRequest.formatStoryRequest(taskType));
+      var decodedData = jsonDecode(data);
+      print('data: $decodedData');
+      print('response: $response');
     }
   }
 

@@ -7,8 +7,16 @@ app = Flask(__name__)
 # Initialize the SQLAlchemy db instance
 init_db(app)
 
-
-def log_message(conversation_id, sender_type, code, content):
+@app.route('/log_message', methods=['POST'])
+def log_message():
+    data = request.get_json()
+    conversation_id = data.get('conversation_id')
+    sender_type = data.get('sender_type')
+    code = data.get('code')
+    content = data.get('content')
+    # Process the data as needed
+    # For example, you can log it or save it to a database
+    
     try:
         message = Message(
             conversation_id=conversation_id,
@@ -21,13 +29,14 @@ def log_message(conversation_id, sender_type, code, content):
         print(f"Message logged: {message}")
     except Exception as e:
         print(f"Error logging message: {e}")
+    return jsonify({'status': 'success', 'message': 'Log message received'}), 200
 
-
+@app.route('/fetch_conversations_by_user', methods=['POST'])
 def fetch_conversations_by_user(user_id):
     conversations = Conversation.query.filter_by(user_id=user_id).all()
     return conversations
 
-
+@app.route('/fetch_messages_by_user_and_conversation', methods=['POST'])
 def fetch_messages_by_user_and_conversation(user_id, conversation_id):
     messages = Message.query.join(Conversation).filter(
         Conversation.user_id == user_id,
