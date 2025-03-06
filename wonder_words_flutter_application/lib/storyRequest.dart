@@ -1,5 +1,3 @@
-import 'package:flutter/material.dart';
-
 class StoryRequest {
   //final int userId;
   //final String userPrompt;
