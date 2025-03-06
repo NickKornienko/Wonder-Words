@@ -18,7 +18,7 @@ Future<String> _loadApiKeyFromConfigFile(String configFileName, String tokenKey)
 }
 
 Future log_message(int conversationId, String senderType, int code, String content) async {
-  String url = 'http://127.0.0.1:5000/log_message';
+  String url = 'http://192.168.1.241:5001/log_message';
   Map<String, dynamic> data = {
     'conversation_id': conversationId,
     'sender_type': senderType,
@@ -113,7 +113,7 @@ class _StoryDetailsState extends State<StoryDetails> {
         widget.onResponse('', storyRequest.formatStoryRequest(taskType), response['choices'][0]['message']['content']);
       }
 
-      var data = await log_message(1, 'user', 1, storyRequest.formatStoryRequest(taskType));
+      var data = await log_message(1, 'USER', 1, storyRequest.formatStoryRequest(taskType));
       var decodedData = jsonDecode(data);
       print('data: $decodedData');
       print('response: $response');

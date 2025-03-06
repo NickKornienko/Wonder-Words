@@ -1,6 +1,7 @@
 # Miscellaneous
 
 tokens.json
+ip_address.json
 
 *.class
 *.log
