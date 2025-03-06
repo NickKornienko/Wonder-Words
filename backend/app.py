@@ -9,14 +9,18 @@ init_db(app)
 
 
 def log_message(conversation_id, sender_type, code, content):
-    message = Message(
-        conversation_id=conversation_id,
-        sender_type=sender_type,
-        code=code,
-        content=content
-    )
-    db.session.add(message)
-    db.session.commit()
+    try:
+        message = Message(
+            conversation_id=conversation_id,
+            sender_type=sender_type,
+            code=code,
+            content=content
+        )
+        db.session.add(message)
+        db.session.commit()
+        print(f"Message logged: {message}")
+    except Exception as e:
+        print(f"Error logging message: {e}")
 
 
 def fetch_conversations_by_user(user_id):
