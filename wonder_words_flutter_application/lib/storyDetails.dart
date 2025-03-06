@@ -5,11 +5,14 @@ import 'package:http/http.dart';
 import 'package:wonder_words_flutter_application/storyInference.dart';
 import 'package:wonder_words_flutter_application/storyRequest.dart';
 
+String configFileName = 'ip_address.json';
+String tokenKey = 'device_ip';
+Future<String> deviceIP = _loadKeyFromConfigFile(configFileName, tokenKey);
 
-Future<String> _loadApiKeyFromConfigFile(String configFileName, String tokenKey) async {
+Future<String> _loadKeyFromConfigFile(String configFileName, String tokenKey) async {
   try {
     // using rootBundle to access the config file
-    final content = await rootBundle.loadString('tokens/$configFileName');
+    final content = await rootBundle.loadString('secrets/$configFileName');
     final jsonObject = jsonDecode(content);
     return jsonObject[tokenKey];
   } catch (e) {
@@ -18,7 +21,9 @@ Future<String> _loadApiKeyFromConfigFile(String configFileName, String tokenKey)
 }
 
 Future log_message(int conversationId, String senderType, int code, String content) async {
-  String url = 'http://192.168.1.241:5001/log_message';
+  String ip = await deviceIP;
+  String url = 'http://$ip:5001/log_message';
+  print('Sending data to $url');
   Map<String, dynamic> data = {
     'conversation_id': conversationId,
     'sender_type': senderType,
@@ -92,7 +97,7 @@ class _StoryDetailsState extends State<StoryDetails> {
     print("Using task type: $taskType");
     if (model == 'llama') {
       WidgetsFlutterBinding.ensureInitialized();
-      final hfKey = await _loadApiKeyFromConfigFile('tokens.json', 'hf_token');
+      final hfKey = await _loadKeyFromConfigFile('tokens.json', 'hf_token');
 
       final openai = OpenAI(baseURL: 'https://zq0finoawyna397e.us-east-1.aws.endpoints.huggingface.cloud/v1/chat', apiKey: hfKey); // Replace with your actual key
 
@@ -108,22 +113,21 @@ class _StoryDetailsState extends State<StoryDetails> {
       // Process the response (assuming it's a stream-like structure)
       // the response should be sent to the storyDetailsForm.dart class build widget for inclusion in textbox
       if (taskType == 'story-generation') {
-        widget.onResponse(response['choices'][0]['message']['content'], storyRequest.formatStoryRequest(taskType), '');
+        widget.onResponse(response['choices'][0]['message']['content'], '', '');
       } else if (taskType == 'prompt-generation') {
         widget.onResponse('', storyRequest.formatStoryRequest(taskType), response['choices'][0]['message']['content']);
       }
 
-      var data = await log_message(1, 'USER', 1, storyRequest.formatStoryRequest(taskType));
-      var decodedData = jsonDecode(data);
-      print('data: $decodedData');
-      print('response: $response');
+      log_message(1, 'USER', 1, storyRequest.formatStoryRequest(taskType));
+      log_message(1, 'MODEL', 1, response['choices'][0]['message']['content']);
+      
     }
 
     if (model == 'gpt') {
-      // to-do: call the gpt API
+      // to-do: call the gpt API using llm.py in the backend code
       print('gpt model selected');
       WidgetsFlutterBinding.ensureInitialized();
-      final openaiKey = await _loadApiKeyFromConfigFile('tokens.json', 'openai_token');
+      final openaiKey = await _loadKeyFromConfigFile('tokens.json', 'openai_token');
 
       final openai = OpenAI(baseURL: 'https://api.openai.com/v1/chat/', apiKey: openaiKey); // Replace with your actual key
       print(storyRequest.formatStoryRequest(model));
@@ -138,15 +142,14 @@ class _StoryDetailsState extends State<StoryDetails> {
       // Process the response (assuming it's a stream-like structure)
       // the response should be sent to the storyDetailsForm.dart class build widget for inclusion in textbox
       if (taskType == 'story-generation') {
-        widget.onResponse(response['choices'][0]['message']['content'], storyRequest.formatStoryRequest(taskType), '');
+        widget.onResponse(response['choices'][0]['message']['content'], '', '');
       } else if (taskType == 'prompt-generation') {
         widget.onResponse('', storyRequest.formatStoryRequest(taskType), response['choices'][0]['message']['content']);
       }
 
-      var data = await log_message(1, 'USER', 1, storyRequest.formatStoryRequest(taskType));
-      var decodedData = jsonDecode(data);
-      print('data: $decodedData');
-      print('response: $response');
+      log_message(2, 'USER', 1, storyRequest.formatStoryRequest(taskType));
+      log_message(2, 'MODEL', 1, response['choices'][0]['message']['content']);
+
     }
   }
 
