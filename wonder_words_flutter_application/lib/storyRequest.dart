@@ -1,7 +1,6 @@
 class StoryRequest {
-  //final int userId;
-  //final String userPrompt;
-  //final int id;
+  //final int userId; 
+  //final int storyId;
   final String title;
   final String prompt;
   final String vocabulary;
