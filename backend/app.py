@@ -8,16 +8,12 @@ app = Flask(__name__)
 init_db(app)
 
 @app.route('/log_message', methods=['POST'])
-def log_message():
-    data = request.get_json()
-    conversation_id = data.get('conversation_id')
-    sender_type = data.get('sender_type')
-    code = data.get('code')
-    content = data.get('content')
+def log_message(conversation_id, sender_type, code, content):
     # Process the data as needed
     # For example, you can log it or save it to a database
     
     try:
+        print(f"Logging message with conversation_id: {conversation_id}, sender_type: {sender_type}, code: {code}, content: {content}")
         message = Message(
             conversation_id=conversation_id,
             sender_type=sender_type,
@@ -67,8 +63,8 @@ def handle_request():
     query = data.get('query')
     user_id = data.get('user_id', 'user_id_placeholder')
     conversation_id = data.get('conversation_id')
-
     if query:
+        print(f"Received query: {query}")
         try:
             code = int(handler(query))
         except ValueError:
@@ -87,6 +83,7 @@ def handle_request():
         if code == 2 and conversation_id:  # If the user asks for a new story and there is an existing conversation
             return jsonify({"confirmation": "Are you sure you want to start a new story? Please confirm by clicking Yes or No.", "conversation_id": conversation_id})
 
+        print(f"Calling log_message with conversation_id: {conversation.id}, sender_type: {SenderType.USER}, code: {code}, query: {query}")
         log_message(conversation.id, SenderType.USER, code, query)
 
         if code == 0:  # If the user asks for something unrelated to telling a story
@@ -95,6 +92,7 @@ def handle_request():
             response = "Sorry, I can't tell that story. Please ask me to tell you a story."
         elif code == 3:  # If the user asks for an addition to an existing story
             response = add_to_existing_story(conversation.id, query)
+            print(f"Calling log_message with conversation_id: {conversation.id}, sender_type: {SenderType.USER}, code: {code}, query: {query}")
             log_message(conversation.id, SenderType.MODEL, code, response)
         else:
             response = f"Invalid code: {code}"
@@ -117,7 +115,7 @@ def confirm_new_story_route():
             conversation = Conversation(user_id=user_id)
             db.session.add(conversation)
             db.session.commit()
-
+            log_message(conversation.id, SenderType.USER, 2, query)
             response = generate_new_story(query)
             log_message(conversation.id, SenderType.MODEL, 2, response)
 
