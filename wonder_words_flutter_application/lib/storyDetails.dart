@@ -1,7 +1,9 @@
+import 'dart:ffi';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'dart:convert';
-import 'package:http/http.dart';
+import 'package:http/http.dart' as http;
 import 'package:wonder_words_flutter_application/storyInference.dart';
 import 'package:wonder_words_flutter_application/storyRequest.dart';
 
@@ -31,7 +33,7 @@ Future log_message(int conversationId, String senderType, int code, String conte
     'content': content,
   };
 
-  Response response = await post(
+  http.Response response = await http.post(
     Uri.parse(url),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(data),
@@ -45,7 +47,6 @@ Future log_message(int conversationId, String senderType, int code, String conte
     throw Exception('Failed to send data');
   }
 }
-
 
 class StoryDetails extends StatefulWidget {
   final Function(Map<String, dynamic>) onSubmit;
@@ -82,6 +83,10 @@ class _StoryDetailsState extends State<StoryDetails> {
   final TextEditingController _vocabularyController = TextEditingController();
   Map<String, dynamic> _submittedData = {};
   StoryRequest? storyRequest;
+  int? conversationId;
+  bool pendingConfirmation = false;
+  String lastUserInput = "";
+  bool isNewStory = false;
 
   void _handleSubmit(String model, String taskType) async {
     setState(() {
@@ -95,6 +100,7 @@ class _StoryDetailsState extends State<StoryDetails> {
     StoryRequest storyRequest = StoryRequest.fromJson(_submittedData);
     print("Using model: $model");
     print("Using task type: $taskType");
+
     if (model == 'llama') {
       WidgetsFlutterBinding.ensureInitialized();
       final hfKey = await _loadKeyFromConfigFile('tokens.json', 'hf_token');
@@ -118,38 +124,86 @@ class _StoryDetailsState extends State<StoryDetails> {
         widget.onResponse('', storyRequest.formatStoryRequest(taskType), response['choices'][0]['message']['content']);
       }
 
-      log_message(1, 'USER', 1, storyRequest.formatStoryRequest(taskType));
-      log_message(1, 'MODEL', 1, response['choices'][0]['message']['content']);
+      //log_message(1, 'USER', 1, storyRequest.formatStoryRequest(taskType));
+      //log_message(1, 'MODEL', 1, response['choices'][0]['message']['content']);
       
     }
 
     if (model == 'gpt') {
-      // to-do: call the gpt API using llm.py in the backend code
-      print('gpt model selected');
-      WidgetsFlutterBinding.ensureInitialized();
-      final openaiKey = await _loadKeyFromConfigFile('tokens.json', 'openai_token');
+      final response = await _sendGptRequest(storyRequest.formatStoryRequest(taskType));
 
-      final openai = OpenAI(baseURL: 'https://api.openai.com/v1/chat/', apiKey: openaiKey); // Replace with your actual key
-      print(storyRequest.formatStoryRequest(model));
-      final response = await openai.chatCompletionsCreate({
-        "model": "gpt-4o-mini",
-        "messages": [
-          {"role": "user", "content": storyRequest.formatStoryRequest(taskType)}
-        ],
-        'max_tokens': 150,
-        'stream': false
-      });
-      // Process the response (assuming it's a stream-like structure)
-      // the response should be sent to the storyDetailsForm.dart class build widget for inclusion in textbox
-      if (taskType == 'story-generation') {
-        widget.onResponse(response['choices'][0]['message']['content'], '', '');
-      } else if (taskType == 'prompt-generation') {
-        widget.onResponse('', storyRequest.formatStoryRequest(taskType), response['choices'][0]['message']['content']);
+      if (response != null) {
+        if (response.containsKey('confirmation')) {
+          setState(() {
+            lastUserInput = storyRequest.formatStoryRequest(taskType);
+            pendingConfirmation = true;
+          });
+        } else {
+          print(response);
+          if (taskType == 'story-generation') {
+            widget.onResponse(response['choices'][0]['message']['content'], '', '');
+          } else if (taskType == 'prompt-generation') {
+            widget.onResponse('', storyRequest.formatStoryRequest(taskType), response['choices'][0]['message']['content']);
+          }
+        } 
+      } else {
+        print('Error: No response data received. The server might have encountered an error.');
       }
+    }
+  }
 
-      log_message(2, 'USER', 1, storyRequest.formatStoryRequest(taskType));
-      log_message(2, 'MODEL', 1, response['choices'][0]['message']['content']);
+  Future<Map<String, dynamic>?> _sendGptRequest(String userInput) async {
+    String ip = await deviceIP;
+    String url = 'http://$ip:5001/handle_request';
+    print('Sending GPT request to $url');
 
+    Map<String, dynamic> data = {
+      'query': userInput,
+      'user_id': 'test_user',
+      if (conversationId != null) 'conversation_id': conversationId,
+    };
+
+    http.Response response = await http.post(
+      Uri.parse(url),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(data),
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      print('Failed to get response from GPT API');
+      print(response.body);
+      print(response.statusCode);
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> _sendConfirmation(String confirmation) async {
+    String ip = await deviceIP;
+    String url = 'http://$ip:5001/confirm_new_story';
+    print('Sending confirmation to $url');
+
+    Map<String, dynamic> data = {
+      'query': lastUserInput,
+      'user_id': 'test_user',
+      'confirmation': confirmation,
+      if (conversationId != null) 'conversation_id': conversationId,
+    };
+
+    http.Response response = await http.post(
+      Uri.parse(url),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(data),
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      print('Failed to get confirmation response from GPT API');
+      print(response.body);
+      print(response.statusCode);
+      return null;
     }
   }
 
@@ -180,9 +234,33 @@ class _StoryDetailsState extends State<StoryDetails> {
             labelText: 'What are some vocabulary words related to your story?',
           ),
         ),
+        const SizedBox(height: 20),
+        CheckboxListTile(
+          title: Text('Is this a new story?'),
+          value: isNewStory,
+          onChanged: (bool? value) {
+            setState(() {
+              isNewStory = value ?? false;
+            });
+          },
+        ),
         SizedBox(height: 16.0),
         ElevatedButton(
-          onPressed: () => _handleSubmit(widget.model, widget.taskType),
+          onPressed: () async {
+            if (isNewStory) {
+              final confirmResponse = await _sendConfirmation('y');
+              if (confirmResponse != null) {
+                setState(() {
+                  conversationId = confirmResponse['conversation_id'] as int?;
+                  pendingConfirmation = false;
+                });
+                widget.onResponse(confirmResponse['response'] ?? '', '', '');
+                
+              }
+            } else {
+              _handleSubmit(widget.model, widget.taskType);
+            }
+          },
           child: Text('Submit'),
         )
       ],
