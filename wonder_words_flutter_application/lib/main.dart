@@ -80,12 +80,14 @@ class _AuthWrapperState extends State<AuthWrapper> {
       );
     }
 
-    final authProvider = Provider.of<AuthProvider>(context);
-
-    if (authProvider.isAuthenticated) {
-      return const HomeScreen();
-    } else {
-      return const LoginScreen();
-    }
+    return Consumer<AuthProvider>(
+      builder: (context, authProvider, _) {
+        if (authProvider.isAuthenticated) {
+          return const HomeScreen();
+        } else {
+          return const LoginScreen();
+        }
+      },
+    );
   }
 }

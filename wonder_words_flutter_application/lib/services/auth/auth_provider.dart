@@ -18,8 +18,6 @@ class AuthProvider with ChangeNotifier {
 
   // Initialize auth state
   Future<void> initializeAuth() async {
-    _setLoading(true);
-
     try {
       // Check if user is already signed in
       final User? currentUser = _authService.currentUser;
@@ -28,9 +26,7 @@ class AuthProvider with ChangeNotifier {
         _userData = userData;
       }
     } catch (e) {
-      _setError(e.toString());
-    } finally {
-      _setLoading(false);
+      _error = e.toString();
     }
   }
 
