@@ -67,6 +67,7 @@ def handle_request():
         print(f"Received query: {query}")
         try:
             code = int(handler(query))
+            print(f"Handler returned code: {code}")
         except ValueError:
             return jsonify({"message": "Invalid response from handler"})
 
