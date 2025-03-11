@@ -33,7 +33,6 @@ def handler(query):
         ],
         model=model,
     )
-
     return chat_completion.choices[0].message.content
 
 
