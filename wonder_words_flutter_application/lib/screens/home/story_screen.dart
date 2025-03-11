@@ -49,21 +49,27 @@ class _StoryScreenState extends State<StoryScreen> {
 
   Future<void> _initTts() async {
     _flutterTts.setStartHandler(() {
-      setState(() {
-        _isSpeaking = true;
-      });
+      if (mounted) {
+        setState(() {
+          _isSpeaking = true;
+        });
+      }
     });
 
     _flutterTts.setCompletionHandler(() {
-      setState(() {
-        _isSpeaking = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isSpeaking = false;
+        });
+      }
     });
 
     _flutterTts.setErrorHandler((error) {
-      setState(() {
-        _isSpeaking = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isSpeaking = false;
+        });
+      }
     });
 
     // Set language to English
@@ -140,9 +146,11 @@ class _StoryScreenState extends State<StoryScreen> {
     if (text.isNotEmpty) {
       if (_isSpeaking) {
         await _flutterTts.stop();
-        setState(() {
-          _isSpeaking = false;
-        });
+        if (mounted) {
+          setState(() {
+            _isSpeaking = false;
+          });
+        }
       } else {
         await _flutterTts.speak(text);
       }
