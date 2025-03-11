@@ -172,11 +172,29 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
                 groupValue: _selectedVoice,
                 onChanged: (value) async {
                   if (value != null) {
-                    await _flutterTts.setVoice({"name": value});
-                    setState(() {
-                      _selectedVoice = value;
-                    });
-                    Navigator.pop(context);
+                    try {
+                      // Try different ways to set the voice
+                      await _flutterTts.setVoice({"name": value});
+
+                      // Also try setting by language
+                      await _flutterTts.setLanguage("en-US");
+
+                      // Debug voice selection
+                      print("Selected voice: $value");
+
+                      // Speak a test phrase to confirm voice change
+                      await _flutterTts.speak("Voice selected");
+
+                      setState(() {
+                        _selectedVoice = value;
+                      });
+                      Navigator.pop(context);
+                    } catch (e) {
+                      print("Error setting voice: $e");
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Error setting voice: $e')),
+                      );
+                    }
                   }
                 },
               );
