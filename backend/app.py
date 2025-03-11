@@ -2,6 +2,12 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 from db.db import db, init_db, Conversation, Message, SenderType
 from llm.llm import handler, new_story_generator, add_to_story
+from firebase_auth import firebase_auth_required
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -51,10 +57,12 @@ def add_to_existing_story(conversation_id, query):
 
 
 @app.route('/handle_request', methods=['POST'])
+@firebase_auth_required
 def handle_request():
     data = request.get_json()
     query = data.get('query')
-    user_id = data.get('user_id', 'user_id_placeholder')
+    # Use Firebase user ID from the token
+    user_id = request.firebase_user.get('localId', 'user_id_placeholder')
     conversation_id = data.get('conversation_id')
 
     if query:
@@ -94,10 +102,12 @@ def handle_request():
 
 
 @app.route('/confirm_new_story', methods=['POST'])
+@firebase_auth_required
 def confirm_new_story_route():
     data = request.get_json()
     query = data.get('query')
-    user_id = data.get('user_id', 'user_id_placeholder')
+    # Use Firebase user ID from the token
+    user_id = request.firebase_user.get('localId', 'user_id_placeholder')
     confirmation = data.get('confirmation')
     conversation_id = data.get('conversation_id')
 

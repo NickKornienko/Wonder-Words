@@ -1,20 +1,39 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:firebase_auth/firebase_auth.dart';
 
 class StoryService {
   // Base URL for the Flask backend
   // Note: This should be updated to the actual backend URL when deployed
   final String baseUrl = 'http://localhost:5000';
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  // Helper method to get the current user's ID token
+  Future<String> _getIdToken() async {
+    final User? user = _auth.currentUser;
+    if (user == null) {
+      throw Exception('User not authenticated');
+    }
+    final String? token = await user.getIdToken();
+    if (token == null) {
+      throw Exception('Failed to get ID token');
+    }
+    return token;
+  }
 
   // Method to get a new story
   Future<Map<String, dynamic>> getNewStory(String query, String userId) async {
     try {
+      final String idToken = await _getIdToken();
+
       final response = await http.post(
         Uri.parse('$baseUrl/handle_request'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $idToken',
+        },
         body: jsonEncode({
           'query': query,
-          'user_id': userId,
         }),
       );
 
@@ -32,12 +51,16 @@ class StoryService {
   Future<Map<String, dynamic>> addToStory(
       String query, String userId, String conversationId) async {
     try {
+      final String idToken = await _getIdToken();
+
       final response = await http.post(
         Uri.parse('$baseUrl/handle_request'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $idToken',
+        },
         body: jsonEncode({
           'query': query,
-          'user_id': userId,
           'conversation_id': conversationId,
         }),
       );
@@ -53,15 +76,19 @@ class StoryService {
   }
 
   // Method to confirm a new story when there's an existing conversation
-  Future<Map<String, dynamic>> confirmNewStory(
-      String query, String userId, String conversationId, String confirmation) async {
+  Future<Map<String, dynamic>> confirmNewStory(String query, String userId,
+      String conversationId, String confirmation) async {
     try {
+      final String idToken = await _getIdToken();
+
       final response = await http.post(
         Uri.parse('$baseUrl/confirm_new_story'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $idToken',
+        },
         body: jsonEncode({
           'query': query,
-          'user_id': userId,
           'conversation_id': conversationId,
           'confirmation': confirmation,
         }),
