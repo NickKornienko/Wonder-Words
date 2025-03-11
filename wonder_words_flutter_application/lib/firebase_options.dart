@@ -1,15 +1,14 @@
 import 'package:firebase_core/firebase_core.dart';
 
-// This is a placeholder for Firebase configuration
-// Replace with actual configuration from Firebase console
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
-    // Default configuration for development
     return const FirebaseOptions(
-      apiKey: 'placeholder-api-key',
-      appId: 'placeholder-app-id',
-      messagingSenderId: 'placeholder-messaging-sender-id',
-      projectId: 'placeholder-project-id',
+      apiKey: 'AIzaSyAdi5CPuVvhw_LTl4bReihnBrWv6VVaGAU',
+      authDomain: 'wonder-words-bac10.firebaseapp.com',
+      projectId: 'wonder-words-bac10',
+      storageBucket: 'wonder-words-bac10.firebasestorage.app',
+      messagingSenderId: '296262904600',
+      appId: '1:296262904600:web:717dc09acbb8fa1d4b8c6d',
     );
   }
 }
