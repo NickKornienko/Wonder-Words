@@ -44,7 +44,10 @@ class _StoryScreenState extends State<StoryScreen> {
     _initTts();
   }
 
-  void _initTts() {
+  String _selectedVoice = '';
+  List<String> _availableVoices = [];
+
+  Future<void> _initTts() async {
     _flutterTts.setStartHandler(() {
       setState(() {
         _isSpeaking = true;
@@ -62,6 +65,37 @@ class _StoryScreenState extends State<StoryScreen> {
         _isSpeaking = false;
       });
     });
+
+    // Set language to English
+    await _flutterTts.setLanguage("en-US");
+
+    // Get available voices
+    try {
+      var voices = await _flutterTts.getVoices;
+      if (voices != null) {
+        List<String> voiceNames = [];
+        for (var voice in voices) {
+          if (voice is Map && voice.containsKey('name')) {
+            voiceNames.add(voice['name']);
+          }
+        }
+
+        setState(() {
+          _availableVoices = voiceNames;
+          if (voiceNames.isNotEmpty) {
+            _selectedVoice = voiceNames.first;
+            _flutterTts.setVoice({"name": _selectedVoice});
+          }
+        });
+      }
+    } catch (e) {
+      print("Failed to get voices: $e");
+    }
+
+    // Set speech rate and pitch for better quality
+    await _flutterTts.setSpeechRate(0.5); // Slower rate for better clarity
+    await _flutterTts.setPitch(1.0); // Normal pitch
+    await _flutterTts.setVolume(1.0); // Full volume
   }
 
   Future<void> _speak(String text) async {
@@ -230,6 +264,52 @@ class _StoryScreenState extends State<StoryScreen> {
     });
   }
 
+  void _showVoiceSelectionDialog() {
+    if (_availableVoices.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No voices available')),
+      );
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Select Voice'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: _availableVoices.length,
+            itemBuilder: (context, index) {
+              final voice = _availableVoices[index];
+              return RadioListTile<String>(
+                title: Text(voice),
+                value: voice,
+                groupValue: _selectedVoice,
+                onChanged: (value) async {
+                  if (value != null) {
+                    await _flutterTts.setVoice({"name": value});
+                    setState(() {
+                      _selectedVoice = value;
+                    });
+                    Navigator.pop(context);
+                  }
+                },
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
@@ -241,6 +321,11 @@ class _StoryScreenState extends State<StoryScreen> {
         backgroundColor: Colors.deepPurple,
         foregroundColor: Colors.white,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.record_voice_over),
+            onPressed: _showVoiceSelectionDialog,
+            tooltip: 'Select Voice',
+          ),
           IconButton(
             icon: const Icon(Icons.history),
             onPressed: () {
