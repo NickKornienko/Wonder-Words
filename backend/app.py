@@ -129,5 +129,65 @@ def confirm_new_story_route():
         return jsonify({"message": "Query and confirmation required"})
 
 
+@app.route('/get_conversations', methods=['GET'])
+@firebase_auth_required
+def get_conversations():
+    # Use Firebase user ID from the token
+    user_id = request.firebase_user.get('localId', 'user_id_placeholder')
+    
+    try:
+        conversations = fetch_conversations_by_user(user_id)
+        result = []
+        
+        for conversation in conversations:
+            # Get the first message (story) for each conversation
+            messages = Message.query.filter_by(conversation_id=conversation.id).order_by(Message.created_at).all()
+            first_story = next((msg for msg in messages if msg.sender_type == SenderType.MODEL), None)
+            
+            result.append({
+                'id': conversation.id,
+                'created_at': conversation.created_at.isoformat(),
+                'preview': first_story.content[:100] + '...' if first_story else 'No story content',
+                'message_count': len(messages)
+            })
+            
+        return jsonify({"conversations": result})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/get_conversation_messages', methods=['GET'])
+@firebase_auth_required
+def get_conversation_messages():
+    # Use Firebase user ID from the token
+    user_id = request.firebase_user.get('localId', 'user_id_placeholder')
+    conversation_id = request.args.get('conversation_id')
+    
+    if not conversation_id:
+        return jsonify({"error": "Conversation ID is required"}), 400
+    
+    try:
+        # Verify the conversation belongs to the user
+        conversation = Conversation.query.filter_by(id=conversation_id, user_id=user_id).first()
+        if not conversation:
+            return jsonify({"error": "Conversation not found or access denied"}), 404
+        
+        messages = fetch_messages_by_user_and_conversation(user_id, conversation_id)
+        result = []
+        
+        for message in messages:
+            result.append({
+                'id': message.id,
+                'sender_type': message.sender_type.name,
+                'content': message.content,
+                'created_at': message.created_at.isoformat(),
+                'code': message.code
+            })
+            
+        return jsonify({"messages": result})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 if __name__ == '__main__':
     app.run(debug=True)
