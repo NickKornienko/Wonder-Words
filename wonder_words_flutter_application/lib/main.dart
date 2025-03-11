@@ -1,9 +1,30 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_tts/flutter_tts.dart';
-import 'services/story_service.dart';
+import 'package:provider/provider.dart';
+import 'firebase_options.dart';
+import 'services/auth/auth_provider.dart';
+import 'screens/auth/login_screen.dart';
+import 'screens/home/home_screen.dart';
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Firebase
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {
+    print('Failed to initialize Firebase: $e');
+    // Continue without Firebase for development
+  }
+
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => AuthProvider(),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -17,316 +38,54 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const StorytellingScreen(),
+      home: const AuthWrapper(),
     );
   }
 }
 
-class StorytellingScreen extends StatefulWidget {
-  const StorytellingScreen({super.key});
+class AuthWrapper extends StatefulWidget {
+  const AuthWrapper({super.key});
 
   @override
-  State<StorytellingScreen> createState() => _StorytellingScreenState();
+  State<AuthWrapper> createState() => _AuthWrapperState();
 }
 
-class _StorytellingScreenState extends State<StorytellingScreen> {
-  final TextEditingController _promptController = TextEditingController();
-  final StoryService _storyService = StoryService();
-  final FlutterTts _flutterTts = FlutterTts();
-  final String _userId = 'user_${DateTime.now().millisecondsSinceEpoch}';
-  String? _conversationId;
-  bool _isLoading = false;
-  bool _needsConfirmation = false;
-  bool _isSpeaking = false;
-  String _pendingQuery = '';
-  
-  final List<Message> _messages = [
-    Message(
-      content: 'Welcome to Wonder Words! Ask me to tell you a story.',
-      isUser: false,
-    ),
-  ];
+class _AuthWrapperState extends State<AuthWrapper> {
+  bool _initializing = true;
 
   @override
   void initState() {
     super.initState();
-    _initTts();
+    _initializeAuth();
   }
 
-  void _initTts() {
-    _flutterTts.setStartHandler(() {
-      setState(() {
-        _isSpeaking = true;
-      });
-    });
+  Future<void> _initializeAuth() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    await authProvider.initializeAuth();
 
-    _flutterTts.setCompletionHandler(() {
+    if (mounted) {
       setState(() {
-        _isSpeaking = false;
+        _initializing = false;
       });
-    });
-
-    _flutterTts.setErrorHandler((error) {
-      setState(() {
-        _isSpeaking = false;
-      });
-    });
-  }
-
-  Future<void> _speak(String text) async {
-    if (text.isNotEmpty) {
-      if (_isSpeaking) {
-        await _flutterTts.stop();
-        setState(() {
-          _isSpeaking = false;
-        });
-      } else {
-        await _flutterTts.speak(text);
-      }
     }
   }
 
   @override
-  void dispose() {
-    _promptController.dispose();
-    super.dispose();
-  }
-
-  void _sendMessage() async {
-    if (_promptController.text.trim().isEmpty) return;
-
-    final userMessage = _promptController.text.trim();
-    setState(() {
-      _messages.add(Message(content: userMessage, isUser: true));
-      _isLoading = true;
-      _promptController.clear();
-    });
-
-    try {
-      if (_needsConfirmation) {
-        // Handle confirmation for new story when there's an existing conversation
-        _handleConfirmation(userMessage);
-      } else {
-        // Normal message handling
-        await _handleNormalMessage(userMessage);
-      }
-    } catch (e) {
-      setState(() {
-        _messages.add(Message(
-          content: 'Error: ${e.toString()}',
-          isUser: false,
-        ));
-        _isLoading = false;
-      });
-    }
-  }
-
-  Future<void> _handleNormalMessage(String userMessage) async {
-    Map<String, dynamic> response;
-    
-    if (_conversationId == null) {
-      // New conversation
-      response = await _storyService.getNewStory(userMessage, _userId);
-    } else {
-      // Existing conversation
-      response = await _storyService.addToStory(
-        userMessage, 
-        _userId, 
-        _conversationId!
+  Widget build(BuildContext context) {
+    if (_initializing) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
       );
     }
 
-    setState(() {
-      _isLoading = false;
-      
-      // Check if we need confirmation for a new story
-      if (response.containsKey('confirmation')) {
-        _messages.add(Message(
-          content: response['confirmation'],
-          isUser: false,
-        ));
-        _needsConfirmation = true;
-        _pendingQuery = userMessage;
-        _conversationId = response['conversation_id'].toString();
-      } else {
-        // Normal response
-        final storyContent = response['response'] ?? response['message'] ?? 'No response';
-        _messages.add(Message(
-          content: storyContent,
-          isUser: false,
-        ));
-        if (response['conversation_id'] != null) {
-          _conversationId = response['conversation_id'].toString();
-        }
-        
-        // Automatically speak the story
-        _speak(storyContent);
-      }
-    });
-  }
+    final authProvider = Provider.of<AuthProvider>(context);
 
-  Future<void> _handleConfirmation(String userInput) async {
-    final lowerInput = userInput.toLowerCase();
-    String confirmation;
-    
-    if (lowerInput.contains('yes') || lowerInput.contains('y')) {
-      confirmation = 'y';
-    } else if (lowerInput.contains('no') || lowerInput.contains('n')) {
-      confirmation = 'n';
+    if (authProvider.isAuthenticated) {
+      return const HomeScreen();
     } else {
-      setState(() {
-        _messages.add(Message(
-          content: 'Please respond with "yes" or "no".',
-          isUser: false,
-        ));
-        _isLoading = false;
-      });
-      return;
+      return const LoginScreen();
     }
-
-    final response = await _storyService.confirmNewStory(
-      _pendingQuery, 
-      _userId, 
-      _conversationId!, 
-      confirmation
-    );
-
-    setState(() {
-      _isLoading = false;
-      _needsConfirmation = false;
-      _pendingQuery = '';
-      
-      if (confirmation == 'y') {
-        final storyContent = response['response'] ?? 'New story created';
-        _messages.add(Message(
-          content: storyContent,
-          isUser: false,
-        ));
-        if (response['conversation_id'] != null) {
-          _conversationId = response['conversation_id'].toString();
-        }
-        
-        // Automatically speak the story
-        _speak(storyContent);
-      } else {
-        _messages.add(Message(
-          content: 'New story request canceled.',
-          isUser: false,
-        ));
-      }
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: const Text('Wonder Words Storytelling'),
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: _messages.length + (_isLoading ? 1 : 0),
-              itemBuilder: (context, index) {
-                if (index == _messages.length) {
-                  // Show loading indicator
-                  return const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(8.0),
-                      child: CircularProgressIndicator(),
-                    ),
-                  );
-                }
-                
-                final message = _messages[index];
-                return MessageBubble(message: message);
-              },
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _promptController,
-                    decoration: const InputDecoration(
-                      hintText: 'Ask for a story...',
-                      border: OutlineInputBorder(),
-                    ),
-                    onSubmitted: (_) => _sendMessage(),
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.send),
-                  onPressed: _sendMessage,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class Message {
-  final String content;
-  final bool isUser;
-
-  Message({required this.content, required this.isUser});
-}
-
-class MessageBubble extends StatelessWidget {
-  final Message message;
-
-  const MessageBubble({super.key, required this.message});
-
-  @override
-  Widget build(BuildContext context) {
-    final _StorytellingScreenState state = context.findAncestorStateOfType<_StorytellingScreenState>()!;
-    
-    return Align(
-      alignment: message.isUser ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 8),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: message.isUser 
-              ? Theme.of(context).colorScheme.primary 
-              : Theme.of(context).colorScheme.secondary,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * 0.75,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              message.content,
-              style: TextStyle(
-                color: message.isUser ? Colors.white : Colors.black,
-              ),
-            ),
-            if (!message.isUser) // Only show speak button for AI messages
-              Align(
-                alignment: Alignment.centerRight,
-                child: IconButton(
-                  icon: Icon(
-                    state._isSpeaking ? Icons.stop : Icons.volume_up,
-                    color: message.isUser ? Colors.white : Colors.black,
-                    size: 20,
-                  ),
-                  onPressed: () => state._speak(message.content),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
   }
 }
