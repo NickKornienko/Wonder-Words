@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth/auth_provider.dart';
 import '../../services/story_service.dart';
+import 'story_history_screen.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
 class Message {
@@ -240,6 +241,18 @@ class _StoryScreenState extends State<StoryScreen> {
         backgroundColor: Colors.deepPurple,
         foregroundColor: Colors.white,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.history),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const StoryHistoryScreen(),
+                ),
+              );
+            },
+            tooltip: 'View Story History',
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {

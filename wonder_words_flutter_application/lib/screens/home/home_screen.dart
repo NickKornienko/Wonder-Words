@@ -5,6 +5,7 @@ import '../auth/login_screen.dart';
 import 'story_screen.dart';
 import 'profile_screen.dart';
 import 'child_accounts_screen.dart';
+import 'story_history_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
