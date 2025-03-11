@@ -69,29 +69,67 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
 
     // Get available voices
     try {
+      // First try to get all voices
       var voices = await _flutterTts.getVoices;
+      List<String> voiceNames = [];
+
       if (voices != null) {
-        List<String> voiceNames = [];
         for (var voice in voices) {
           if (voice is Map && voice.containsKey('name')) {
             voiceNames.add(voice['name']);
           }
         }
-
-        setState(() {
-          _availableVoices = voiceNames;
-          if (voiceNames.isNotEmpty) {
-            _selectedVoice = voiceNames.first;
-            _flutterTts.setVoice({"name": _selectedVoice});
-          }
-        });
       }
+
+      // Try to set language to get language-specific voices
+      if (voiceNames.isEmpty) {
+        await _flutterTts.setLanguage("en-US");
+        // Wait a moment for language to be set
+        await Future.delayed(const Duration(milliseconds: 100));
+        // Try to get voices again
+        voices = await _flutterTts.getVoices;
+        if (voices != null) {
+          for (var voice in voices) {
+            if (voice is Map && voice.containsKey('name')) {
+              voiceNames.add(voice['name']);
+            }
+          }
+        }
+      }
+
+      // If still no voices, add some default voice names that might be available
+      if (voiceNames.isEmpty) {
+        voiceNames = [
+          "Microsoft David - English (United States)",
+          "Microsoft Zira - English (United States)",
+          "Microsoft Mark - English (United States)",
+          "Google US English",
+          "Google UK English Female",
+          "Google UK English Male",
+          "en-US-language",
+          "en-US-x-sfg#female_1-local",
+          "en-US-x-sfg#male_1-local",
+        ];
+      }
+
+      setState(() {
+        _availableVoices = voiceNames;
+        if (voiceNames.isNotEmpty) {
+          _selectedVoice = voiceNames.first;
+          _flutterTts.setVoice({"name": _selectedVoice});
+        }
+      });
+
+      // Debug voice information
+      print("Available voices: $_availableVoices");
+      var engines = await _flutterTts.getEngines;
+      print("Available engines: $engines");
     } catch (e) {
       print("Failed to get voices: $e");
     }
 
     // Set speech rate and pitch for better quality
-    await _flutterTts.setSpeechRate(0.5); // Slower rate for better clarity
+    await _flutterTts.setSpeechRate(0.9); // More natural speech rate
     await _flutterTts.setPitch(1.0); // Normal pitch
     await _flutterTts.setVolume(1.0); // Full volume
   }
