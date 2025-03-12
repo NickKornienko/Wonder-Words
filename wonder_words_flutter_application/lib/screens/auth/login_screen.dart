@@ -60,8 +60,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   // App Logo
                   const Image(
                     image: AssetImage('assets/frog.png'),
-                    width: 100, // Set the desired width
-                    height: 100, // Set the desired height
+                    width: 225, // Set the desired width
+                    height: 225, // Set the desired height
                   ),
                   RichText(
                     text: TextSpan(
