@@ -8,7 +8,7 @@ class DefaultFirebaseOptions {
       projectId: 'wonder-words-bac10',
       storageBucket: 'wonder-words-bac10.firebasestorage.app',
       messagingSenderId: '296262904600',
-      appId: '1:296262904600:web:717dc09acbb8fa1d4b8c6d',
+      appId: '1:296262904600:ios:717dc09acbb8fa1d4b8c6d',
     );
   }
 }
