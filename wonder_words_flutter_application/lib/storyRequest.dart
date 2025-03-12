@@ -46,27 +46,48 @@ class StoryRequest {
               ### Story:
 
           ''';
+      String continuationPrompt = '''<|im_start|>user\n 
+              Below is a continuation story request that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.
+
+              ### Title: 
+              ${title}
+              
+              ### Story Request:
+              ${prompt}
+
+              ### Word List:
+              ${vocabulary} 
+              <|im_end|>\n
+
+              <|im_start|>assistant\n 
+              Here's the continuation of the story titled '${title}' about '${prompt}' with the vocabulary '${vocabulary}':
+              ### Story:
+
+          ''';
       if (promptType == 'story-generation') {
         return starterPrompt;
-    }
-    if (promptType == 'prompt-generation') {
-        return '''<|im_start|>user\n 
-            Below is a prompt evaluation request that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.
-            Do not include any additional information or context in your response, and only provide the updated prompt.
-            
-            ## Instruction (prompt evaluation request):
-            Identify any potential issues with the prompt. Is it clear, specific, and relevant to the task? Edit this prompt for improvement.
+      }
+      else if (promptType == 'story-continuation') {
+        return continuationPrompt;
+      }
+      if (promptType == 'prompt-generation') {
+          return '''<|im_start|>user\n 
+              Below is a prompt evaluation request that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.
+              Do not include any additional information or context in your response, and only provide the updated prompt.
+              
+              ## Instruction (prompt evaluation request):
+              Identify any potential issues with the prompt. Is it clear, specific, and relevant to the task? Edit this prompt for improvement.
 
-            ## Prompt for Evaluation: 
-            ${starterPrompt}
+              ## Prompt for Evaluation: 
+              ${starterPrompt}
 
-            <|im_end|>\n
+              <|im_end|>\n
 
-            <|im_start|>assistant\n 
-            ## Prompt:
+              <|im_start|>assistant\n 
+              ## Prompt:
 
-        ''';
-    }
+          ''';
+      }
     return '';
   }
 }
