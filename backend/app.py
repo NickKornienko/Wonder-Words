@@ -15,23 +15,32 @@ CORS(app)  # Enable CORS for all routes
 # Initialize the SQLAlchemy db instance
 init_db(app)
 
-
+@app.route('/log_message', methods=['POST'])
 def log_message(conversation_id, sender_type, code, content):
-    message = Message(
-        conversation_id=conversation_id,
-        sender_type=sender_type,
-        code=code,
-        content=content
-    )
-    db.session.add(message)
-    db.session.commit()
+    # Process the data as needed
+    # For example, you can log it or save it to a database
+    
+    try:
+        print(f"Logging message with conversation_id: {conversation_id}, sender_type: {sender_type}, code: {code}, content: {content}")
+        message = Message(
+            conversation_id=conversation_id,
+            sender_type=sender_type,
+            code=code,
+            content=content
+        )
+        db.session.add(message)
+        db.session.commit()
+        print(f"Message logged: {message}")
+    except Exception as e:
+        print(f"Error logging message: {e}")
+    return jsonify({'status': 'success', 'message': 'Log message received'}), 200
 
-
+@app.route('/fetch_conversations_by_user', methods=['POST'])
 def fetch_conversations_by_user(user_id):
     conversations = Conversation.query.filter_by(user_id=user_id).all()
     return conversations
 
-
+@app.route('/fetch_messages_by_user_and_conversation', methods=['POST'])
 def fetch_messages_by_user_and_conversation(user_id, conversation_id):
     messages = Message.query.join(Conversation).filter(
         Conversation.user_id == user_id,
@@ -64,10 +73,11 @@ def handle_request():
     # Use Firebase user ID from the token
     user_id = request.firebase_user.get('localId', 'user_id_placeholder')
     conversation_id = data.get('conversation_id')
-
     if query:
+        print(f"Received query: {query}")
         try:
             code = int(handler(query))
+            print(f"Handler returned code: {code}")
         except ValueError:
             return jsonify({"message": "Invalid response from handler"})
 
@@ -84,6 +94,7 @@ def handle_request():
         if code == 2 and conversation_id:  # If the user asks for a new story and there is an existing conversation
             return jsonify({"confirmation": "Are you sure you want to start a new story? Please respond with 'yes' or 'no'.", "conversation_id": conversation_id})
 
+        print(f"Calling log_message with conversation_id: {conversation.id}, sender_type: {SenderType.USER}, code: {code}, query: {query}")
         log_message(conversation.id, SenderType.USER, code, query)
 
         if code == 0:  # If the user asks for something unrelated to telling a story
@@ -92,6 +103,7 @@ def handle_request():
             response = "Sorry, I can't tell that story. Please ask me to tell you a story."
         elif code == 3:  # If the user asks for an addition to an existing story
             response = add_to_existing_story(conversation.id, query)
+            print(f"Calling log_message with conversation_id: {conversation.id}, sender_type: {SenderType.USER}, code: {code}, query: {query}")
             log_message(conversation.id, SenderType.MODEL, code, response)
         else:
             response = f"Invalid code: {code}"
@@ -116,7 +128,7 @@ def confirm_new_story_route():
             conversation = Conversation(user_id=user_id)
             db.session.add(conversation)
             db.session.commit()
-
+            log_message(conversation.id, SenderType.USER, 2, query)
             response = generate_new_story(query)
             log_message(conversation.id, SenderType.MODEL, 2, response)
 
@@ -190,4 +202,5 @@ def get_conversation_messages():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    #app.run(debug=True)
+    app.run(host='0.0.0.0', port=5001, debug=True)
