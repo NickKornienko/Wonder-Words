@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:wonder_words_flutter_application/colors.dart';
 import '../../services/auth/auth_provider.dart';
 import 'register_screen.dart';
 import 'reset_password_screen.dart';
 import '../home/home_screen.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -47,16 +49,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.purple[100]!,
-              Colors.purple[200]!,
-            ],
-          ),
-        ),
+        color: ColorTheme.backgroundColor,
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
@@ -64,27 +57,97 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Logo and App Name
-                  const Icon(
-                    Icons.auto_stories,
-                    size: 80,
-                    color: Colors.deepPurple,
+                  // App Logo
+                  const Image(
+                    image: AssetImage('assets/frog.png'),
+                    width: 100, // Set the desired width
+                    height: 100, // Set the desired height
                   ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Wonder Words',
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.deepPurple,
+                  RichText(
+                    text: TextSpan(
+                      children: [
+                        TextSpan(
+                          text: 'W',
+                          style: TextStyle(
+                            fontSize: 32,
+                            color: ColorTheme.textColor,
+                            fontFamily: GoogleFonts.montserrat(
+                              fontWeight: FontWeight.bold,
+                            ).fontFamily,
+                          ),
+                        ),
+                        TextSpan(
+                          text: 'o',
+                          style: TextStyle(
+                            fontSize: 32,
+                            color: ColorTheme
+                                .primaryColor, // Change this to your desired color
+                            fontFamily: GoogleFonts.montserrat(
+                              fontWeight: FontWeight.bold,
+                            ).fontFamily,
+                          ),
+                        ),
+                        TextSpan(
+                          text: 'nd',
+                          style: TextStyle(
+                            fontSize: 32,
+                            color: ColorTheme.textColor,
+                            fontFamily: GoogleFonts.montserrat(
+                              fontWeight: FontWeight.bold,
+                            ).fontFamily,
+                          ),
+                        ),
+                        TextSpan(
+                          text: 'e',
+                          style: TextStyle(
+                            fontSize: 32,
+                            color: ColorTheme.accentBlueColor,
+                            fontFamily: GoogleFonts.montserrat(
+                              fontWeight: FontWeight.bold,
+                            ).fontFamily,
+                          ),
+                        ),
+                        TextSpan(
+                          text: 'rW',
+                          style: TextStyle(
+                            fontSize: 32,
+                            color: ColorTheme.textColor,
+                            fontFamily: GoogleFonts.montserrat(
+                              fontWeight: FontWeight.bold,
+                            ).fontFamily,
+                          ),
+                        ),
+                        TextSpan(
+                          text: 'o',
+                          style: TextStyle(
+                            fontSize: 32,
+                            color: ColorTheme
+                                .secondaryColor, // Change this to your desired color
+                            fontFamily: GoogleFonts.montserrat(
+                              fontWeight: FontWeight.bold,
+                            ).fontFamily,
+                          ),
+                        ),
+                        TextSpan(
+                          text: 'rds',
+                          style: TextStyle(
+                            fontSize: 32,
+                            color: ColorTheme.textColor,
+                            fontFamily: GoogleFonts.montserrat(
+                              fontWeight: FontWeight.bold,
+                            ).fontFamily,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Magical Stories for Curious Minds',
+                  Text(
+                    'Create your own stories',
                     style: TextStyle(
                       fontSize: 16,
-                      color: Colors.deepPurple,
+                      color: ColorTheme.textColor,
+                      fontFamily: GoogleFonts.montserrat().fontFamily,
                     ),
                   ),
                   const SizedBox(height: 48),
@@ -95,6 +158,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
+                    color: ColorTheme.accentYellowColor,
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),
                       child: Form(
@@ -102,11 +166,14 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            const Text(
-                              'Login',
+                            Text(
+                              'Let\'s Read',
                               style: TextStyle(
                                 fontSize: 24,
-                                fontWeight: FontWeight.bold,
+                                fontFamily: GoogleFonts.montserrat(
+                                  fontWeight: FontWeight.bold,
+                                ).fontFamily,
+                                color: ColorTheme.secondaryColor,
                               ),
                               textAlign: TextAlign.center,
                             ),
@@ -121,6 +188,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
+                                fillColor: Colors.white,
+                                filled: true,
                               ),
                               keyboardType: TextInputType.emailAddress,
                               validator: (value) {
@@ -156,6 +225,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
+                                fillColor: Colors.white,
+                                filled: true,
                               ),
                               obscureText: _obscurePassword,
                               validator: (value) {
@@ -180,7 +251,11 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ),
                                   );
                                 },
-                                child: const Text('Forgot Password?'),
+                                child: Text(
+                                  'Forgot Password?',
+                                  style: TextStyle(
+                                      color: ColorTheme.secondaryColor),
+                                ),
                               ),
                             ),
                             const SizedBox(height: 24),
@@ -189,7 +264,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ElevatedButton(
                               onPressed: authProvider.isLoading ? null : _login,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.deepPurple,
+                                backgroundColor: ColorTheme.secondaryColor,
                                 foregroundColor: Colors.white,
                                 padding:
                                     const EdgeInsets.symmetric(vertical: 12),
@@ -201,10 +276,13 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ? const CircularProgressIndicator(
                                       color: Colors.white,
                                     )
-                                  : const Text(
-                                      'Login',
-                                      style: TextStyle(fontSize: 16),
-                                    ),
+                                  : Text('Login',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontFamily: GoogleFonts.montserrat(
+                                                fontWeight: FontWeight.bold)
+                                            .fontFamily,
+                                      )),
                             ),
 
                             // Error Message
@@ -241,7 +319,8 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           );
                         },
-                        child: const Text('Register'),
+                        child: Text('Register',
+                            style: TextStyle(color: ColorTheme.secondaryColor)),
                       ),
                     ],
                   ),
