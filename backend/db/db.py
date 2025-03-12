@@ -1,5 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
 import os
+import subprocess
 from sqlalchemy import Enum
 import enum
 
@@ -38,3 +39,5 @@ def init_db(app):
         if os.path.exists('conversations.db'):
             os.remove('conversations.db')
         db.create_all()
+        # Run the create_tables.py script
+        subprocess.run(['python', 'create_tables.py'], check=True)
