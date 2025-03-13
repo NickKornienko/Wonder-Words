@@ -1,12 +1,36 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:wonder_words_flutter_application/storyDetails.dart';
 import '../models/conversation.dart';
+import 'package:flutter/services.dart' show rootBundle;
+
+Future<String> _loadKeyFromConfigFile(String configFileName, String tokenKey) async {
+  try {
+    // using rootBundle to access the config file
+    final content = await rootBundle.loadString('secrets/$configFileName');
+    final jsonObject = jsonDecode(content);
+    return jsonObject[tokenKey];
+  } catch (e) {
+    throw Exception('Error reading API key from file: $e');
+  }
+}
 
 class StoryService {
   // Base URL for the Flask backend
   // Note: This should be updated to the actual backend URL when deployed
-  final String baseUrl = 'http://localhost:5000';
+  
+  String configFileName = 'ip_address.json';
+  String tokenKey = 'device_ip';
+  late Future<String> deviceIP;
+  late String baseUrl;
+
+  StoryService() {
+    deviceIP = _loadKeyFromConfigFile(configFileName, tokenKey);
+    deviceIP.then((ip) {
+      baseUrl = 'http://$ip:5000';
+    });
+  }
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   // Helper method to get the current user's ID token
