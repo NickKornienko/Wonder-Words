@@ -199,6 +199,7 @@ class _ChildAccountsScreenState extends State<ChildAccountsScreen> {
       ),
       floatingActionButton: !_isCreating
           ? FloatingActionButton(
+              heroTag: 'createChildAccount',
               onPressed: () {
                 setState(() {
                   _isCreating = true;

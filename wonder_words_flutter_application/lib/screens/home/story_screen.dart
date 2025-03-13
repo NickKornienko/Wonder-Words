@@ -505,6 +505,7 @@ class _StoryScreenState extends State<StoryScreen> {
                   ),
                   const SizedBox(width: 8),
                   FloatingActionButton(
+                    heroTag: 'sendButton',
                     onPressed: _sendMessage,
                     backgroundColor: Colors.deepPurple,
                     child: const Icon(Icons.send),
