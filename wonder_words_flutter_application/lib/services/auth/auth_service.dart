@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -70,7 +71,6 @@ class AuthService {
         email: email,
         password: password,
       );
-
       final User? user = result.user;
       if (user == null) {
         throw Exception('User is null after sign in');
@@ -85,10 +85,25 @@ class AuthService {
         return userData;
       }
 
+      // Wrap all keys and string values in double quotes, making sure to handle null values, special characters and spaces
+      final sanitizedJsonWithQuotes = userDataJson.replaceAllMapped(
+        RegExp(r'(\w+):\s*([^,}\s][^,}]*)'),
+        (match) {
+          final key = match.group(1);
+          final value = match.group(2);
+          if (value == 'null') {
+            return '"$key": null';
+          } else {
+            return '"$key": "$value"';
+          }
+        },
+      );
+
       // Parse the JSON string to a Map
-      final Map<String, dynamic> userData = {};
-      return UserData.fromMap(userData);
+      final Map<String, dynamic> userDataMap = jsonDecode(sanitizedJsonWithQuotes);
+      return UserData.fromMap(userDataMap);
     } catch (e) {
+      print('Sign in error: $e');
       throw Exception('Failed to sign in: $e');
     }
   }
@@ -170,7 +185,7 @@ class AuthService {
   Future<void> _saveUserData(UserData userData) async {
     await _storage.write(
       key: userData.uid,
-      value: userData.toMap().toString(),
+      value: jsonEncode(userData.toMap()), // Ensure the value is a valid JSON string
     );
   }
 
@@ -180,10 +195,24 @@ class AuthService {
     if (userDataJson == null) {
       return null;
     }
+    // Wrap all keys and string values in double quotes, making sure to handle null values, special characters and spaces
+      final sanitizedJsonWithQuotes = userDataJson.replaceAllMapped(
+        RegExp(r'(\w+):\s*([^,}\s][^,}]*)'),
+        (match) {
+          final key = match.group(1);
+          final value = match.group(2);
+          if (value == 'null') {
+            return '"$key": null';
+          } else {
+            return '"$key": "$value"';
+          }
+        },
+      );
 
+      // Parse the JSON string to a Map
+      final Map<String, dynamic> userDataMap = jsonDecode(sanitizedJsonWithQuotes);
     // Parse the JSON string to a Map
-    final Map<String, dynamic> userData = {};
-    return UserData.fromMap(userData);
+    return UserData.fromMap(userDataMap);
   }
 
   // Update user profile

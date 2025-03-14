@@ -33,7 +33,7 @@ class _StoryScreenState extends State<StoryScreen> {
 
   final List<Message> _messages = [
     Message(
-      content: 'Welcome to Wonder Words! Ask me to tell you a story.',
+      content: 'Welcome to Wonder Words. Ask me to tell you a story.',
       isUser: false,
     ),
   ];
@@ -505,6 +505,7 @@ class _StoryScreenState extends State<StoryScreen> {
                   ),
                   const SizedBox(width: 8),
                   FloatingActionButton(
+                    heroTag: 'sendButton',
                     onPressed: _sendMessage,
                     backgroundColor: Colors.deepPurple,
                     child: const Icon(Icons.send),
