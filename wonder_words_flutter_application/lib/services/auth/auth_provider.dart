@@ -37,7 +37,7 @@ class AuthProvider with ChangeNotifier {
 
     try {
       final userData =
-          await _authService.signInWithEmailAndPassword(email, password);
+          await _authService.signInWithEmailAndPassword(email, password);     
       _userData = userData;
       return true;
     } catch (e) {
