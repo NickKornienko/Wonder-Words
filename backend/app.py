@@ -260,18 +260,18 @@ def get_child_accounts():
     parent_uid = request.firebase_user.get('localId', 'user_id_placeholder')
     
     # Query child accounts by parent UID
-    child_accounts_query = ChildAccount.query.filter_by(parent_uid=parent_uid).all()
+    child_accounts = ChildAccount.query.filter_by(parent_uid=parent_uid).all()
     
     # Format the results
-    child_accounts = []
-    for account in child_accounts_query:
-        child_accounts.append({
+    result = []
+    for account in child_accounts:
+        result.append({
             'username': account.username,
             'display_name': account.display_name,
             'age': account.age
         })
     
-    return jsonify({"child_accounts": child_accounts})
+    return jsonify({"child_accounts": result})
 
 
 @app.route('/handle_child_request', methods=['POST'])
