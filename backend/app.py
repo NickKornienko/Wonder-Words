@@ -1,10 +1,15 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-from db.db import db, init_db, Conversation, Message, SenderType
+from db.db import db, init_db, Conversation, Message, SenderType, ChildAccount
 from llm.llm import handler, new_story_generator, add_to_story
 from firebase_auth import firebase_auth_required
+from child_auth import (
+    save_child_account, verify_child_credentials, generate_child_token,
+    child_auth_required
+)
 import os
 from dotenv import load_dotenv
+import jwt
 
 # Load environment variables
 load_dotenv()
@@ -187,6 +192,135 @@ def get_conversation_messages():
         return jsonify({"messages": result})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@app.route('/create_child_account', methods=['POST'])
+@firebase_auth_required
+def create_child_account():
+    data = request.get_json()
+    username = data.get('username')
+    pin = data.get('pin')
+    display_name = data.get('display_name')
+    age = data.get('age')
+    
+    # Use Firebase user ID from the token as the parent UID
+    parent_uid = request.firebase_user.get('localId', 'user_id_placeholder')
+    
+    if not all([username, pin, display_name, age]):
+        return jsonify({"error": "All fields are required"}), 400
+    
+    # Check if username already exists
+    existing_account = ChildAccount.query.filter_by(username=username).first()
+    if existing_account:
+        return jsonify({"error": "Username already exists"}), 409
+    
+    # Save the child account
+    success = save_child_account(username, pin, parent_uid, display_name, age)
+    
+    if success:
+        return jsonify({"message": "Child account created successfully"})
+    else:
+        return jsonify({"error": "Failed to create child account"}), 500
+
+
+@app.route('/child_login', methods=['POST'])
+def child_login():
+    data = request.get_json()
+    username = data.get('username')
+    pin = data.get('pin')
+    
+    if not all([username, pin]):
+        return jsonify({"error": "Username and PIN are required"}), 400
+    
+    # Verify child credentials
+    child_data = verify_child_credentials(username, pin)
+    
+    if not child_data:
+        return jsonify({"error": "Invalid username or PIN"}), 401
+    
+    # Generate a token for the child
+    token = generate_child_token(
+        username, 
+        child_data['parent_uid'], 
+        child_data['display_name'], 
+        child_data['age']
+    )
+    
+    return jsonify({
+        "token": token,
+        "display_name": child_data['display_name'],
+        "age": child_data['age']
+    })
+
+
+@app.route('/get_child_accounts', methods=['GET'])
+@firebase_auth_required
+def get_child_accounts():
+    # Use Firebase user ID from the token
+    parent_uid = request.firebase_user.get('localId', 'user_id_placeholder')
+    
+    # Query child accounts by parent UID
+    child_accounts_query = ChildAccount.query.filter_by(parent_uid=parent_uid).all()
+    
+    # Format the results
+    child_accounts = []
+    for account in child_accounts_query:
+        child_accounts.append({
+            'username': account.username,
+            'display_name': account.display_name,
+            'age': account.age
+        })
+    
+    return jsonify({"child_accounts": child_accounts})
+
+
+@app.route('/handle_child_request', methods=['POST'])
+@child_auth_required
+def handle_child_request():
+    data = request.get_json()
+    query = data.get('query')
+    conversation_id = data.get('conversation_id')
+    
+    # Use parent UID from the child token for database operations
+    parent_uid = request.child_user.get('parent_uid', 'user_id_placeholder')
+    
+    if query:
+        try:
+            code = int(handler(query))
+        except ValueError:
+            return jsonify({"message": "Invalid response from handler"})
+
+        if conversation_id:
+            conversation = Conversation.query.get(conversation_id)
+            if not conversation:
+                return jsonify({"message": "Invalid conversation ID"})
+        else:
+            conversation = Conversation(user_id=parent_uid)
+            db.session.add(conversation)
+            db.session.commit()
+            conversation_id = conversation.id
+
+        if code == 2 and conversation_id:  # If the user asks for a new story and there is an existing conversation
+            return jsonify({"confirmation": "Are you sure you want to start a new story? Please respond with 'yes' or 'no'.", "conversation_id": conversation_id})
+
+        log_message(conversation.id, SenderType.USER, code, query)
+
+        if code == 0:  # If the user asks for something unrelated to telling a story
+            response = "Sorry, I can only tell stories. Please ask me to tell you a story."
+        elif code == 1:  # If the user asks for something related to a story but violates safety rules
+            response = "Sorry, I can't tell that story. Please ask me to tell you a story."
+        elif code == 2:  # If the user asks for a new story
+            response = generate_new_story(query)
+            log_message(conversation.id, SenderType.MODEL, code, response)
+        elif code == 3:  # If the user asks for an addition to an existing story
+            response = add_to_existing_story(conversation.id, query)
+            log_message(conversation.id, SenderType.MODEL, code, response)
+        else:
+            response = f"Invalid code: {code}"
+
+        return jsonify({"response": response, "conversation_id": conversation_id})
+    else:
+        return jsonify({"message": "Query required"})
 
 
 if __name__ == '__main__':
