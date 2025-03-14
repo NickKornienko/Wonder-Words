@@ -30,10 +30,18 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _login() async {
     if (_formKey.currentState?.validate() ?? false) {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final success = await authProvider.signIn(
-        _emailController.text.trim(),
-        _passwordController.text,
-      );
+      final email = _emailController.text.trim();
+      final password = _passwordController.text;
+
+      if (email.isEmpty || password.isEmpty) {
+        // Handle the case where email or password is empty
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Email and password cannot be empty')),
+        );
+        return;
+      }
+
+      final success = await authProvider.signIn(email, password);
 
       if (success && mounted) {
         Navigator.of(context).pushReplacement(
