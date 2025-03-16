@@ -17,7 +17,7 @@ class StoryDetailScreen extends StatefulWidget {
 }
 
 class _StoryDetailScreenState extends State<StoryDetailScreen> {
-  final StoryService _storyService = StoryService();
+  late StoryService _storyService;
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final FlutterTts _flutterTts = FlutterTts();
@@ -33,8 +33,17 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
   @override
   void initState() {
     super.initState();
-    _loadMessages();
     _initTts();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Create a new instance of StoryService and set the context
+    _storyService = StoryService();
+    _storyService.setContext(context);
+    // Load messages after setting the context
+    _loadMessages();
   }
 
   @override

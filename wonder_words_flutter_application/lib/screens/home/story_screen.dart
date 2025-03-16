@@ -31,6 +31,13 @@ class _StoryScreenState extends State<StoryScreen> {
   bool _isSpeaking = false;
   String _pendingQuery = '';
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Set the context for the StoryService
+    _storyService.setContext(context);
+  }
+
   final List<Message> _messages = [
     Message(
       content: 'Welcome to Wonder Words! Ask me to tell you a story.',
