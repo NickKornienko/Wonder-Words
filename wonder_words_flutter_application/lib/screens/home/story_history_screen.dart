@@ -12,7 +12,7 @@ class StoryHistoryScreen extends StatefulWidget {
 }
 
 class _StoryHistoryScreenState extends State<StoryHistoryScreen> {
-  final StoryService _storyService = StoryService();
+  late StoryService _storyService;
   bool _isLoading = true;
   List<Conversation> _conversations = [];
   String? _error;
@@ -20,6 +20,15 @@ class _StoryHistoryScreenState extends State<StoryHistoryScreen> {
   @override
   void initState() {
     super.initState();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Create a new instance of StoryService and set the context
+    _storyService = StoryService();
+    _storyService.setContext(context);
+    // Load conversations after setting the context
     _loadConversations();
   }
 
