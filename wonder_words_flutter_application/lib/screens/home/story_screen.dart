@@ -4,6 +4,7 @@ import '../../services/auth/auth_provider.dart';
 import '../../services/story_service.dart';
 import 'story_history_screen.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:wonder_words_flutter_application/services/debug/storyDetailsForm.dart';
 
 class Message {
   final String content;
@@ -418,6 +419,18 @@ class _StoryScreenState extends State<StoryScreen> {
               });
             },
             tooltip: 'Start New Conversation',
+          ),
+          IconButton(
+            icon: const Icon(Icons.details),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => StoryDetailsForm(),
+                ),
+              );
+            },
+            tooltip: 'Story Details',
           ),
         ],
       ),
