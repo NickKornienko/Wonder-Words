@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:wonder_words_flutter_application/storyDetails.dart';
+import 'package:wonder_words_flutter_application/services/debug/storyDetails.dart';
+import 'package:wonder_words_flutter_application/services/debug/storyInference.dart';
+import 'package:wonder_words_flutter_application/services/story_service.dart';
+import '../../services/auth/auth_provider.dart';
 
 class StoryDetailsForm extends StatefulWidget {
   @override
@@ -13,7 +16,6 @@ class _StoryDetailsFormState extends State<StoryDetailsForm> {
   String _responseText = '';
   String _promptResponseText = '';
   String _formattedRequestText = '';
-  final TextEditingController _additionalTextController = TextEditingController(); // Add a controller for the new text box
 
   void _handleSubmittedData(Map<String, dynamic> onSubmit) {
     setState(() {
@@ -57,6 +59,12 @@ class _StoryDetailsFormState extends State<StoryDetailsForm> {
       home: Scaffold(
         appBar: AppBar(
           title: const Text("Wonder Words"),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () {
+              Navigator.pop(context);
+            },
+          ),
         ),
         body: SingleChildScrollView(
           child: Center(

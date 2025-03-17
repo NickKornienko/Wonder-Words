@@ -2,49 +2,28 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:wonder_words_flutter_application/storyInference.dart';
-import 'package:wonder_words_flutter_application/storyRequest.dart';
+import 'package:wonder_words_flutter_application/services/debug/storyInference.dart';
+import 'package:wonder_words_flutter_application/services/debug/storyRequest.dart';
+import 'package:wonder_words_flutter_application/services/story_service.dart';
 
 String configFileName = 'ip_address.json';
 String tokenKey = 'device_ip';
 Future<String> deviceIP = _loadKeyFromConfigFile(configFileName, tokenKey);
+final StoryService _storyService = StoryService();
+bool _needsConfirmation = false;
 
 Future<String> _loadKeyFromConfigFile(String configFileName, String tokenKey) async {
   try {
     // using rootBundle to access the config file
     final content = await rootBundle.loadString('secrets/$configFileName');
     final jsonObject = jsonDecode(content);
+    print(jsonObject);
     return jsonObject[tokenKey];
   } catch (e) {
     throw Exception('Error reading API key from file: $e');
   }
 }
 
-Future log_message(int conversationId, String senderType, int code, String content) async {
-  String ip = await deviceIP;
-  String url = 'http://$ip:5001/log_message';
-  print('Sending data to $url');
-  Map<String, dynamic> data = {
-    'conversation_id': conversationId,
-    'sender_type': senderType,
-    'code': code,
-    'content': content,
-  };
-
-  http.Response response = await http.post(
-    Uri.parse(url),
-    headers: {'Content-Type': 'application/json'},
-    body: jsonEncode(data),
-  );
-
-  if (response.statusCode == 200) {
-    return response.body;
-  } else {
-    print(response.body);
-    print(response.statusCode);
-    throw Exception('Failed to send data');
-  }
-}
 
 class StoryDetails extends StatefulWidget {
   final Function(Map<String, dynamic>) onSubmit;
@@ -125,9 +104,6 @@ class _StoryDetailsState extends State<StoryDetails> {
       } else if (taskType == 'prompt-generation') {
         widget.onResponse('', storyRequest.formatStoryRequest(taskType), response['choices'][0]['message']['content']);
       }
-
-//      log_message(1, 'USER', 1, storyRequest.formatStoryRequest(taskType));
-//      log_message(1, 'MODEL', 1, response['choices'][0]['message']['content']);
       
     }
 
@@ -157,9 +133,11 @@ class _StoryDetailsState extends State<StoryDetails> {
     }
   }
 
+
   Future<Map<String, dynamic>?> _sendGptRequest(String userInput) async {
     String ip = await deviceIP;
-    String url = 'http://$ip:5001/handle_request';
+    String url = 'http://$ip:5000/handle_request';
+    final String idToken = await _storyService.getIdToken();
     print('Sending GPT request to $url');
 
     //set last user input to the current user input
@@ -175,7 +153,7 @@ class _StoryDetailsState extends State<StoryDetails> {
 
     http.Response response = await http.post(
       Uri.parse(url),
-      headers: {'Content-Type': 'application/json'},
+      headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $idToken'},
       body: jsonEncode(data),
     );
 
@@ -187,11 +165,13 @@ class _StoryDetailsState extends State<StoryDetails> {
       print(response.statusCode);
       return null;
     }
+    
   }
 
   Future<Map<String, dynamic>?> _sendConfirmation(String confirmation) async {
     String ip = await deviceIP;
-    String url = 'http://$ip:5001/confirm_new_story';
+    String url = 'http://$ip:5000/confirm_new_story';
+    final String idToken = await _storyService.getIdToken();
     print('Sending confirmation to $url');
 
     Map<String, dynamic> data = {
@@ -203,7 +183,7 @@ class _StoryDetailsState extends State<StoryDetails> {
 
     http.Response response = await http.post(
       Uri.parse(url),
-      headers: {'Content-Type': 'application/json'},
+      headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $idToken'},
       body: jsonEncode(data),
     );
 
