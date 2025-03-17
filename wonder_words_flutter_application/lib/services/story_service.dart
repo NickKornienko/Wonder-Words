@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:wonder_words_flutter_application/storyDetails.dart';
 import '../models/conversation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
@@ -34,7 +33,7 @@ class StoryService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   // Helper method to get the current user's ID token
-  Future<String> _getIdToken() async {
+  Future<String> getIdToken() async {
     final User? user = _auth.currentUser;
     if (user == null) {
       throw Exception('User not authenticated');
@@ -49,7 +48,7 @@ class StoryService {
   // Method to get a new story
   Future<Map<String, dynamic>> getNewStory(String query, String userId) async {
     try {
-      final String idToken = await _getIdToken();
+      final String idToken = await getIdToken();
 
       final response = await http.post(
         Uri.parse('$baseUrl/handle_request'),
@@ -76,7 +75,7 @@ class StoryService {
   Future<Map<String, dynamic>> addToStory(
       String query, String userId, String conversationId) async {
     try {
-      final String idToken = await _getIdToken();
+      final String idToken = await getIdToken();
 
       final response = await http.post(
         Uri.parse('$baseUrl/handle_request'),
@@ -104,7 +103,7 @@ class StoryService {
   Future<Map<String, dynamic>> confirmNewStory(String query, String userId,
       String conversationId, String confirmation) async {
     try {
-      final String idToken = await _getIdToken();
+      final String idToken = await getIdToken();
 
       final response = await http.post(
         Uri.parse('$baseUrl/confirm_new_story'),
@@ -132,7 +131,7 @@ class StoryService {
   // Method to get all conversations for the current user
   Future<List<Conversation>> getConversations() async {
     try {
-      final String idToken = await _getIdToken();
+      final String idToken = await getIdToken();
 
       final response = await http.get(
         Uri.parse('$baseUrl/get_conversations'),
@@ -158,7 +157,7 @@ class StoryService {
   // Method to get all messages for a specific conversation
   Future<List<Message>> getConversationMessages(String conversationId) async {
     try {
-      final String idToken = await _getIdToken();
+      final String idToken = await getIdToken();
 
       final response = await http.get(
         Uri.parse(
