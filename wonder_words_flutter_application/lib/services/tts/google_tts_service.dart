@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:crypto/crypto.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'package:just_audio/just_audio.dart';
 import 'package:path_provider/path_provider.dart';
@@ -184,6 +185,13 @@ class GoogleTtsService {
     if (text.isEmpty) return;
 
     try {
+      // For web platform, always use fallback TTS
+      if (kIsWeb) {
+        print('Running on web platform, using fallback TTS');
+        await _speakWithFallbackTts(text);
+        return;
+      }
+
       // Generate a hash of the text to use as a cache key
       final textHash = md5.convert(utf8.encode(text)).toString();
 
@@ -192,29 +200,42 @@ class GoogleTtsService {
 
       // If not cached, call the API
       if (audioPath == null) {
-        audioPath = await _synthesizeSpeech(text, textHash);
-        _audioCache[textHash] = audioPath;
+        try {
+          audioPath = await _synthesizeSpeech(text, textHash);
+          _audioCache[textHash] = audioPath;
 
-        // Limit cache size to 50 entries (simple LRU implementation)
-        if (_audioCache.length > 50) {
-          final oldestKey = _audioCache.keys.first;
-          _audioCache.remove(oldestKey);
+          // Limit cache size to 50 entries (simple LRU implementation)
+          if (_audioCache.length > 50) {
+            final oldestKey = _audioCache.keys.first;
+            _audioCache.remove(oldestKey);
+          }
+        } catch (e) {
+          print('Error synthesizing speech: $e');
+          await _speakWithFallbackTts(text);
+          return;
         }
       }
 
       // Play the audio
       _isSpeaking = true;
       _notifyListeners();
-      await _audioPlayer.setFilePath(audioPath);
-      await _audioPlayer.play();
 
-      // Listen for completion
-      _audioPlayer.playerStateStream.listen((state) {
-        if (state.processingState == ProcessingState.completed) {
-          _isSpeaking = false;
-          _notifyListeners();
-        }
-      });
+      try {
+        await _audioPlayer.setFilePath(audioPath);
+        await _audioPlayer.play();
+
+        // Listen for completion
+        _audioPlayer.playerStateStream.listen((state) {
+          if (state.processingState == ProcessingState.completed) {
+            _isSpeaking = false;
+            _notifyListeners();
+          }
+        });
+      } catch (e) {
+        print('Error playing audio: $e');
+        // Fallback to device TTS
+        await _speakWithFallbackTts(text);
+      }
     } catch (e) {
       print('Error in Google TTS: $e');
       // Fallback to device TTS
@@ -237,48 +258,59 @@ class GoogleTtsService {
 
   /// Call the Google Cloud TTS API to synthesize speech
   Future<String> _synthesizeSpeech(String text, String textHash) async {
-    final apiKey = ApiKeys.googleCloudApiKey;
-    final url =
-        'https://texttospeech.googleapis.com/v1/text:synthesize?key=$apiKey';
+    try {
+      final apiKey = ApiKeys.googleCloudApiKey;
+      final url =
+          'https://texttospeech.googleapis.com/v1/text:synthesize?key=$apiKey';
 
-    // Select a high-quality voice appropriate for storytelling
-    // en-US-Neural2-F is a female voice with natural intonation
-    final response = await http.post(
-      Uri.parse(url),
-      headers: {'Content-Type': 'application/json'},
-      body: json.encode({
-        'input': {'text': text},
-        'voice': {
-          'languageCode': 'en-US',
-          'name': 'en-US-Neural2-F',
-          'ssmlGender': 'FEMALE'
-        },
-        'audioConfig': {
-          'audioEncoding': 'MP3',
-          'speakingRate': 0.9, // Slightly slower for storytelling
-          'pitch': 0.0, // Natural pitch
-          'volumeGainDb': 1.0 // Slightly louder
+      // Select a high-quality voice appropriate for storytelling
+      // en-US-Neural2-F is a female voice with natural intonation
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'input': {'text': text},
+          'voice': {
+            'languageCode': 'en-US',
+            'name': 'en-US-Neural2-F',
+            'ssmlGender': 'FEMALE'
+          },
+          'audioConfig': {
+            'audioEncoding': 'MP3',
+            'speakingRate': 0.9, // Slightly slower for storytelling
+            'pitch': 0.0, // Natural pitch
+            'volumeGainDb': 1.0 // Slightly louder
+          }
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        // Decode the base64-encoded audio content
+        final audioContent = json.decode(response.body)['audioContent'];
+        final bytes = base64.decode(audioContent);
+
+        try {
+          // Save to a temporary file
+          final tempDir = await getTemporaryDirectory();
+          final file = File(
+              '${tempDir.path}/tts_${DateTime.now().millisecondsSinceEpoch}.mp3');
+          await file.writeAsBytes(bytes);
+
+          // Save to persistent cache
+          await _saveToCacheStorage(textHash, file.path);
+
+          return file.path;
+        } catch (e) {
+          // If we can't access the file system (e.g., on web), fall back to device TTS
+          print('Error accessing file system: $e');
+          throw Exception('File system access error');
         }
-      }),
-    );
-
-    if (response.statusCode == 200) {
-      // Decode the base64-encoded audio content
-      final audioContent = json.decode(response.body)['audioContent'];
-      final bytes = base64.decode(audioContent);
-
-      // Save to a temporary file
-      final tempDir = await getTemporaryDirectory();
-      final file = File(
-          '${tempDir.path}/tts_${DateTime.now().millisecondsSinceEpoch}.mp3');
-      await file.writeAsBytes(bytes);
-
-      // Save to persistent cache
-      await _saveToCacheStorage(textHash, file.path);
-
-      return file.path;
-    } else {
-      throw Exception('Failed to synthesize speech: ${response.body}');
+      } else {
+        throw Exception('Failed to synthesize speech: ${response.body}');
+      }
+    } catch (e) {
+      print('Error in _synthesizeSpeech: $e');
+      throw e;
     }
   }
 
