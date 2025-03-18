@@ -1,0 +1,290 @@
+import 'dart:convert';
+import 'dart:io';
+import 'package:crypto/crypto.dart';
+import 'package:http/http.dart' as http;
+import 'package:just_audio/just_audio.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter_tts/flutter_tts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../config/api_keys.dart';
+
+/// A service that provides text-to-speech functionality using Google Cloud TTS API.
+/// It includes caching to reduce API calls and a fallback to device TTS when offline.
+class GoogleTtsService {
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  final FlutterTts _flutterTts = FlutterTts(); // Fallback TTS
+  bool _isSpeaking = false;
+  final List<Function(bool)> _stateListeners = [];
+
+  // Free tier limits
+  static const int FREE_TIER_LIMIT = 1000000; // 1 million characters per month
+  int _monthlyUsage = 0;
+  String _currentMonth = '';
+
+  // Cache to avoid repeated API calls for the same text
+  final Map<String, String> _audioCache = {};
+
+  GoogleTtsService() {
+    _initFallbackTts();
+    _initUsageTracking();
+    _initCache();
+  }
+
+  /// Initialize usage tracking
+  Future<void> _initUsageTracking() async {
+    final now = DateTime.now();
+    final thisMonth = '${now.year}-${now.month}';
+
+    final prefs = await SharedPreferences.getInstance();
+    _currentMonth = prefs.getString('tts_current_month') ?? '';
+
+    // Reset counter if it's a new month
+    if (_currentMonth != thisMonth) {
+      _monthlyUsage = 0;
+      await prefs.setString('tts_current_month', thisMonth);
+      await prefs.setInt('tts_monthly_usage', 0);
+    } else {
+      _monthlyUsage = prefs.getInt('tts_monthly_usage') ?? 0;
+    }
+
+    print('TTS Usage this month: $_monthlyUsage characters');
+  }
+
+  /// Update usage tracking
+  Future<void> _updateUsage(int characters) async {
+    _monthlyUsage += characters;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('tts_monthly_usage', _monthlyUsage);
+    print('Updated TTS usage: $_monthlyUsage characters');
+  }
+
+  /// Initialize persistent cache
+  Future<void> _initCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cachedItems = prefs.getStringList('tts_cache_keys') ?? [];
+
+      for (var key in cachedItems) {
+        final path = prefs.getString('tts_cache_$key');
+        if (path != null && File(path).existsSync()) {
+          _audioCache[key] = path;
+        }
+      }
+
+      print('Loaded ${_audioCache.length} items from TTS cache');
+    } catch (e) {
+      print('Error initializing TTS cache: $e');
+    }
+  }
+
+  /// Save to persistent cache
+  Future<void> _saveToCacheStorage(String textHash, String audioPath) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cachedItems = prefs.getStringList('tts_cache_keys') ?? [];
+
+      if (!cachedItems.contains(textHash)) {
+        cachedItems.add(textHash);
+        await prefs.setStringList('tts_cache_keys', cachedItems);
+      }
+
+      await prefs.setString('tts_cache_$textHash', audioPath);
+    } catch (e) {
+      print('Error saving to TTS cache: $e');
+    }
+  }
+
+  /// Add a listener for TTS state changes
+  void addStateListener(Function(bool) listener) {
+    _stateListeners.add(listener);
+  }
+
+  /// Remove a listener for TTS state changes
+  void removeStateListener(Function(bool) listener) {
+    _stateListeners.remove(listener);
+  }
+
+  /// Notify all listeners of state changes
+  void _notifyListeners() {
+    for (var listener in _stateListeners) {
+      listener(_isSpeaking);
+    }
+  }
+
+  /// Initialize the fallback TTS engine
+  Future<void> _initFallbackTts() async {
+    await _flutterTts.setLanguage("en-US");
+    await _flutterTts.setSpeechRate(0.9); // Slightly slower for storytelling
+    await _flutterTts.setPitch(1.0); // Natural pitch
+    await _flutterTts.setVolume(1.0); // Full volume
+
+    _flutterTts.setStartHandler(() {
+      _isSpeaking = true;
+      _notifyListeners();
+    });
+
+    _flutterTts.setCompletionHandler(() {
+      _isSpeaking = false;
+      _notifyListeners();
+    });
+
+    _flutterTts.setErrorHandler((error) {
+      _isSpeaking = false;
+      _notifyListeners();
+      print('Fallback TTS error: $error');
+    });
+  }
+
+  /// Check if the service is currently speaking
+  bool get isSpeaking => _isSpeaking;
+
+  /// Speak the given text using Google Cloud TTS or fallback to device TTS if offline
+  Future<void> speak(String text) async {
+    if (_isSpeaking) {
+      await stop();
+      return;
+    }
+
+    try {
+      // Check if adding this text would exceed the free tier limit
+      if (_monthlyUsage + text.length > FREE_TIER_LIMIT) {
+        print('Warning: Approaching free tier limit. Using fallback TTS.');
+        await _speakWithFallbackTts(text);
+        return;
+      }
+
+      // Check internet connectivity
+      final connectivityResult = await Connectivity().checkConnectivity();
+      final hasInternet = connectivityResult != ConnectivityResult.none;
+
+      if (hasInternet) {
+        await _speakWithGoogleTts(text);
+        // Update usage only if Google TTS was used successfully
+        await _updateUsage(text.length);
+      } else {
+        await _speakWithFallbackTts(text);
+      }
+    } catch (e) {
+      print('Error in speak: $e');
+      // Try fallback if Google TTS fails
+      await _speakWithFallbackTts(text);
+    }
+  }
+
+  /// Stop speaking
+  Future<void> stop() async {
+    _isSpeaking = false;
+    await _audioPlayer.stop();
+    await _flutterTts.stop();
+  }
+
+  /// Speak using Google Cloud TTS
+  Future<void> _speakWithGoogleTts(String text) async {
+    if (text.isEmpty) return;
+
+    try {
+      // Generate a hash of the text to use as a cache key
+      final textHash = md5.convert(utf8.encode(text)).toString();
+
+      // Check if we have this text cached
+      String? audioPath = _audioCache[textHash];
+
+      // If not cached, call the API
+      if (audioPath == null) {
+        audioPath = await _synthesizeSpeech(text, textHash);
+        _audioCache[textHash] = audioPath;
+
+        // Limit cache size to 50 entries (simple LRU implementation)
+        if (_audioCache.length > 50) {
+          final oldestKey = _audioCache.keys.first;
+          _audioCache.remove(oldestKey);
+        }
+      }
+
+      // Play the audio
+      _isSpeaking = true;
+      _notifyListeners();
+      await _audioPlayer.setFilePath(audioPath);
+      await _audioPlayer.play();
+
+      // Listen for completion
+      _audioPlayer.playerStateStream.listen((state) {
+        if (state.processingState == ProcessingState.completed) {
+          _isSpeaking = false;
+          _notifyListeners();
+        }
+      });
+    } catch (e) {
+      print('Error in Google TTS: $e');
+      // Fallback to device TTS
+      await _speakWithFallbackTts(text);
+    }
+  }
+
+  /// Speak using the device's built-in TTS
+  Future<void> _speakWithFallbackTts(String text) async {
+    if (text.isEmpty) return;
+
+    try {
+      _isSpeaking = true;
+      await _flutterTts.speak(text);
+    } catch (e) {
+      _isSpeaking = false;
+      print('Error in fallback TTS: $e');
+    }
+  }
+
+  /// Call the Google Cloud TTS API to synthesize speech
+  Future<String> _synthesizeSpeech(String text, String textHash) async {
+    final apiKey = ApiKeys.googleCloudApiKey;
+    final url =
+        'https://texttospeech.googleapis.com/v1/text:synthesize?key=$apiKey';
+
+    // Select a high-quality voice appropriate for storytelling
+    // en-US-Neural2-F is a female voice with natural intonation
+    final response = await http.post(
+      Uri.parse(url),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({
+        'input': {'text': text},
+        'voice': {
+          'languageCode': 'en-US',
+          'name': 'en-US-Neural2-F',
+          'ssmlGender': 'FEMALE'
+        },
+        'audioConfig': {
+          'audioEncoding': 'MP3',
+          'speakingRate': 0.9, // Slightly slower for storytelling
+          'pitch': 0.0, // Natural pitch
+          'volumeGainDb': 1.0 // Slightly louder
+        }
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      // Decode the base64-encoded audio content
+      final audioContent = json.decode(response.body)['audioContent'];
+      final bytes = base64.decode(audioContent);
+
+      // Save to a temporary file
+      final tempDir = await getTemporaryDirectory();
+      final file = File(
+          '${tempDir.path}/tts_${DateTime.now().millisecondsSinceEpoch}.mp3');
+      await file.writeAsBytes(bytes);
+
+      // Save to persistent cache
+      await _saveToCacheStorage(textHash, file.path);
+
+      return file.path;
+    } else {
+      throw Exception('Failed to synthesize speech: ${response.body}');
+    }
+  }
+
+  /// Clean up resources
+  void dispose() {
+    _audioPlayer.dispose();
+    _flutterTts.stop();
+  }
+}

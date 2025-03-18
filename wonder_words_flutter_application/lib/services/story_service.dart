@@ -4,12 +4,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
 import '../models/conversation.dart';
+import '../config/api_config.dart';
 import 'auth/auth_provider.dart' as app_auth;
 
 class StoryService {
-  // Base URL for the Flask backend
-  // Note: This should be updated to the actual backend URL when deployed
-  final String baseUrl = 'http://localhost:5000';
+  // Get the base URL from ApiConfig
+  final String baseUrl = ApiConfig.baseUrl;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   // Store the BuildContext for later use
