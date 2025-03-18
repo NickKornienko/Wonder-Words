@@ -218,41 +218,72 @@ class _StoryScreenState extends State<StoryScreen> {
     });
   }
 
-  // Show information about the Google Cloud TTS voice
+  // Show information about the Google Cloud TTS voice and allow voice selection
   void _showVoiceInfoDialog() {
+    // Get the current selected voice
+    final currentVoice = _ttsService.selectedVoice;
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Voice Information'),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Using Google Cloud Text-to-Speech',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 8),
-            Text(
-              'This app uses Google\'s Neural2 voice technology for high-quality, natural-sounding narration.',
-            ),
-            SizedBox(height: 8),
-            Text(
-              'Voice: en-US-Neural2-F',
-              style: TextStyle(fontStyle: FontStyle.italic),
-            ),
-            SizedBox(height: 8),
-            Text(
-              'If you\'re offline, the app will automatically switch to your device\'s built-in text-to-speech.',
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Voice Settings'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Using Google Cloud Text-to-Speech',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'This app uses Google\'s Neural2 voice technology for high-quality, natural-sounding narration.',
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Select a voice:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: DropdownButton<GoogleTtsVoice>(
+                  isExpanded: true,
+                  value: currentVoice,
+                  underline: Container(), // Remove the default underline
+                  items: _ttsService.voices.map((voice) {
+                    return DropdownMenuItem<GoogleTtsVoice>(
+                      value: voice,
+                      child: Text(voice.displayName),
+                    );
+                  }).toList(),
+                  onChanged: (GoogleTtsVoice? newVoice) async {
+                    if (newVoice != null) {
+                      await _ttsService.setVoice(newVoice);
+                      setState(() {}); // Update the dialog state
+                    }
+                  },
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'If you\'re offline, the app will automatically switch to your device\'s built-in text-to-speech.',
+                style: TextStyle(fontStyle: FontStyle.italic, fontSize: 12),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
       ),
     );
   }
@@ -271,7 +302,7 @@ class _StoryScreenState extends State<StoryScreen> {
           IconButton(
             icon: const Icon(Icons.record_voice_over),
             onPressed: _showVoiceInfoDialog,
-            tooltip: 'Voice Information',
+            tooltip: 'Voice Settings',
           ),
           IconButton(
             icon: const Icon(Icons.history),

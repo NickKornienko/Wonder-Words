@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:html' as html;
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
@@ -9,6 +10,23 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../config/api_keys.dart';
+
+/// Voice model for Google Cloud TTS
+class GoogleTtsVoice {
+  final String name;
+  final String displayName;
+  final String languageCode;
+  final String gender;
+  final bool isNeural;
+
+  GoogleTtsVoice({
+    required this.name,
+    required this.displayName,
+    required this.languageCode,
+    required this.gender,
+    required this.isNeural,
+  });
+}
 
 /// A service that provides text-to-speech functionality using Google Cloud TTS API.
 /// It includes caching to reduce API calls and a fallback to device TTS when offline.
@@ -26,10 +44,143 @@ class GoogleTtsService {
   // Cache to avoid repeated API calls for the same text
   final Map<String, String> _audioCache = {};
 
+  // Available voices
+  final List<GoogleTtsVoice> _voices = [
+    GoogleTtsVoice(
+      name: 'en-US-Neural2-F',
+      displayName: 'Female (Neural)',
+      languageCode: 'en-US',
+      gender: 'FEMALE',
+      isNeural: true,
+    ),
+    GoogleTtsVoice(
+      name: 'en-US-Neural2-M',
+      displayName: 'Male (Neural)',
+      languageCode: 'en-US',
+      gender: 'MALE',
+      isNeural: true,
+    ),
+    GoogleTtsVoice(
+      name: 'en-US-Neural2-C',
+      displayName: 'Child (Neural)',
+      languageCode: 'en-US',
+      gender: 'FEMALE',
+      isNeural: true,
+    ),
+    GoogleTtsVoice(
+      name: 'en-US-Neural2-D',
+      displayName: 'Male 2 (Neural)',
+      languageCode: 'en-US',
+      gender: 'MALE',
+      isNeural: true,
+    ),
+    GoogleTtsVoice(
+      name: 'en-US-Neural2-E',
+      displayName: 'Female 2 (Neural)',
+      languageCode: 'en-US',
+      gender: 'FEMALE',
+      isNeural: true,
+    ),
+    GoogleTtsVoice(
+      name: 'en-US-Neural2-G',
+      displayName: 'Female 3 (Neural)',
+      languageCode: 'en-US',
+      gender: 'FEMALE',
+      isNeural: true,
+    ),
+    GoogleTtsVoice(
+      name: 'en-US-Neural2-H',
+      displayName: 'Male 3 (Neural)',
+      languageCode: 'en-US',
+      gender: 'MALE',
+      isNeural: true,
+    ),
+    GoogleTtsVoice(
+      name: 'en-US-Neural2-I',
+      displayName: 'Male 4 (Neural)',
+      languageCode: 'en-US',
+      gender: 'MALE',
+      isNeural: true,
+    ),
+    GoogleTtsVoice(
+      name: 'en-US-Neural2-J',
+      displayName: 'Male 5 (Neural)',
+      languageCode: 'en-US',
+      gender: 'MALE',
+      isNeural: true,
+    ),
+    GoogleTtsVoice(
+      name: 'en-GB-Neural2-B',
+      displayName: 'Male (British)',
+      languageCode: 'en-GB',
+      gender: 'MALE',
+      isNeural: true,
+    ),
+    GoogleTtsVoice(
+      name: 'en-GB-Neural2-A',
+      displayName: 'Female (British)',
+      languageCode: 'en-GB',
+      gender: 'FEMALE',
+      isNeural: true,
+    ),
+    GoogleTtsVoice(
+      name: 'en-AU-Neural2-A',
+      displayName: 'Female (Australian)',
+      languageCode: 'en-AU',
+      gender: 'FEMALE',
+      isNeural: true,
+    ),
+    GoogleTtsVoice(
+      name: 'en-AU-Neural2-B',
+      displayName: 'Male (Australian)',
+      languageCode: 'en-AU',
+      gender: 'MALE',
+      isNeural: true,
+    ),
+  ];
+
+  // Currently selected voice (default to first voice)
+  late GoogleTtsVoice _selectedVoice;
+
   GoogleTtsService() {
+    _selectedVoice = _voices[0]; // Default to first voice
     _initFallbackTts();
     _initUsageTracking();
     _initCache();
+    _loadSelectedVoice();
+  }
+
+  /// Get the list of available voices
+  List<GoogleTtsVoice> get voices => _voices;
+
+  /// Get the currently selected voice
+  GoogleTtsVoice get selectedVoice => _selectedVoice;
+
+  /// Set the voice to use
+  Future<void> setVoice(GoogleTtsVoice voice) async {
+    _selectedVoice = voice;
+
+    // Save the selected voice
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('tts_selected_voice', voice.name);
+  }
+
+  /// Load the previously selected voice
+  Future<void> _loadSelectedVoice() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final voiceName = prefs.getString('tts_selected_voice');
+
+      if (voiceName != null) {
+        final voice = _voices.firstWhere(
+          (v) => v.name == voiceName,
+          orElse: () => _selectedVoice,
+        );
+        _selectedVoice = voice;
+      }
+    } catch (e) {
+      print('Error loading selected voice: $e');
+    }
   }
 
   /// Initialize usage tracking
@@ -185,16 +336,23 @@ class GoogleTtsService {
     if (text.isEmpty) return;
 
     try {
-      // For web platform, always use fallback TTS
-      if (kIsWeb) {
-        print('Running on web platform, using fallback TTS');
-        await _speakWithFallbackTts(text);
-        return;
-      }
-
       // Generate a hash of the text to use as a cache key
       final textHash = md5.convert(utf8.encode(text)).toString();
 
+      // For web platform, use direct API call and HTML audio
+      if (kIsWeb) {
+        try {
+          print('Running on web platform with Google Cloud TTS');
+          await _speakWithGoogleTtsWeb(text);
+          return;
+        } catch (e) {
+          print('Error with web Google TTS: $e');
+          await _speakWithFallbackTts(text);
+          return;
+        }
+      }
+
+      // Native platform implementation
       // Check if we have this text cached
       String? audioPath = _audioCache[textHash];
 
@@ -243,6 +401,61 @@ class GoogleTtsService {
     }
   }
 
+  /// Speak using Google Cloud TTS on web platform
+  Future<void> _speakWithGoogleTtsWeb(String text) async {
+    final apiKey = ApiKeys.googleCloudApiKey;
+    final url =
+        'https://texttospeech.googleapis.com/v1/text:synthesize?key=$apiKey';
+
+    final response = await http.post(
+      Uri.parse(url),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({
+        'input': {'text': text},
+        'voice': {
+          'languageCode': _selectedVoice.languageCode,
+          'name': _selectedVoice.name,
+          'ssmlGender': _selectedVoice.gender
+        },
+        'audioConfig': {
+          'audioEncoding': 'MP3',
+          'speakingRate': 0.9, // Slightly slower for storytelling
+          'pitch': 0.0, // Natural pitch
+          'volumeGainDb': 1.0 // Slightly louder
+        }
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      // Get the base64-encoded audio content
+      final audioContent = json.decode(response.body)['audioContent'];
+
+      // Create a data URL for the audio
+      final audioUrl = 'data:audio/mp3;base64,$audioContent';
+
+      // Create an HTML audio element
+      final audio = html.AudioElement(audioUrl);
+
+      // Set up event listeners
+      _isSpeaking = true;
+      _notifyListeners();
+
+      // Play the audio
+      audio.play();
+
+      // Listen for completion
+      audio.onEnded.listen((_) {
+        _isSpeaking = false;
+        _notifyListeners();
+      });
+
+      // Update usage tracking
+      await _updateUsage(text.length);
+    } else {
+      throw Exception('Failed to synthesize speech: ${response.body}');
+    }
+  }
+
   /// Speak using the device's built-in TTS
   Future<void> _speakWithFallbackTts(String text) async {
     if (text.isEmpty) return;
@@ -263,17 +476,16 @@ class GoogleTtsService {
       final url =
           'https://texttospeech.googleapis.com/v1/text:synthesize?key=$apiKey';
 
-      // Select a high-quality voice appropriate for storytelling
-      // en-US-Neural2-F is a female voice with natural intonation
+      // Use the selected voice
       final response = await http.post(
         Uri.parse(url),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'input': {'text': text},
           'voice': {
-            'languageCode': 'en-US',
-            'name': 'en-US-Neural2-F',
-            'ssmlGender': 'FEMALE'
+            'languageCode': _selectedVoice.languageCode,
+            'name': _selectedVoice.name,
+            'ssmlGender': _selectedVoice.gender
           },
           'audioConfig': {
             'audioEncoding': 'MP3',
