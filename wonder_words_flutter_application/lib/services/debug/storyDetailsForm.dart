@@ -20,6 +20,19 @@ class _StoryDetailsFormState extends State<StoryDetailsForm> {
   String _promptResponseText = '';
   String _formattedRequestText = '';
 
+  late StoryDetails _storyDetails;
+
+  @override
+  void initState() {
+    super.initState();
+    _storyDetails = StoryDetails(
+      onSubmit: (data) {},
+      model: _model,
+      taskType: _taskType,
+      onResponse: (response, formattedRequest, promptResponse) {},
+    );
+  }
+
   void _handleSubmittedData(Map<String, dynamic> onSubmit) {
     setState(() {
       _submittedData = onSubmit;
@@ -47,6 +60,12 @@ class _StoryDetailsFormState extends State<StoryDetailsForm> {
     setState(() {
       _model = _model == 'llama' ? 'gpt' : 'llama';
       print('Model changed to: $_model');
+      _storyDetails = StoryDetails(
+        onSubmit: _handleSubmittedData,
+        model: _model,
+        taskType: _taskType,
+        onResponse: _handleResponse,
+      );
     });
   }
 
@@ -54,6 +73,12 @@ class _StoryDetailsFormState extends State<StoryDetailsForm> {
     setState(() {
       _taskType = _taskType == 'story-generation' ? 'prompt-generation' : 'story-generation';
       print('Task type changed to: $_taskType');
+      _storyDetails = StoryDetails(
+        onSubmit: _handleSubmittedData,
+        model: _model,
+        taskType: _taskType,
+        onResponse: _handleResponse,
+      );
     });
   }
 
@@ -66,6 +91,7 @@ class _StoryDetailsFormState extends State<StoryDetailsForm> {
       _responseText = '';
       _promptResponseText = '';
       _formattedRequestText = '';
+      _storyDetails.refreshInput();
     });
   }
 
@@ -122,12 +148,7 @@ class _StoryDetailsFormState extends State<StoryDetailsForm> {
                               const Text('prompt-generation'),
                             ],
                           ),
-                          StoryDetails(
-                            onSubmit: _handleSubmittedData,
-                            model: _model,
-                            taskType: _taskType,
-                            onResponse: _handleResponse,
-                          ),
+                          _storyDetails,
                           const SizedBox(height: 20),
                           if (_taskType == 'story-generation') ...[
                             ConstrainedBox(
