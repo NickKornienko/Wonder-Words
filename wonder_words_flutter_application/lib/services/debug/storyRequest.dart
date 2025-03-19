@@ -73,7 +73,7 @@ class StoryRequest {
       if (promptType == 'prompt-generation') {
           return '''<|im_start|>user\n 
               Below is a prompt evaluation request that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.
-              Do not include any additional information or context in your response, and only provide the updated prompt.
+              Do not include any additional information or context in your response, and only provide the updated prompt. The goal is not to provide a story, but to improve the prompt.
               
               ## Instruction (prompt evaluation request):
               Identify any potential issues with the prompt. Is it clear, specific, and relevant to the task? Edit this prompt for improvement.

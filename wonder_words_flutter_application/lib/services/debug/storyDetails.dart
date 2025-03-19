@@ -17,7 +17,6 @@ Future<String> _loadKeyFromConfigFile(String configFileName, String tokenKey) as
     // using rootBundle to access the config file
     final content = await rootBundle.loadString('secrets/$configFileName');
     final jsonObject = jsonDecode(content);
-    print(jsonObject);
     return jsonObject[tokenKey];
   } catch (e) {
     throw Exception('Error reading API key from file: $e');
@@ -40,8 +39,14 @@ class StoryDetails extends StatefulWidget {
     }
   }
 
+  final _StoryDetailsState _storyDetailsState = _StoryDetailsState();
+
+  void refreshInput() {
+    _storyDetailsState.refreshInput();
+  }
+
   @override
-  _StoryDetailsState createState() => _StoryDetailsState();
+  _StoryDetailsState createState() => _storyDetailsState;
 }
 
 class _StoryDetailsState extends State<StoryDetails> {
@@ -117,6 +122,15 @@ class _StoryDetailsState extends State<StoryDetails> {
             lastUserInput = storyRequest.formatStoryRequest(taskType);
             pendingConfirmation = true;
           });
+          // call _sendConfirmation function to send the confirmation to the server
+          final confirmResponse = await _sendConfirmation('y');
+          if (confirmResponse != null) {
+            setState(() {
+              conversationId = confirmResponse['conversation_id'] as int?;
+              pendingConfirmation = false;
+            });
+            widget.onResponse(confirmResponse['response'] ?? '', '', '');
+          }
         } else {
           print('In else');
           if (taskType == 'story-generation' || taskType == 'story-continuation') {
@@ -196,6 +210,12 @@ class _StoryDetailsState extends State<StoryDetails> {
       print(response.statusCode);
       return null;
     }
+  }
+
+  void refreshInput() {
+    _titleController.clear();
+    _promptController.clear();
+    _vocabularyController.clear();
   }
         
 
