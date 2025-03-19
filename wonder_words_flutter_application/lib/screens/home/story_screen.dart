@@ -17,10 +17,63 @@ class StoryScreen extends StatefulWidget {
   const StoryScreen({Key? key}) : super(key: key);
 
   @override
-  State<StoryScreen> createState() => _StoryScreenState();
+  State<StoryScreen> createState() => StoryScreenState();
+
+  static AppBar buildAppBar(BuildContext context, Function showVoiceSelectionDialog, Function refreshMessages, {bool isStoryDetailsForm = false}) {
+    return AppBar(
+      title: const Text('Wonder Words'),
+      backgroundColor: Colors.deepPurple,
+      foregroundColor: Colors.white,
+      leading: isStoryDetailsForm
+          ? IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () {
+                Navigator.pop(context);
+              },
+            )
+          : null,
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.record_voice_over),
+          onPressed: () => showVoiceSelectionDialog(),
+          tooltip: 'Select Voice',
+        ),
+        IconButton(
+          icon: const Icon(Icons.history),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const StoryHistoryScreen(),
+              ),
+            );
+          },
+          tooltip: 'View Story History',
+        ),
+        IconButton(
+          icon: const Icon(Icons.refresh),
+          onPressed: () => refreshMessages(),
+          tooltip: 'Start New Conversation',
+        ),
+        if (!isStoryDetailsForm)
+          IconButton(
+            icon: const Icon(Icons.details),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const StoryDetailsForm(),
+                ),
+              );
+            },
+            tooltip: 'Story Details',
+          ),
+      ],
+    );
+  }
 }
 
-class _StoryScreenState extends State<StoryScreen> {
+class StoryScreenState extends State<StoryScreen> {
   final TextEditingController _promptController = TextEditingController();
   final StoryService _storyService = StoryService();
   final FlutterTts _flutterTts = FlutterTts();
@@ -381,59 +434,7 @@ class _StoryScreenState extends State<StoryScreen> {
     final isChild = authProvider.isChild;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Wonder Words'),
-        backgroundColor: Colors.deepPurple,
-        foregroundColor: Colors.white,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.record_voice_over),
-            onPressed: _showVoiceSelectionDialog,
-            tooltip: 'Select Voice',
-          ),
-          IconButton(
-            icon: const Icon(Icons.history),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const StoryHistoryScreen(),
-                ),
-              );
-            },
-            tooltip: 'View Story History',
-          ),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () {
-              setState(() {
-                _messages.clear();
-                _messages.add(Message(
-                  content:
-                      'Welcome to Wonder Words! Ask me to tell you a story.',
-                  isUser: false,
-                ));
-                _conversationId = null;
-                _needsConfirmation = false;
-                _pendingQuery = '';
-              });
-            },
-            tooltip: 'Start New Conversation',
-          ),
-          IconButton(
-            icon: const Icon(Icons.details),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => StoryDetailsForm(),
-                ),
-              );
-            },
-            tooltip: 'Story Details',
-          ),
-        ],
-      ),
+      appBar: StoryScreen.buildAppBar(context, _showVoiceSelectionDialog, _refreshMessages),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -596,5 +597,18 @@ class _StoryScreenState extends State<StoryScreen> {
         ),
       ),
     );
+  }
+
+  void _refreshMessages() {
+    setState(() {
+      _messages.clear();
+      _messages.add(Message(
+        content: 'Welcome to Wonder Words! Ask me to tell you a story.',
+        isUser: false,
+      ));
+      _conversationId = null;
+      _needsConfirmation = false;
+      _pendingQuery = '';
+    });
   }
 }

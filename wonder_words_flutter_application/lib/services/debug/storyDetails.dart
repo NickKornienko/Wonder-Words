@@ -24,7 +24,6 @@ Future<String> _loadKeyFromConfigFile(String configFileName, String tokenKey) as
   }
 }
 
-
 class StoryDetails extends StatefulWidget {
   final Function(Map<String, dynamic>) onSubmit;
   final Function(String, String, String) onResponse; // Modify the callback function to accept three parameters
@@ -198,6 +197,7 @@ class _StoryDetailsState extends State<StoryDetails> {
       return null;
     }
   }
+        
 
   @override
   Widget build(BuildContext context) {
@@ -208,6 +208,8 @@ class _StoryDetailsState extends State<StoryDetails> {
           decoration: InputDecoration(
             border: OutlineInputBorder(),
             labelText: 'Whats the title of your new story?',
+            filled: true,
+            fillColor: Colors.white,
           ),
         ),
         const SizedBox(height: 20),
@@ -216,6 +218,8 @@ class _StoryDetailsState extends State<StoryDetails> {
           decoration: InputDecoration(
             border: OutlineInputBorder(),
             labelText: 'What do you want this story to be?',
+            filled: true,
+            fillColor: Colors.white,
           ),
         ),
         const SizedBox(height: 20),
@@ -224,6 +228,8 @@ class _StoryDetailsState extends State<StoryDetails> {
           decoration: InputDecoration(
             border: OutlineInputBorder(),
             labelText: 'What are some vocabulary words related to your story?',
+            filled: true,
+            fillColor: Colors.white,
           ),
         ),
         const SizedBox(height: 20),
