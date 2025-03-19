@@ -121,9 +121,11 @@ class _StoryDetailsState extends State<StoryDetails> {
         } else {
           print('In else');
           if (taskType == 'story-generation' || taskType == 'story-continuation') {
-            print('RESPONSE: ${response}');
             widget.onResponse(response['response'], '', '');
           } else if (taskType == 'prompt-generation') {
+            widget.onResponse('', storyRequest.formatStoryRequest(taskType), response['choices'][0]['message']['content']);
+          } else {
+            // handle the prompt generation task with the gpt model
             widget.onResponse('', storyRequest.formatStoryRequest(taskType), response['choices'][0]['message']['content']);
           }
         } 
@@ -252,7 +254,14 @@ class _StoryDetailsState extends State<StoryDetails> {
                   conversationId = confirmResponse['conversation_id'] as int?;
                   pendingConfirmation = false;
                 });
-                widget.onResponse(confirmResponse['response'] ?? '', '', '');
+                // if the taskType is 'story-generation' or 'story-continuation'
+                if (widget.taskType == 'story-generation' || widget.taskType == 'story-continuation') {
+                  // send the response to the storyDetailsForm.dart class build widget for inclusion in textbox
+                  widget.onResponse(confirmResponse['response'] ?? '', '', '');
+                } else if (widget.taskType == 'prompt-generation') {
+                  // send the response to the storyDetailsForm.dart class build widget for inclusion in textbox
+                  widget.onResponse('', lastUserInput, confirmResponse['response'] ?? '');
+                } 
               }
             } 
             if (!isNewStory) {
