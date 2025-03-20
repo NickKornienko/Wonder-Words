@@ -33,11 +33,12 @@ class StoryScreen extends StatefulWidget {
             )
           : null,
       actions: [
-        IconButton(
-          icon: const Icon(Icons.record_voice_over),
-          onPressed: () => showVoiceSelectionDialog(),
-          tooltip: 'Select Voice',
-        ),
+        if (!isStoryDetailsForm)
+          IconButton(
+            icon: const Icon(Icons.record_voice_over),
+            onPressed: () => showVoiceSelectionDialog(),
+            tooltip: 'Select Voice',
+          ),
         IconButton(
           icon: const Icon(Icons.history),
           onPressed: () {
