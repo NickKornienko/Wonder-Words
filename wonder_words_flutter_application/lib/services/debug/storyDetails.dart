@@ -26,8 +26,8 @@ Future<String> _loadKeyFromConfigFile(String configFileName, String tokenKey) as
 class StoryDetails extends StatefulWidget {
   final Function(Map<String, dynamic>) onSubmit;
   final Function(String, String, String) onResponse; // Modify the callback function to accept three parameters
-  final String model;
-  final String taskType;
+  String model;
+  String taskType;
   List<String> models = ['gpt', 'llama'];
   List<String> taskTypes = ['story-generation', 'prompt-generation', 'story-continuation'];
   StoryDetails({required this.onSubmit, required this.model, required this.taskType, required this.onResponse}) {
@@ -41,12 +41,97 @@ class StoryDetails extends StatefulWidget {
 
   final _StoryDetailsState _storyDetailsState = _StoryDetailsState();
 
+  void setModel(String newModel) {
+    _storyDetailsState.setModel(newModel);
+  }
+
+  void setTaskType(String newTaskType) {
+    _storyDetailsState.setTaskType(newTaskType);
+  }
+
+  void setIsNewStory(bool newIsNewStory) {
+    _storyDetailsState.setIsNewStory(newIsNewStory);
+  }
+
+  void setLastUserInput(String newLastUserInput) {
+    _storyDetailsState.setLastUserInput(newLastUserInput);
+  }
+
   void refreshInput() {
     _storyDetailsState.refreshInput();
+    // also clearing the text controllers
+    _storyDetailsState._titleController.clear();
+    _storyDetailsState._promptController.clear();
+    _storyDetailsState._vocabularyController.clear();
   }
+
+  // Public getters to access state variables
+  bool get isNewStory => _storyDetailsState.isNewStory;
+  String get lastUserInput => _storyDetailsState.lastUserInput;
+  int? get conversationId => _storyDetailsState.conversationId;
+  Function(int?) get setConversationId => _storyDetailsState.setConversationId;
+  Function(bool) get setPendingConfirmation => _storyDetailsState.setPendingConfirmation;
+  Function(String, String) get handleSubmit => _storyDetailsState._handleSubmit;
+  Future<Map<String, dynamic>?> Function(String) get sendConfirmation => _storyDetailsState._sendConfirmation;
 
   @override
   _StoryDetailsState createState() => _storyDetailsState;
+}
+
+class SubmitButton extends StatelessWidget {
+  final bool isNewStory;
+  final String lastUserInput;
+  final String model;
+  final String taskType;
+  final Function(String, String) handleSubmit;
+  final Future<Map<String, dynamic>?> Function(String) sendConfirmation;
+  final Function(String, String, String) onResponse;
+  final int? conversationId;
+  final Function(int?) setConversationId;
+  final Function(bool) setPendingConfirmation;
+
+  const SubmitButton({
+    Key? key,
+    required this.isNewStory,
+    required this.lastUserInput,
+    required this.model,
+    required this.taskType,
+    required this.handleSubmit,
+    required this.sendConfirmation,
+    required this.onResponse,
+    required this.conversationId,
+    required this.setConversationId,
+    required this.setPendingConfirmation,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return ElevatedButton(
+      onPressed: () async {
+        if (isNewStory) {
+          handleSubmit(model, taskType);
+          print('Submitted user input');
+          print('new story request');
+          print('Last user input: $lastUserInput');
+          final confirmResponse = await sendConfirmation('y');
+          if (confirmResponse != null) {
+            setConversationId(confirmResponse['conversation_id'] as int?);
+            setPendingConfirmation(false);
+            if (taskType == 'story-generation' || taskType == 'story-continuation') {
+              onResponse(confirmResponse['response'] ?? '', '', '');
+            } else if (taskType == 'prompt-generation') {
+              onResponse('', lastUserInput, confirmResponse['response'] ?? '');
+            }
+          }
+        } else {
+          print('continued story request');
+          print('Last user input: $lastUserInput');
+          handleSubmit(model, taskType);
+        }
+      },
+      child: Text('Submit'),
+    );
+  }
 }
 
 class _StoryDetailsState extends State<StoryDetails> {
@@ -70,6 +155,10 @@ class _StoryDetailsState extends State<StoryDetails> {
   bool isNewStory = true;
 
   void _handleSubmit(String model, String taskType) async {
+    print('Handling submit');
+    print("Using model: $model");
+    print("Using task type: $taskType");
+    print('Is new story: $isNewStory');
     setState(() {
       _submittedData = {
         'title': _titleController.text,
@@ -78,9 +167,9 @@ class _StoryDetailsState extends State<StoryDetails> {
       };
     });
 
+    widget.onSubmit(_submittedData); // Ensure the onSubmit callback is called
+
     StoryRequest storyRequest = StoryRequest.fromJson(_submittedData);
-    print("Using model: $model");
-    print("Using task type: $taskType");
 
     if (!isNewStory && taskType == 'story-generation') {
       taskType = 'story-continuation';
@@ -101,8 +190,6 @@ class _StoryDetailsState extends State<StoryDetails> {
         'stream': false
       });
 
-      // Process the response (assuming it's a stream-like structure)
-      // the response should be sent to the storyDetailsForm.dart class build widget for inclusion in textbox
       if (taskType == 'story-generation') {
         widget.onResponse(response['choices'][0]['message']['content'], '', '');
       } else if (taskType == 'prompt-generation') {
@@ -112,6 +199,7 @@ class _StoryDetailsState extends State<StoryDetails> {
     }
 
     if (model == 'gpt') {
+      print(storyRequest.formatStoryRequest(taskType));
       final response = await _sendGptRequest(storyRequest.formatStoryRequest(taskType));
 
       if (response != null) {
@@ -122,15 +210,15 @@ class _StoryDetailsState extends State<StoryDetails> {
             lastUserInput = storyRequest.formatStoryRequest(taskType);
             pendingConfirmation = true;
           });
-          // call _sendConfirmation function to send the confirmation to the server
-          final confirmResponse = await _sendConfirmation('y');
-          if (confirmResponse != null) {
-            setState(() {
-              conversationId = confirmResponse['conversation_id'] as int?;
-              pendingConfirmation = false;
-            });
-            widget.onResponse(confirmResponse['response'] ?? '', '', '');
-          }
+          print(response);
+          //final confirmResponse = await _sendConfirmation('y');
+          //if (confirmResponse != null) {
+          //  setState(() {
+          //    conversationId = confirmResponse['conversation_id'] as int?;
+          //    pendingConfirmation = false;
+          //  });
+          //  widget.onResponse(confirmResponse['response'] ?? '', '', '');
+          //}
         } else {
           print('In else');
           if (taskType == 'story-generation' || taskType == 'story-continuation') {
@@ -138,7 +226,6 @@ class _StoryDetailsState extends State<StoryDetails> {
           } else if (taskType == 'prompt-generation') {
             widget.onResponse('', storyRequest.formatStoryRequest(taskType), response['choices'][0]['message']['content']);
           } else {
-            // handle the prompt generation task with the gpt model
             widget.onResponse('', storyRequest.formatStoryRequest(taskType), response['choices'][0]['message']['content']);
           }
         } 
@@ -148,14 +235,12 @@ class _StoryDetailsState extends State<StoryDetails> {
     }
   }
 
-
   Future<Map<String, dynamic>?> _sendGptRequest(String userInput) async {
     String ip = await deviceIP;
     String url = 'http://$ip:5000/handle_request';
     final String idToken = await _storyService.getIdToken();
     print('Sending GPT request to $url');
 
-    //set last user input to the current user input
     setState(() {
       lastUserInput = userInput;
     });
@@ -180,7 +265,6 @@ class _StoryDetailsState extends State<StoryDetails> {
       print(response.statusCode);
       return null;
     }
-    
   }
 
   Future<Map<String, dynamic>?> _sendConfirmation(String confirmation) async {
@@ -217,7 +301,42 @@ class _StoryDetailsState extends State<StoryDetails> {
     _promptController.clear();
     _vocabularyController.clear();
   }
-        
+
+  void setModel(String newModel) {
+    setState(() {
+      widget.model = newModel;
+    });
+  }
+
+  void setTaskType(String newTaskType) {
+    setState(() {
+      widget.taskType = newTaskType;
+    });
+  }
+
+  void setIsNewStory(bool newIsNewStory) {
+    setState(() {
+      isNewStory = newIsNewStory;
+    });
+  }
+
+  void setLastUserInput(String newLastUserInput) {
+    setState(() {
+      lastUserInput = newLastUserInput;
+    });
+  }
+
+  void setConversationId(int? newConversationId) {
+    setState(() {
+      conversationId = newConversationId;
+    });
+  }
+
+  void setPendingConfirmation(bool newPendingConfirmation) {
+    setState(() {
+      pendingConfirmation = newPendingConfirmation;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -253,7 +372,7 @@ class _StoryDetailsState extends State<StoryDetails> {
           ),
         ),
         const SizedBox(height: 20),
-        if (lastUserInput.isNotEmpty) // Only show the checkbox if lastUserInput is non-empty
+        if (lastUserInput.isNotEmpty)
           CheckboxListTile(
             title: Text('Is this a new story?'),
             value: isNewStory,
@@ -264,51 +383,18 @@ class _StoryDetailsState extends State<StoryDetails> {
             },
           ),
         SizedBox(height: 16.0),
-        ElevatedButton(
-          onPressed: () async {
-
-            // if the user is confirming a new story and the last user input is not empty
-            if (isNewStory) {
-              // calling handleSubmit function to log the user input
-              _handleSubmit(widget.model, widget.taskType);
-              print('Submitted user input');
-              print('new story request');
-              print('Last user input: $lastUserInput');
-              final confirmResponse = await _sendConfirmation('y');
-              if (confirmResponse != null) {
-                setState(() {
-                  conversationId = confirmResponse['conversation_id'] as int?;
-                  pendingConfirmation = false;
-                });
-                // if the taskType is 'story-generation' or 'story-continuation'
-                if (widget.taskType == 'story-generation' || widget.taskType == 'story-continuation') {
-                  // send the response to the storyDetailsForm.dart class build widget for inclusion in textbox
-                  widget.onResponse(confirmResponse['response'] ?? '', '', '');
-                } else if (widget.taskType == 'prompt-generation') {
-                  // send the response to the storyDetailsForm.dart class build widget for inclusion in textbox
-                  widget.onResponse('', lastUserInput, confirmResponse['response'] ?? '');
-                } 
-              }
-            } 
-            if (!isNewStory) {
-              // if this is not the first story and is continuation of a story
-              // send the message as usual with confirmation set to 'n'
-              //final response = await _sendConfirmation('y');
-              //if (response != null) {
-              //  setState(() {
-              //    conversationId = response['conversation_id'] as int?;
-              //    pendingConfirmation = false;
-              //  });
-              //  widget.onResponse(response['response'] ?? '', '', '');
-              print('continued story request');
-              print('Last user input: $lastUserInput');
-              _handleSubmit(widget.model, widget.taskType);
-              // }
-            }
-            
-          },
-          child: Text('Submit'),
-        )
+        SubmitButton(
+          isNewStory: isNewStory,
+          lastUserInput: lastUserInput,
+          model: widget.model,
+          taskType: widget.taskType,
+          handleSubmit: _handleSubmit,
+          sendConfirmation: _sendConfirmation,
+          onResponse: widget.onResponse,
+          conversationId: conversationId,
+          setConversationId: setConversationId,
+          setPendingConfirmation: setPendingConfirmation,
+        ),
       ],
     );
   }

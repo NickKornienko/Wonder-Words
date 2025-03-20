@@ -20,18 +20,12 @@ class _StoryDetailsFormState extends State<StoryDetailsForm> {
   String _promptResponseText = '';
   String _formattedRequestText = '';
 
-  late StoryDetails _storyDetails;
-
-  @override
-  void initState() {
-    super.initState();
-    _storyDetails = StoryDetails(
-      onSubmit: (data) {},
-      model: _model,
-      taskType: _taskType,
-      onResponse: (response, formattedRequest, promptResponse) {},
-    );
-  }
+  late StoryDetails _storyDetails = StoryDetails(
+    model: _model,
+    taskType: _taskType,
+    onSubmit: _handleSubmittedData,
+    onResponse: _handleResponse,
+  );
 
   void _handleSubmittedData(Map<String, dynamic> onSubmit) {
     setState(() {
@@ -56,29 +50,19 @@ class _StoryDetailsFormState extends State<StoryDetailsForm> {
     });
   }
 
-  void _toggleModel() {
+  void _toggleModel(String? newValue) {
     setState(() {
-      _model = _model == 'llama' ? 'gpt' : 'llama';
+      _model = newValue!;
       print('Model changed to: $_model');
-      _storyDetails = StoryDetails(
-        onSubmit: _handleSubmittedData,
-        model: _model,
-        taskType: _taskType,
-        onResponse: _handleResponse,
-      );
+    _storyDetails.setModel(_model);
     });
   }
 
-  void _toggleTaskType() {
+  void _toggleTaskType(String? newValue) {
     setState(() {
-      _taskType = _taskType == 'story-generation' ? 'prompt-generation' : 'story-generation';
+      _taskType = newValue!;
       print('Task type changed to: $_taskType');
-      _storyDetails = StoryDetails(
-        onSubmit: _handleSubmittedData,
-        model: _model,
-        taskType: _taskType,
-        onResponse: _handleResponse,
-      );
+      _storyDetails.setTaskType(_taskType);
     });
   }
 
@@ -122,32 +106,64 @@ class _StoryDetailsFormState extends State<StoryDetailsForm> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: [
-                              const Text('llama'),
-                              Switch(
-                                value: _model == 'gpt',
-                                onChanged: (value) {
-                                  _toggleModel();
-                                },
-                              ),
-                              const Text('gpt'),
-                            ],
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(8.0),
+                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(8.0),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                                  child: Row(
+                                    children: [
+                                      const Text('Model: '),
+                                      DropdownButton<String>(
+                                        value: _model,
+                                        onChanged: _toggleModel,
+                                        items: <String>['llama', 'gpt'].map<DropdownMenuItem<String>>((String value) {
+                                          return DropdownMenuItem<String>(
+                                            value: value,
+                                            child: Text(value),
+                                          );
+                                        }).toList(),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 20), // Add some space between the dropdowns
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(8.0),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                                  child: Row(
+                                    children: [
+                                      const Text('Task Type: '),
+                                      DropdownButton<String>(
+                                        value: _taskType,
+                                        onChanged: _toggleTaskType,
+                                        items: <String>['story-generation', 'prompt-generation'].map<DropdownMenuItem<String>>((String value) {
+                                          return DropdownMenuItem<String>(
+                                            value: value,
+                                            child: Text(value),
+                                          );
+                                        }).toList(),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: [
-                              const Text('story-generation'),
-                              Switch(
-                                value: _taskType == 'prompt-generation',
-                                onChanged: (value) {
-                                  _toggleTaskType();
-                                },
-                              ),
-                              const Text('prompt-generation'),
-                            ],
-                          ),
+                          const SizedBox(height: 20),
                           _storyDetails,
                           const SizedBox(height: 20),
                           if (_taskType == 'story-generation') ...[
