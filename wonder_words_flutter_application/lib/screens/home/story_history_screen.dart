@@ -343,10 +343,10 @@ class _StoryHistoryScreenState extends State<StoryHistoryScreen> {
       child: GridView.builder(
         padding: const EdgeInsets.all(16),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          childAspectRatio: 0.7,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
+          crossAxisCount: 3, // Increase to 3 books per row
+          childAspectRatio: 0.85, // Adjust for better proportions
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 20,
         ),
         itemCount: _conversations.length,
         itemBuilder: (context, index) {
@@ -396,144 +396,143 @@ class _StoryHistoryScreenState extends State<StoryHistoryScreen> {
       },
       child: Column(
         children: [
-          // Book cover
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    bookColor,
-                    bookColor.withOpacity(0.7),
-                  ],
-                ),
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(4),
-                  topRight: Radius.circular(12),
-                  bottomLeft: Radius.circular(4),
-                  bottomRight: Radius.circular(12),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.3),
-                    blurRadius: 5,
-                    offset: const Offset(3, 3),
-                  ),
+          // Book cover - with fixed height to prevent stretching
+          Container(
+            height: 140, // Fixed height for book
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  bookColor,
+                  bookColor.withOpacity(0.7),
                 ],
-                border: Border.all(
-                  color: Colors.white,
-                  width: 1,
-                ),
               ),
-              child: Stack(
-                children: [
-                  // Book spine
-                  Positioned(
-                    left: 0,
-                    top: 0,
-                    bottom: 0,
-                    width: 12,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: bookColor.withOpacity(0.8),
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(4),
-                          bottomLeft: Radius.circular(4),
-                        ),
-                        border: Border.all(
-                          color: Colors.white,
-                          width: 1,
-                        ),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(4),
+                topRight: Radius.circular(12),
+                bottomLeft: Radius.circular(4),
+                bottomRight: Radius.circular(12),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.3),
+                  blurRadius: 5,
+                  offset: const Offset(3, 3),
+                ),
+              ],
+              border: Border.all(
+                color: Colors.white,
+                width: 1,
+              ),
+            ),
+            child: Stack(
+              children: [
+                // Book spine
+                Positioned(
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  width: 12,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: bookColor.withOpacity(0.8),
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(4),
+                        bottomLeft: Radius.circular(4),
+                      ),
+                      border: Border.all(
+                        color: Colors.white,
+                        width: 1,
                       ),
                     ),
                   ),
+                ),
 
-                  // Book content
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 16, 8, 16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Book title
-                        Text(
-                          title,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            shadows: [
-                              Shadow(
-                                color: Colors.black54,
-                                blurRadius: 2,
-                                offset: Offset(1, 1),
-                              ),
-                            ],
-                          ),
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
+                // Book content
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 8, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Book title
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          shadows: [
+                            Shadow(
+                              color: Colors.black54,
+                              blurRadius: 2,
+                              offset: Offset(1, 1),
+                            ),
+                          ],
                         ),
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                      ),
 
-                        const Spacer(),
+                      const Spacer(),
 
-                        // Date and message count
-                        Text(
-                          formattedDate,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                          ),
+                      // Date and message count
+                      Text(
+                        formattedDate,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
                         ),
-                        Text(
-                          '${conversation.messageCount} messages',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                          ),
+                      ),
+                      Text(
+                        '${conversation.messageCount} messages',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
+                ),
 
-                  // Book icon
-                  Positioned(
-                    right: 8,
-                    bottom: 8,
-                    child: Icon(
-                      Icons.auto_stories,
-                      color: Colors.white.withOpacity(0.7),
-                      size: 24,
-                    ),
+                // Book icon
+                Positioned(
+                  right: 8,
+                  bottom: 8,
+                  child: Icon(
+                    Icons.auto_stories,
+                    color: Colors.white.withOpacity(0.7),
+                    size: 24,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
 
-          // Action buttons
+          // Action buttons - more compact
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.only(top: 8),
-            child: Column(
+            padding: const EdgeInsets.only(top: 4),
+            child: Row(
               children: [
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
+                // Assign button
+                Expanded(
+                  child: ElevatedButton(
                     onPressed: () => _showAssignStoryDialog(conversation),
-                    icon: const Icon(Icons.child_care, size: 16),
-                    label: const Text('Assign to Child'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.deepPurple,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      textStyle: const TextStyle(fontSize: 12),
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      minimumSize: const Size(0, 30),
+                      textStyle: const TextStyle(fontSize: 10),
                     ),
+                    child: const Icon(Icons.child_care, size: 14),
                   ),
                 ),
-                const SizedBox(height: 4),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
+                const SizedBox(width: 4),
+                // View button
+                Expanded(
+                  child: OutlinedButton(
                     onPressed: () {
                       Navigator.push(
                         context,
@@ -544,14 +543,14 @@ class _StoryHistoryScreenState extends State<StoryHistoryScreen> {
                         ),
                       );
                     },
-                    icon: const Icon(Icons.visibility, size: 16),
-                    label: const Text('View'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.deepPurple,
                       side: const BorderSide(color: Colors.deepPurple),
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      textStyle: const TextStyle(fontSize: 12),
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      minimumSize: const Size(0, 30),
+                      textStyle: const TextStyle(fontSize: 10),
                     ),
+                    child: const Icon(Icons.visibility, size: 14),
                   ),
                 ),
               ],
