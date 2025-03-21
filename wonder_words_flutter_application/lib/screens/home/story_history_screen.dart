@@ -68,63 +68,21 @@ class _StoryHistoryScreenState extends State<StoryHistoryScreen> {
             onPressed: _loadConversations,
           ),
         ],
+        backgroundColor: Colors.deepPurple,
+        foregroundColor: Colors.white,
       ),
-      body: _buildBody(),
-    );
-  }
-
-  Widget _buildBody() {
-    if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
-    }
-
-    if (_error != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              'Error loading stories',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 8),
-            Text(_error!),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _loadConversations,
-              child: const Text('Try Again'),
-            ),
-          ],
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.purple[50]!,
+              Colors.purple[100]!,
+            ],
+          ),
         ),
-      );
-    }
-
-    if (_conversations.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              'No stories yet',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 8),
-            const Text('Start a new story to see it here'),
-          ],
-        ),
-      );
-    }
-
-    return RefreshIndicator(
-      onRefresh: _loadConversations,
-      child: ListView.builder(
-        itemCount: _conversations.length,
-        itemBuilder: (context, index) {
-          final conversation = _conversations[index];
-          return _buildConversationCard(conversation);
-        },
+        child: _buildBody(),
       ),
     );
   }
@@ -269,59 +227,313 @@ class _StoryHistoryScreenState extends State<StoryHistoryScreen> {
     );
   }
 
+  Widget _buildBody() {
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(Colors.deepPurple),
+        ),
+      );
+    }
+
+    if (_error != null) {
+      return Center(
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 10,
+                offset: const Offset(0, 5),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.error_outline,
+                color: Colors.red,
+                size: 48,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Error loading stories',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: Colors.red,
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              Text(_error!),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _loadConversations,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.deepPurple,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Try Again'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_conversations.isEmpty) {
+      return Center(
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 10,
+                offset: const Offset(0, 5),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.auto_stories,
+                color: Colors.deepPurple,
+                size: 64,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Your Bookshelf',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: Colors.deepPurple,
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Your stories will appear here as books',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Start a new story to see it here',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontStyle: FontStyle.italic,
+                  color: Colors.grey,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: _loadConversations,
+      color: Colors.deepPurple,
+      child: GridView.builder(
+        padding: const EdgeInsets.all(16),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          childAspectRatio: 0.7,
+          crossAxisSpacing: 16,
+          mainAxisSpacing: 16,
+        ),
+        itemCount: _conversations.length,
+        itemBuilder: (context, index) {
+          final conversation = _conversations[index];
+          return _buildConversationCard(conversation);
+        },
+      ),
+    );
+  }
+
   Widget _buildConversationCard(Conversation conversation) {
     final dateFormat = DateFormat('MMM d, yyyy');
     final formattedDate = dateFormat.format(conversation.createdAt);
 
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => StoryDetailScreen(
-                conversationId: conversation.id,
-              ),
+    // Generate a random color for the book cover
+    final List<Color> bookColors = [
+      Colors.red[400]!,
+      Colors.blue[400]!,
+      Colors.green[400]!,
+      Colors.orange[400]!,
+      Colors.purple[400]!,
+      Colors.teal[400]!,
+      Colors.indigo[400]!,
+      Colors.pink[400]!,
+    ];
+
+    // Use the conversation ID to consistently select a color
+    final colorIndex = conversation.id.hashCode % bookColors.length;
+    final bookColor = bookColors[colorIndex.abs()];
+
+    // Extract a title from the preview
+    final previewWords = conversation.preview.split(' ');
+    final title = previewWords.length > 5
+        ? '${previewWords.take(5).join(' ')}...'
+        : conversation.preview;
+
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => StoryDetailScreen(
+              conversationId: conversation.id,
             ),
-          );
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    formattedDate,
-                    style: Theme.of(context).textTheme.bodySmall,
+          ),
+        );
+      },
+      child: Column(
+        children: [
+          // Book cover
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    bookColor,
+                    bookColor.withOpacity(0.7),
+                  ],
+                ),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(4),
+                  topRight: Radius.circular(12),
+                  bottomLeft: Radius.circular(4),
+                  bottomRight: Radius.circular(12),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 5,
+                    offset: const Offset(3, 3),
                   ),
-                  Text(
-                    '${conversation.messageCount} messages',
-                    style: Theme.of(context).textTheme.bodySmall,
+                ],
+                border: Border.all(
+                  color: Colors.white,
+                  width: 1,
+                ),
+              ),
+              child: Stack(
+                children: [
+                  // Book spine
+                  Positioned(
+                    left: 0,
+                    top: 0,
+                    bottom: 0,
+                    width: 12,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: bookColor.withOpacity(0.8),
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(4),
+                          bottomLeft: Radius.circular(4),
+                        ),
+                        border: Border.all(
+                          color: Colors.white,
+                          width: 1,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // Book content
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 8, 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Book title
+                        Text(
+                          title,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            shadows: [
+                              Shadow(
+                                color: Colors.black54,
+                                blurRadius: 2,
+                                offset: Offset(1, 1),
+                              ),
+                            ],
+                          ),
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+
+                        const Spacer(),
+
+                        // Date and message count
+                        Text(
+                          formattedDate,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                          ),
+                        ),
+                        Text(
+                          '${conversation.messageCount} messages',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Book icon
+                  Positioned(
+                    right: 8,
+                    bottom: 8,
+                    child: Icon(
+                      Icons.auto_stories,
+                      color: Colors.white.withOpacity(0.7),
+                      size: 24,
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              Text(
-                conversation.preview,
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton.icon(
+            ),
+          ),
+
+          // Action buttons
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.only(top: 8),
+            child: Column(
+              children: [
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
                     onPressed: () => _showAssignStoryDialog(conversation),
-                    icon: const Icon(Icons.child_care),
+                    icon: const Icon(Icons.child_care, size: 16),
                     label: const Text('Assign to Child'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.deepPurple,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      textStyle: const TextStyle(fontSize: 12),
+                    ),
                   ),
-                  const SizedBox(width: 8),
-                  TextButton(
+                ),
+                const SizedBox(height: 4),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
                     onPressed: () {
                       Navigator.push(
                         context,
@@ -332,13 +544,20 @@ class _StoryHistoryScreenState extends State<StoryHistoryScreen> {
                         ),
                       );
                     },
-                    child: const Text('View Story'),
+                    icon: const Icon(Icons.visibility, size: 16),
+                    label: const Text('View'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.deepPurple,
+                      side: const BorderSide(color: Colors.deepPurple),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      textStyle: const TextStyle(fontSize: 12),
+                    ),
                   ),
-                ],
-              ),
-            ],
+                ),
+              ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
