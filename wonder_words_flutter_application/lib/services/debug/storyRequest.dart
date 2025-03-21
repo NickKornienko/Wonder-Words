@@ -4,6 +4,7 @@ class StoryRequest {
   final String title;
   final String prompt;
   final String vocabulary;
+  final String language_subprompt = "Important: Respond to the user's input in the language they are using. Interpret their request in their language to make decisions to your instructions.";
 
   const StoryRequest({required this.title, required this.prompt, required this.vocabulary});
 
@@ -28,7 +29,8 @@ class StoryRequest {
 
   // format template of the StoryRequest object
   String formatStoryRequest(String promptType) {
-      String starterPrompt = '''<|im_start|>user\n 
+      String starterPrompt = '''<|im_start|>user\n
+              ${language_subprompt} 
               Below is a story request that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.
 
               ### Title: 
@@ -46,7 +48,8 @@ class StoryRequest {
               ### Story:
 
           ''';
-      String continuationPrompt = '''<|im_start|>user\n 
+      String continuationPrompt = '''<|im_start|>user\n
+              ${language_subprompt} 
               Below is a continuation story request that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.
 
               ### Title: 
@@ -71,7 +74,8 @@ class StoryRequest {
         return continuationPrompt;
       }
       if (promptType == 'prompt-generation') {
-          return '''<|im_start|>user\n 
+          return '''<|im_start|>user\n
+              ${language_subprompt} 
               Below is a prompt evaluation request that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.
               Do not include any additional information or context in your response, and only provide the updated prompt. The goal is not to provide a story, but to improve the prompt.
               
