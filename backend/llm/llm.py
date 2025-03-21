@@ -11,13 +11,14 @@ client = OpenAI(
     api_key=os.getenv("OPENAI_API_KEY"),
 )
 
-
+language_handling_subprompt = "Important: Respond to the user's input in the language they are using. Interpret their request in their language to make decisions to your instructions."
 def handler(query):
     chat_completion = client.chat.completions.create(
         messages=[
             {
                 "role": "system",
                 "content": (
+                    f"{language_handling_subprompt}"
                     "You are the handler for a storytelling AI that can generate children's stories based on a given prompt."
                     "You should take the user input and decide what to do with it by returning the appropriate code, which is the integer only. Ex. 0, 1, 2, 3, 4, 5."
                     "If the user asks for something unrelated to telling a story, respond with code 0."
@@ -42,8 +43,9 @@ def new_story_generator(query):
             {
                 "role": "system",
                 "content": (
+                    f"{language_handling_subprompt}"
                     "You are the writer for a storytelling AI that can generate children's stories based on a given prompt."
-                    "You should take the user unput and generate a new story based on it."
+                    "You should take the user input and generate a new story based on it."
                     "The story should be appropriate for children and should be creative and engaging."
                     "You should return the story as the output."
                     "Only return the story and nothing else, include metacommentary 'such as sure here is a story or here is a story about'."
@@ -98,6 +100,7 @@ def add_to_story(conversation_id, query):
             {
                 "role": "system",
                 "content": (
+                    f"{language_handling_subprompt}"
                     "You are the writer for a storytelling AI that can generate children's stories based on a given prompt."
                     "You should take the existing story and the new user input to generate an extended story."
                     "The story should be appropriate for children and should be creative and engaging."
