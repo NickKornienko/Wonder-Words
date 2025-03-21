@@ -4,14 +4,10 @@ import 'dart:math' as math;
 import '../../services/auth/auth_provider.dart';
 import '../../services/story_service.dart';
 import '../../services/tts/google_tts_service.dart';
+import '../../models/assigned_story.dart';
+import '../../models/conversation.dart';
 import 'story_history_screen.dart';
-
-class Message {
-  final String content;
-  final bool isUser;
-
-  Message({required this.content, required this.isUser});
-}
+import 'kid_friendly_methods.dart';
 
 class KidFriendlyStoryScreen extends StatefulWidget {
   const KidFriendlyStoryScreen({Key? key}) : super(key: key);
@@ -39,55 +35,59 @@ class _KidFriendlyStoryScreenState extends State<KidFriendlyStoryScreen>
   String _currentStory =
       'Welcome to Wonder Words! Tap a story button to begin!';
 
-  // Specific story options with icons
+  // List to store assigned stories
+  List<AssignedStory> _assignedStories = [];
+  bool _loadingAssignedStories = false;
+
+  // Theme-based story generation options
   final List<Map<String, dynamic>> _storyThemes = [
     {
-      'name': 'Crying Wolf',
-      'icon': Icons.warning_amber,
+      'name': 'Dragons',
+      'icon': Icons.local_fire_department,
       'color': Colors.red,
-      'prompt': 'Tell me the story of the boy who cried wolf'
+      'theme': 'dragons'
     },
     {
-      'name': 'Three Pigs',
-      'icon': Icons.home,
-      'color': Colors.brown,
-      'prompt': 'Tell me the story of the three little pigs'
-    },
-    {
-      'name': 'Red Riding Hood',
-      'icon': Icons.directions_walk,
-      'color': Colors.red.shade700,
-      'prompt': 'Tell me the story of little red riding hood'
-    },
-    {
-      'name': 'Cinderella',
-      'icon': Icons.auto_awesome,
+      'name': 'Space',
+      'icon': Icons.rocket_launch,
       'color': Colors.blue,
-      'prompt': 'Tell me the story of Cinderella'
+      'theme': 'space'
     },
     {
-      'name': 'Jack & Beanstalk',
-      'icon': Icons.park,
+      'name': 'Animals',
+      'icon': Icons.pets,
       'color': Colors.green,
-      'prompt': 'Tell me the story of Jack and the Beanstalk'
+      'theme': 'animals'
     },
     {
-      'name': 'Goldilocks',
-      'icon': Icons.chair,
+      'name': 'Magic',
+      'icon': Icons.auto_awesome,
+      'color': Colors.purple,
+      'theme': 'magic'
+    },
+    {
+      'name': 'Pirates',
+      'icon': Icons.sailing,
       'color': Colors.amber,
-      'prompt': 'Tell me the story of Goldilocks and the three bears'
+      'theme': 'pirates'
     },
     {
-      'name': 'Ugly Duckling',
-      'icon': Icons.water_drop,
-      'color': Colors.lightBlue,
-      'prompt': 'Tell me the story of the ugly duckling'
+      'name': 'Dinosaurs',
+      'icon': Icons.landscape,
+      'color': Colors.brown,
+      'theme': 'dinosaurs'
     },
     {
-      'name': 'Tortoise & Hare',
-      'icon': Icons.speed,
-      'color': Colors.green.shade700,
-      'prompt': 'Tell me the story of the tortoise and the hare'
+      'name': 'Fairy Tales',
+      'icon': Icons.castle,
+      'color': Colors.pink,
+      'theme': 'fairy_tale'
+    },
+    {
+      'name': 'Adventure',
+      'icon': Icons.explore,
+      'color': Colors.teal,
+      'theme': 'adventure'
     },
   ];
 
@@ -150,6 +150,35 @@ class _KidFriendlyStoryScreenState extends State<KidFriendlyStoryScreen>
     super.didChangeDependencies();
     // Set the context for the StoryService
     _storyService.setContext(context);
+
+    // Load assigned stories
+    _loadAssignedStories();
+  }
+
+  // Load assigned stories from the backend
+  Future<void> _loadAssignedStories() async {
+    if (!mounted) return;
+
+    setState(() {
+      _loadingAssignedStories = true;
+    });
+
+    try {
+      final stories = await _storyService.getAssignedStories();
+      if (mounted) {
+        setState(() {
+          _assignedStories = stories;
+          _loadingAssignedStories = false;
+        });
+      }
+    } catch (e) {
+      print('Error loading assigned stories: $e');
+      if (mounted) {
+        setState(() {
+          _loadingAssignedStories = false;
+        });
+      }
+    }
   }
 
   /// Speak the given text using Google Cloud TTS
@@ -182,6 +211,71 @@ class _KidFriendlyStoryScreenState extends State<KidFriendlyStoryScreen>
         // Normal message handling
         await _handleNormalMessage(prompt);
       }
+    } catch (e) {
+      setState(() {
+        _currentStory = 'Oops! Something went wrong. Try again!';
+        _isLoading = false;
+      });
+    }
+  }
+
+  // Generate a themed story
+  Future<void> _generateThemedStory(String theme) async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final response = await _storyService.generateThemedStory(theme);
+
+      setState(() {
+        _isLoading = false;
+        _currentStory = response['response'] ?? 'No story generated';
+        if (response['conversation_id'] != null) {
+          _conversationId = response['conversation_id'].toString();
+        }
+
+        // Automatically speak the story
+        _speak(_currentStory);
+      });
+    } catch (e) {
+      setState(() {
+        _currentStory = 'Oops! Something went wrong. Try again!';
+        _isLoading = false;
+      });
+    }
+  }
+
+  // Open an assigned story
+  Future<void> _openAssignedStory(AssignedStory story) async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final messages =
+          await _storyService.getConversationMessages(story.conversationId);
+
+      // Find the first model message (the story content)
+      final storyMessage = messages.firstWhere(
+        (msg) => msg.senderType == SenderType.MODEL,
+        orElse: () => Message(
+          id: '0',
+          senderType: SenderType.MODEL,
+          content: 'Story not found',
+          createdAt: DateTime.now(),
+          code: 0,
+        ),
+      );
+
+      setState(() {
+        _isLoading = false;
+        _currentStory = storyMessage.content;
+        _conversationId = story.conversationId;
+
+        // Automatically speak the story
+        _speak(_currentStory);
+      });
     } catch (e) {
       setState(() {
         _currentStory = 'Oops! Something went wrong. Try again!';
@@ -696,6 +790,118 @@ class _KidFriendlyStoryScreenState extends State<KidFriendlyStoryScreen>
                 ),
               ),
 
+              // Assigned stories section (if available)
+              if (_assignedStories.isNotEmpty && _conversationId == null)
+                Container(
+                  height: 160,
+                  padding: EdgeInsets.only(bottom: 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: EdgeInsets.only(left: 20, bottom: 8),
+                        child: Text(
+                          'Your Books',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            shadows: [
+                              Shadow(
+                                color: Colors.black.withOpacity(0.3),
+                                blurRadius: 2,
+                                offset: Offset(1, 1),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          padding: EdgeInsets.symmetric(horizontal: 12),
+                          itemCount: _assignedStories.length,
+                          itemBuilder: (context, index) {
+                            final story = _assignedStories[index];
+                            return Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 8),
+                              child: AnimatedBuilder(
+                                animation: _bounceController,
+                                builder: (context, child) {
+                                  return Transform.translate(
+                                    offset: Offset(
+                                        0,
+                                        math.sin((_bounceController.value +
+                                                    index * 0.1) *
+                                                math.pi) *
+                                            3),
+                                    child: child,
+                                  );
+                                },
+                                child: InkWell(
+                                  onTap: () => _openAssignedStory(story),
+                                  child: Container(
+                                    width: 120,
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [
+                                          Colors.purple[400]!,
+                                          Colors.purple[200]!
+                                        ],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ),
+                                      borderRadius: BorderRadius.circular(12),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.2),
+                                          blurRadius: 5,
+                                          offset: Offset(0, 3),
+                                        ),
+                                      ],
+                                      border: Border.all(
+                                        color: Colors.white,
+                                        width: 2,
+                                      ),
+                                    ),
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.book,
+                                          size: 40,
+                                          color: Colors.white,
+                                        ),
+                                        SizedBox(height: 8),
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 8.0),
+                                          child: Text(
+                                            story.title,
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                            ),
+                                            textAlign: TextAlign.center,
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
               // Story theme selection or continuation options
               Container(
                 height: 180,
@@ -709,7 +915,7 @@ class _KidFriendlyStoryScreenState extends State<KidFriendlyStoryScreen>
                         _needsConfirmation
                             ? 'Do you want a new story?'
                             : (_conversationId == null
-                                ? 'Choose a story!'
+                                ? 'Choose a theme!'
                                 : 'What happens next?'),
                         style: TextStyle(
                           fontSize: 18,
@@ -743,214 +949,16 @@ class _KidFriendlyStoryScreenState extends State<KidFriendlyStoryScreen>
   }
 
   Widget _buildThemeButtons() {
-    return ListView.builder(
-      scrollDirection: Axis.horizontal,
-      padding: EdgeInsets.symmetric(horizontal: 12),
-      itemCount: _storyThemes.length,
-      itemBuilder: (context, index) {
-        final theme = _storyThemes[index];
-        return Padding(
-          padding: EdgeInsets.symmetric(horizontal: 8),
-          child: AnimatedBuilder(
-            animation: _bounceController,
-            builder: (context, child) {
-              return Transform.translate(
-                offset: Offset(
-                    0,
-                    math.sin(
-                            (_bounceController.value + index * 0.1) * math.pi) *
-                        5),
-                child: child,
-              );
-            },
-            child: InkWell(
-              onTap: () => _requestStory(theme['prompt']),
-              child: Container(
-                width: 110,
-                height: 110,
-                decoration: BoxDecoration(
-                  color: theme['color'],
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      blurRadius: 5,
-                      offset: Offset(0, 3),
-                    ),
-                  ],
-                  border: Border.all(
-                    color: Colors.white,
-                    width: 2,
-                  ),
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      theme['icon'],
-                      size: 40,
-                      color: Colors.white,
-                    ),
-                    SizedBox(height: 8),
-                    Flexible(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                        child: Text(
-                          theme['name'],
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                          textAlign: TextAlign.center,
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 2,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
+    return buildThemeButtons(
+        _storyThemes, _bounceController, _generateThemedStory);
   }
 
   Widget _buildContinuationButtons() {
-    return ListView.builder(
-      scrollDirection: Axis.horizontal,
-      padding: EdgeInsets.symmetric(horizontal: 12),
-      itemCount: _continuationOptions.length,
-      itemBuilder: (context, index) {
-        final option = _continuationOptions[index];
-        return Padding(
-          padding: EdgeInsets.symmetric(horizontal: 8),
-          child: AnimatedBuilder(
-            animation: _bounceController,
-            builder: (context, child) {
-              return Transform.translate(
-                offset: Offset(
-                    0,
-                    math.sin(
-                            (_bounceController.value + index * 0.2) * math.pi) *
-                        5),
-                child: child,
-              );
-            },
-            child: InkWell(
-              onTap: () => _requestStory(option['name']),
-              child: Container(
-                width: 120,
-                decoration: BoxDecoration(
-                  color: option['color'],
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      blurRadius: 5,
-                      offset: Offset(0, 3),
-                    ),
-                  ],
-                  border: Border.all(
-                    color: Colors.white,
-                    width: 2,
-                  ),
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      option['icon'],
-                      size: 40,
-                      color: Colors.white,
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      option['name'],
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
+    return buildContinuationButtons(
+        _continuationOptions, _bounceController, _requestStory);
   }
 
   Widget _buildConfirmationButtons() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        // Yes button
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16),
-          child: AnimatedBuilder(
-            animation: _scaleController,
-            builder: (context, child) {
-              return Transform.scale(
-                scale: 1.0 + (_scaleController.value * 0.1),
-                child: child,
-              );
-            },
-            child: ElevatedButton.icon(
-              icon: Icon(Icons.check_circle, size: 32),
-              label: Text(
-                'Yes!',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                foregroundColor: Colors.white,
-                padding: EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-              ),
-              onPressed: () => _handleConfirmation('yes'),
-            ),
-          ),
-        ),
-
-        // No button
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16),
-          child: AnimatedBuilder(
-            animation: _scaleController,
-            builder: (context, child) {
-              return Transform.scale(
-                scale: 1.0 + (_scaleController.value * 0.1),
-                child: child,
-              );
-            },
-            child: ElevatedButton.icon(
-              icon: Icon(Icons.cancel, size: 32),
-              label: Text(
-                'No!',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
-                padding: EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-              ),
-              onPressed: () => _handleConfirmation('no'),
-            ),
-          ),
-        ),
-      ],
-    );
+    return buildConfirmationButtons(_scaleController, _handleConfirmation);
   }
 }
