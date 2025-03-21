@@ -743,69 +743,74 @@ class _KidFriendlyStoryScreenState extends State<KidFriendlyStoryScreen>
   }
 
   Widget _buildThemeButtons() {
-    return GridView.builder(
+    return ListView.builder(
       scrollDirection: Axis.horizontal,
       padding: EdgeInsets.symmetric(horizontal: 12),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 0.8,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
-      ),
       itemCount: _storyThemes.length,
       itemBuilder: (context, index) {
         final theme = _storyThemes[index];
-        return AnimatedBuilder(
-          animation: _bounceController,
-          builder: (context, child) {
-            return Transform.translate(
-              offset: Offset(
-                  0,
-                  math.sin((_bounceController.value + index * 0.1) * math.pi) *
-                      5),
-              child: child,
-            );
-          },
-          child: InkWell(
-            onTap: () => _requestStory(theme['prompt']),
-            child: Container(
-              decoration: BoxDecoration(
-                color: theme['color'],
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
-                    blurRadius: 5,
-                    offset: Offset(0, 3),
-                  ),
-                ],
-                border: Border.all(
-                  color: Colors.white,
-                  width: 2,
-                ),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    theme['icon'],
-                    size: 40,
-                    color: Colors.white,
-                  ),
-                  SizedBox(height: 8),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                    child: Text(
-                      theme['name'],
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                      textAlign: TextAlign.center,
+        return Padding(
+          padding: EdgeInsets.symmetric(horizontal: 8),
+          child: AnimatedBuilder(
+            animation: _bounceController,
+            builder: (context, child) {
+              return Transform.translate(
+                offset: Offset(
+                    0,
+                    math.sin(
+                            (_bounceController.value + index * 0.1) * math.pi) *
+                        5),
+                child: child,
+              );
+            },
+            child: InkWell(
+              onTap: () => _requestStory(theme['prompt']),
+              child: Container(
+                width: 110,
+                height: 110,
+                decoration: BoxDecoration(
+                  color: theme['color'],
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 5,
+                      offset: Offset(0, 3),
                     ),
+                  ],
+                  border: Border.all(
+                    color: Colors.white,
+                    width: 2,
                   ),
-                ],
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      theme['icon'],
+                      size: 40,
+                      color: Colors.white,
+                    ),
+                    SizedBox(height: 8),
+                    Flexible(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                        child: Text(
+                          theme['name'],
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                          textAlign: TextAlign.center,
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 2,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
