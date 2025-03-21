@@ -39,43 +39,55 @@ class _KidFriendlyStoryScreenState extends State<KidFriendlyStoryScreen>
   String _currentStory =
       'Welcome to Wonder Words! Tap a story button to begin!';
 
-  // Story theme options with icons
+  // Specific story options with icons
   final List<Map<String, dynamic>> _storyThemes = [
     {
-      'name': 'Dragons',
-      'icon': Icons.local_fire_department,
+      'name': 'Crying Wolf',
+      'icon': Icons.warning_amber,
       'color': Colors.red,
-      'prompt': 'Tell me a story about a friendly dragon'
+      'prompt': 'Tell me the story of the boy who cried wolf'
     },
     {
-      'name': 'Space',
-      'icon': Icons.rocket_launch,
-      'color': Colors.blue,
-      'prompt': 'Tell me a space adventure story'
-    },
-    {
-      'name': 'Animals',
-      'icon': Icons.pets,
-      'color': Colors.green,
-      'prompt': 'Tell me a story about talking animals'
-    },
-    {
-      'name': 'Magic',
-      'icon': Icons.auto_awesome,
-      'color': Colors.purple,
-      'prompt': 'Tell me a magical fairy tale'
-    },
-    {
-      'name': 'Pirates',
-      'icon': Icons.sailing,
-      'color': Colors.amber,
-      'prompt': 'Tell me a pirate adventure story'
-    },
-    {
-      'name': 'Dinosaurs',
-      'icon': Icons.landscape,
+      'name': 'Three Pigs',
+      'icon': Icons.home,
       'color': Colors.brown,
-      'prompt': 'Tell me a story about dinosaurs'
+      'prompt': 'Tell me the story of the three little pigs'
+    },
+    {
+      'name': 'Red Riding Hood',
+      'icon': Icons.directions_walk,
+      'color': Colors.red.shade700,
+      'prompt': 'Tell me the story of little red riding hood'
+    },
+    {
+      'name': 'Cinderella',
+      'icon': Icons.auto_awesome,
+      'color': Colors.blue,
+      'prompt': 'Tell me the story of Cinderella'
+    },
+    {
+      'name': 'Jack & Beanstalk',
+      'icon': Icons.park,
+      'color': Colors.green,
+      'prompt': 'Tell me the story of Jack and the Beanstalk'
+    },
+    {
+      'name': 'Goldilocks',
+      'icon': Icons.chair,
+      'color': Colors.amber,
+      'prompt': 'Tell me the story of Goldilocks and the three bears'
+    },
+    {
+      'name': 'Ugly Duckling',
+      'icon': Icons.water_drop,
+      'color': Colors.lightBlue,
+      'prompt': 'Tell me the story of the ugly duckling'
+    },
+    {
+      'name': 'Tortoise & Hare',
+      'icon': Icons.speed,
+      'color': Colors.green.shade700,
+      'prompt': 'Tell me the story of the tortoise and the hare'
     },
   ];
 
@@ -87,9 +99,9 @@ class _KidFriendlyStoryScreenState extends State<KidFriendlyStoryScreen>
       'color': Colors.blue,
     },
     {
-      'name': 'Add a dragon!',
-      'icon': Icons.local_fire_department,
-      'color': Colors.red,
+      'name': 'Different ending',
+      'icon': Icons.auto_awesome,
+      'color': Colors.purple,
     },
     {
       'name': 'Make it funny!',
@@ -97,9 +109,9 @@ class _KidFriendlyStoryScreenState extends State<KidFriendlyStoryScreen>
       'color': Colors.amber,
     },
     {
-      'name': 'Add magic!',
-      'icon': Icons.auto_awesome,
-      'color': Colors.purple,
+      'name': 'Add a twist!',
+      'icon': Icons.loop,
+      'color': Colors.red,
     },
   ];
 
@@ -697,7 +709,7 @@ class _KidFriendlyStoryScreenState extends State<KidFriendlyStoryScreen>
                         _needsConfirmation
                             ? 'Do you want a new story?'
                             : (_conversationId == null
-                                ? 'Choose a story theme!'
+                                ? 'Choose a story!'
                                 : 'What happens next?'),
                         style: TextStyle(
                           fontSize: 18,
@@ -731,61 +743,69 @@ class _KidFriendlyStoryScreenState extends State<KidFriendlyStoryScreen>
   }
 
   Widget _buildThemeButtons() {
-    return ListView.builder(
+    return GridView.builder(
       scrollDirection: Axis.horizontal,
       padding: EdgeInsets.symmetric(horizontal: 12),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 0.8,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
+      ),
       itemCount: _storyThemes.length,
       itemBuilder: (context, index) {
         final theme = _storyThemes[index];
-        return Padding(
-          padding: EdgeInsets.symmetric(horizontal: 8),
-          child: AnimatedBuilder(
-            animation: _bounceController,
-            builder: (context, child) {
-              return Transform.translate(
-                offset:
-                    Offset(0, math.sin(_bounceController.value * math.pi) * 5),
-                child: child,
-              );
-            },
-            child: InkWell(
-              onTap: () => _requestStory(theme['prompt']),
-              child: Container(
-                width: 100,
-                decoration: BoxDecoration(
-                  color: theme['color'],
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      blurRadius: 5,
-                      offset: Offset(0, 3),
-                    ),
-                  ],
-                  border: Border.all(
-                    color: Colors.white,
-                    width: 2,
+        return AnimatedBuilder(
+          animation: _bounceController,
+          builder: (context, child) {
+            return Transform.translate(
+              offset: Offset(
+                  0,
+                  math.sin((_bounceController.value + index * 0.1) * math.pi) *
+                      5),
+              child: child,
+            );
+          },
+          child: InkWell(
+            onTap: () => _requestStory(theme['prompt']),
+            child: Container(
+              decoration: BoxDecoration(
+                color: theme['color'],
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 5,
+                    offset: Offset(0, 3),
                   ),
+                ],
+                border: Border.all(
+                  color: Colors.white,
+                  width: 2,
                 ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      theme['icon'],
-                      size: 40,
-                      color: Colors.white,
-                    ),
-                    SizedBox(height: 8),
-                    Text(
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    theme['icon'],
+                    size: 40,
+                    color: Colors.white,
+                  ),
+                  SizedBox(height: 8),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: Text(
                       theme['name'],
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
                       ),
+                      textAlign: TextAlign.center,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
