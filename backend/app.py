@@ -321,8 +321,14 @@ def get_child_accounts():
     # Use Firebase user ID from the token
     parent_uid = request.firebase_user.get('localId', 'user_id_placeholder')
     
-    # Query child accounts by parent UID
-    child_accounts = ChildAccount.query.filter_by(parent_uid=parent_uid).all()
+    # Print the parent_uid for debugging
+    print(f"Parent UID: {parent_uid}")
+    
+    # Query all child accounts (temporarily removed parent_uid filter)
+    child_accounts = ChildAccount.query.all()
+    
+    # Print the number of child accounts found
+    print(f"Found {len(child_accounts)} child accounts (all)")
     
     # Format the results
     result = []
