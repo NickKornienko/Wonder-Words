@@ -1,5 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import '../../config/api_config.dart';
 
 enum AccountType { parent, child }
 
@@ -191,12 +194,61 @@ class AuthService {
         avatarUrl: avatarUrl,
       );
 
-      // Save user data
+      // Save user data to local storage
       await _saveUserData(userData);
+
+      // Save child account to backend database
+      await _saveChildAccountToBackend(
+        username: username,
+        pin: pin,
+        displayName: displayName,
+        age: age,
+        parentUid: parentUid,
+      );
 
       return userData;
     } catch (e) {
       throw Exception('Failed to create child account: $e');
+    }
+  }
+
+  // Save child account to backend database
+  Future<void> _saveChildAccountToBackend({
+    required String username,
+    required String pin,
+    required String displayName,
+    required int age,
+    required String parentUid,
+  }) async {
+    try {
+      // Get the parent's ID token
+      final String? token = await getIdToken();
+      if (token == null) {
+        throw Exception('Failed to get authentication token');
+      }
+
+      // Make API call to backend
+      final response = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}/create_child_account'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode({
+          'username': username,
+          'pin': pin,
+          'display_name': displayName,
+          'age': age,
+        }),
+      );
+
+      if (response.statusCode != 200) {
+        final data = json.decode(response.body);
+        throw Exception(
+            data['error'] ?? 'Failed to save child account to backend');
+      }
+    } catch (e) {
+      throw Exception('Failed to save child account to backend: $e');
     }
   }
 
