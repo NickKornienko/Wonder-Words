@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../../services/auth/auth_provider.dart';
 import '../../services/auth/auth_service.dart';
+import 'kid_friendly_story_screen.dart';
 
 class ChildAccountsScreen extends StatefulWidget {
   const ChildAccountsScreen({Key? key}) : super(key: key);
@@ -84,6 +85,93 @@ class _ChildAccountsScreenState extends State<ChildAccountsScreen> {
             _isLoading = false;
           });
         }
+      }
+    }
+  }
+
+  // Navigate to the child's story screen
+  void _navigateToChildStoryScreen(Map<String, dynamic> childAccount) async {
+    try {
+      // Get the child's username and PIN
+      final username = childAccount['username'];
+      final pin = '1234'; // Default PIN for demonstration purposes
+
+      setState(() {
+        _isLoading = true;
+      });
+
+      // Call the backend API to authenticate the child
+      final response = await http.post(
+        Uri.parse('http://localhost:5000/child_login'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'username': username,
+          'pin': pin,
+        }),
+      );
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      if (response.statusCode == 200) {
+        // Parse the response
+        final data = json.decode(response.body);
+        final token = data['token'];
+        final displayName = data['display_name'];
+        final age = data['age'];
+
+        // Update the AuthProvider with the child's authentication information
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+        // Create a child user data object
+        final childUserData = UserData(
+          uid:
+              'child-${DateTime.now().millisecondsSinceEpoch}', // Generate a temporary UID
+          email: 'child@example.com', // Placeholder email
+          displayName: displayName,
+          accountType: AccountType.child,
+          username: username,
+          pin: pin,
+          age: age,
+        );
+
+        // Set the user data in the AuthProvider
+        authProvider.setChildUserData(childUserData, token);
+
+        if (mounted) {
+          // Navigate to the KidFriendlyStoryScreen
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const KidFriendlyStoryScreen(),
+            ),
+          );
+        }
+      } else {
+        // Handle authentication error
+        final data = json.decode(response.body);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(data['error'] ?? 'Failed to login as child'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
   }
@@ -442,34 +530,42 @@ class _ChildAccountsScreenState extends State<ChildAccountsScreen> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: ListTile(
-                contentPadding: const EdgeInsets.all(16),
-                leading: CircleAvatar(
-                  backgroundColor: Colors.orange,
-                  radius: 24,
-                  child: Text(
-                    account['display_name']?[0]?.toUpperCase() ?? 'C',
+              child: InkWell(
+                onTap: () => _navigateToChildStoryScreen(account),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.all(16),
+                  leading: CircleAvatar(
+                    backgroundColor: Colors.orange,
+                    radius: 24,
+                    child: Text(
+                      account['display_name']?[0]?.toUpperCase() ?? 'C',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ),
+                  title: Text(
+                    account['display_name'] ?? 'Child',
                     style: const TextStyle(
-                      color: Colors.white,
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
                     ),
                   ),
-                ),
-                title: Text(
-                  account['display_name'] ?? 'Child',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 4),
+                      Text('Username: ${account['username']}'),
+                      Text('Age: ${account['age']}'),
+                    ],
                   ),
-                ),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 4),
-                    Text('Username: ${account['username']}'),
-                    Text('Age: ${account['age']}'),
-                  ],
+                  trailing: const Icon(
+                    Icons.arrow_forward_ios,
+                    color: Colors.deepPurple,
+                    size: 16,
+                  ),
                 ),
               ),
             );
