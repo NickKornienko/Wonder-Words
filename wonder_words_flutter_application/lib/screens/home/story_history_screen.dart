@@ -341,27 +341,27 @@ class _StoryHistoryScreenState extends State<StoryHistoryScreen> {
       onRefresh: _loadConversations,
       color: Colors.deepPurple,
       child: GridView.builder(
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.all(12),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 3, // 3 books per row
-          childAspectRatio: 0.75, // Taller books
+          crossAxisCount: 2, // 2 books per row for better sizing
+          childAspectRatio: 0.9, // Slightly taller than wide
           crossAxisSpacing: 8, // Reduced horizontal spacing
           mainAxisSpacing: 12, // Reduced vertical spacing
         ),
         itemCount: _conversations.length,
         itemBuilder: (context, index) {
           final conversation = _conversations[index];
-          return _buildConversationCard(conversation, index);
+          return _buildConversationCard(conversation);
         },
       ),
     );
   }
 
-  Widget _buildConversationCard(Conversation conversation, int index) {
+  Widget _buildConversationCard(Conversation conversation) {
     final dateFormat = DateFormat('MMM d, yyyy');
     final formattedDate = dateFormat.format(conversation.createdAt);
 
-    // Generate a random appearance for each book
+    // Generate a random color for the book cover
     final List<Color> bookColors = [
       Colors.red[400]!,
       Colors.blue[400]!,
@@ -371,23 +371,11 @@ class _StoryHistoryScreenState extends State<StoryHistoryScreen> {
       Colors.teal[400]!,
       Colors.indigo[400]!,
       Colors.pink[400]!,
-      Colors.amber[400]!,
-      Colors.cyan[400]!,
-      Colors.deepOrange[400]!,
-      Colors.lightBlue[400]!,
     ];
 
-    // Use a combination of index and conversation ID for randomization
-    final colorIndex = (conversation.id.hashCode + index) % bookColors.length;
+    // Use the conversation ID to consistently select a color
+    final colorIndex = conversation.id.hashCode % bookColors.length;
     final bookColor = bookColors[colorIndex.abs()];
-
-    // Random rotation for a more natural bookshelf look
-    final rotationAngle =
-        (index % 3 - 1) * 0.02; // Slight tilt: -0.02, 0, or 0.02 radians
-
-    // Random height variation
-    final heightVariation =
-        130.0 + (index % 3) * 10; // Heights: 130, 140, or 150
 
     // Extract a title from the preview
     final previewWords = conversation.preview.split(' ');
@@ -395,186 +383,177 @@ class _StoryHistoryScreenState extends State<StoryHistoryScreen> {
         ? '${previewWords.take(5).join(' ')}...'
         : conversation.preview;
 
-    return Container(
-      alignment: Alignment.center,
-      margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
-      child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => StoryDetailScreen(
-                conversationId: conversation.id,
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => StoryDetailScreen(
+              conversationId: conversation.id,
+            ),
+          ),
+        );
+      },
+      child: Column(
+        children: [
+          // Book cover - with fixed height to prevent stretching
+          Container(
+            height: 140, // Fixed height for book
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  bookColor,
+                  bookColor.withOpacity(0.7),
+                ],
+              ),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(4),
+                topRight: Radius.circular(12),
+                bottomLeft: Radius.circular(4),
+                bottomRight: Radius.circular(12),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.3),
+                  blurRadius: 5,
+                  offset: const Offset(3, 3),
+                ),
+              ],
+              border: Border.all(
+                color: Colors.white,
+                width: 1,
               ),
             ),
-          );
-        },
-        child: Column(
-          children: [
-            // Book cover with random appearance
-            Transform.rotate(
-              angle: rotationAngle,
-              child: Container(
-                height: heightVariation,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      bookColor,
-                      bookColor.withOpacity(0.7),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.only(
-                    topLeft: const Radius.circular(4),
-                    topRight: const Radius.circular(12),
-                    bottomLeft: const Radius.circular(4),
-                    bottomRight: const Radius.circular(12),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.3),
-                      blurRadius: 5,
-                      offset: const Offset(3, 3),
+            child: Stack(
+              children: [
+                // Book spine
+                Positioned(
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  width: 12,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: bookColor.withOpacity(0.8),
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(4),
+                        bottomLeft: Radius.circular(4),
+                      ),
+                      border: Border.all(
+                        color: Colors.white,
+                        width: 1,
+                      ),
                     ),
-                  ],
-                  border: Border.all(
-                    color: Colors.white,
-                    width: 1,
                   ),
                 ),
-                child: Stack(
-                  children: [
-                    // Book spine
-                    Positioned(
-                      left: 0,
-                      top: 0,
-                      bottom: 0,
-                      width: 12,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: bookColor.withOpacity(0.8),
-                          borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(4),
-                            bottomLeft: Radius.circular(4),
-                          ),
-                          border: Border.all(
-                            color: Colors.white,
-                            width: 1,
-                          ),
+
+                // Book content
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 8, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Book title
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          shadows: [
+                            Shadow(
+                              color: Colors.black54,
+                              blurRadius: 2,
+                              offset: Offset(1, 1),
+                            ),
+                          ],
+                        ),
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+
+                      const Spacer(),
+
+                      // Date and message count
+                      Text(
+                        formattedDate,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
                         ),
                       ),
-                    ),
-
-                    // Book content
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 16, 8, 16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Book title
-                          Text(
-                            title,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              shadows: [
-                                Shadow(
-                                  color: Colors.black54,
-                                  blurRadius: 2,
-                                  offset: Offset(1, 1),
-                                ),
-                              ],
-                            ),
-                            maxLines: 3,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-
-                          const Spacer(),
-
-                          // Date and message count
-                          Text(
-                            formattedDate,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                            ),
-                          ),
-                          Text(
-                            '${conversation.messageCount} messages',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
+                      Text(
+                        '${conversation.messageCount} messages',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                        ),
                       ),
-                    ),
-
-                    // Book icon
-                    Positioned(
-                      right: 8,
-                      bottom: 8,
-                      child: Icon(
-                        Icons.auto_stories,
-                        color: Colors.white.withOpacity(0.7),
-                        size: 24,
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ),
 
-            // Action buttons - more compact and aligned
-            SizedBox(
-              width: double.infinity,
-              child: Padding(
-                padding: const EdgeInsets.only(top: 2),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Assign button
-                    SizedBox(
-                      width: 36,
-                      height: 36,
-                      child: IconButton(
-                        padding: EdgeInsets.zero,
-                        onPressed: () => _showAssignStoryDialog(conversation),
-                        icon: const Icon(Icons.child_care, size: 20),
-                        color: Colors.deepPurple,
-                        tooltip: 'Assign to Child',
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    // View button
-                    SizedBox(
-                      width: 36,
-                      height: 36,
-                      child: IconButton(
-                        padding: EdgeInsets.zero,
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => StoryDetailScreen(
-                                conversationId: conversation.id,
-                              ),
-                            ),
-                          );
-                        },
-                        icon: const Icon(Icons.visibility, size: 20),
-                        color: Colors.deepPurple,
-                        tooltip: 'View Story',
-                      ),
-                    ),
-                  ],
+                // Book icon
+                Positioned(
+                  right: 8,
+                  bottom: 8,
+                  child: Icon(
+                    Icons.auto_stories,
+                    color: Colors.white.withOpacity(0.7),
+                    size: 24,
+                  ),
                 ),
-              ),
+              ],
             ),
-          ],
-        ),
+          ),
+
+          // Action buttons - more compact and better aligned
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.only(top: 4),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Assign button
+                SizedBox(
+                  width: 40,
+                  height: 36,
+                  child: IconButton(
+                    padding: EdgeInsets.zero,
+                    onPressed: () => _showAssignStoryDialog(conversation),
+                    icon: const Icon(Icons.child_care),
+                    color: Colors.deepPurple,
+                    tooltip: 'Assign to Child',
+                  ),
+                ),
+                const SizedBox(width: 16),
+                // View button
+                SizedBox(
+                  width: 40,
+                  height: 36,
+                  child: IconButton(
+                    padding: EdgeInsets.zero,
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => StoryDetailScreen(
+                            conversationId: conversation.id,
+                          ),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.visibility),
+                    color: Colors.deepPurple,
+                    tooltip: 'View Story',
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
