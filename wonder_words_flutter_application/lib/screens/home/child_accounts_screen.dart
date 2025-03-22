@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../../services/auth/auth_provider.dart';
 import '../../services/auth/auth_service.dart';
+import '../../config/api_config.dart';
 import 'kid_friendly_story_screen.dart';
 
 class ChildAccountsScreen extends StatefulWidget {
@@ -94,7 +95,8 @@ class _ChildAccountsScreenState extends State<ChildAccountsScreen> {
     try {
       // Get the child's username and PIN
       final username = childAccount['username'];
-      final pin = '1234'; // Default PIN for demonstration purposes
+      final pin =
+          childAccount['pin'] ?? '1234'; // Use actual PIN or default to 1234
 
       setState(() {
         _isLoading = true;
@@ -102,7 +104,7 @@ class _ChildAccountsScreenState extends State<ChildAccountsScreen> {
 
       // Call the backend API to authenticate the child
       final response = await http.post(
-        Uri.parse('http://localhost:5000/child_login'),
+        Uri.parse('${ApiConfig.baseUrl}/child_login'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'username': username,
@@ -399,7 +401,7 @@ class _ChildAccountsScreenState extends State<ChildAccountsScreen> {
       }
 
       final response = await http.get(
-        Uri.parse('http://localhost:5000/get_child_accounts'),
+        Uri.parse('${ApiConfig.baseUrl}/get_child_accounts'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
