@@ -340,29 +340,39 @@ class _StoryHistoryScreenState extends State<StoryHistoryScreen> {
     return RefreshIndicator(
       onRefresh: _loadConversations,
       color: Colors.deepPurple,
-      child: LayoutBuilder(builder: (context, constraints) {
-        // Calculate how many books can fit in a row based on screen width
-        // Assuming each book should be around 100-120px wide
-        final double bookWidth = 110.0;
-        final int crossAxisCount = (constraints.maxWidth / bookWidth).floor();
+      child: Padding(
+        padding:
+            const EdgeInsets.all(4.0), // Add a small padding around the grid
+        child: LayoutBuilder(builder: (context, constraints) {
+          // Limit to maximum 8 books per row, minimum 3
+          int crossAxisCount = 8;
+          if (constraints.maxWidth < 800) {
+            crossAxisCount = 6;
+          }
+          if (constraints.maxWidth < 600) {
+            crossAxisCount = 4;
+          }
+          if (constraints.maxWidth < 400) {
+            crossAxisCount = 3;
+          }
 
-        return GridView.builder(
-          padding: EdgeInsets.zero, // No padding
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: crossAxisCount > 2
-                ? crossAxisCount
-                : 3, // At least 3 books per row, more on wider screens
-            childAspectRatio: 0.75, // Taller than wide for book appearance
-            crossAxisSpacing: 0, // No horizontal spacing
-            mainAxisSpacing: 0, // No vertical spacing
-          ),
-          itemCount: _conversations.length,
-          itemBuilder: (context, index) {
-            final conversation = _conversations[index];
-            return _buildConversationCard(conversation);
-          },
-        );
-      }),
+          return GridView.builder(
+            padding: const EdgeInsets.only(
+                bottom: 16), // Add bottom padding to avoid overflow
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: crossAxisCount, // Fixed number of books per row
+              childAspectRatio: 0.75, // Taller than wide for book appearance
+              crossAxisSpacing: 4, // Small horizontal spacing
+              mainAxisSpacing: 4, // Small vertical spacing
+            ),
+            itemCount: _conversations.length,
+            itemBuilder: (context, index) {
+              final conversation = _conversations[index];
+              return _buildConversationCard(conversation);
+            },
+          );
+        }),
+      ),
     );
   }
 
@@ -393,10 +403,10 @@ class _StoryHistoryScreenState extends State<StoryHistoryScreen> {
         : conversation.preview;
 
     return Card(
-      margin: EdgeInsets.zero, // No margin
-      elevation: 0, // No elevation
+      margin: const EdgeInsets.all(1), // Small margin
+      elevation: 2, // Slight elevation for depth
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(0), // No rounded corners
+        borderRadius: BorderRadius.circular(4), // Slightly rounded corners
       ),
       child: InkWell(
         onTap: () {
