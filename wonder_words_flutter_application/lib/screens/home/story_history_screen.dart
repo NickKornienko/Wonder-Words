@@ -340,20 +340,29 @@ class _StoryHistoryScreenState extends State<StoryHistoryScreen> {
     return RefreshIndicator(
       onRefresh: _loadConversations,
       color: Colors.deepPurple,
-      child: GridView.builder(
-        padding: const EdgeInsets.all(12),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2, // 2 books per row for better sizing
-          childAspectRatio: 0.9, // Slightly taller than wide
-          crossAxisSpacing: 8, // Reduced horizontal spacing
-          mainAxisSpacing: 12, // Reduced vertical spacing
-        ),
-        itemCount: _conversations.length,
-        itemBuilder: (context, index) {
-          final conversation = _conversations[index];
-          return _buildConversationCard(conversation);
-        },
-      ),
+      child: LayoutBuilder(builder: (context, constraints) {
+        // Calculate how many books can fit in a row based on screen width
+        // Assuming each book should be around 100-120px wide
+        final double bookWidth = 110.0;
+        final int crossAxisCount = (constraints.maxWidth / bookWidth).floor();
+
+        return GridView.builder(
+          padding: EdgeInsets.zero, // No padding
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount > 2
+                ? crossAxisCount
+                : 3, // At least 3 books per row, more on wider screens
+            childAspectRatio: 0.75, // Taller than wide for book appearance
+            crossAxisSpacing: 0, // No horizontal spacing
+            mainAxisSpacing: 0, // No vertical spacing
+          ),
+          itemCount: _conversations.length,
+          itemBuilder: (context, index) {
+            final conversation = _conversations[index];
+            return _buildConversationCard(conversation);
+          },
+        );
+      }),
     );
   }
 
@@ -383,158 +392,160 @@ class _StoryHistoryScreenState extends State<StoryHistoryScreen> {
         ? '${previewWords.take(5).join(' ')}...'
         : conversation.preview;
 
-    return InkWell(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => StoryDetailScreen(
-              conversationId: conversation.id,
-            ),
-          ),
-        );
-      },
-      child: Column(
-        children: [
-          // Book cover - with fixed height to prevent stretching
-          Container(
-            height: 140, // Fixed height for book
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  bookColor,
-                  bookColor.withOpacity(0.7),
-                ],
-              ),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(4),
-                topRight: Radius.circular(12),
-                bottomLeft: Radius.circular(4),
-                bottomRight: Radius.circular(12),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.3),
-                  blurRadius: 5,
-                  offset: const Offset(3, 3),
-                ),
-              ],
-              border: Border.all(
-                color: Colors.white,
-                width: 1,
+    return Card(
+      margin: EdgeInsets.zero, // No margin
+      elevation: 0, // No elevation
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(0), // No rounded corners
+      ),
+      child: InkWell(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => StoryDetailScreen(
+                conversationId: conversation.id,
               ),
             ),
-            child: Stack(
-              children: [
-                // Book spine
-                Positioned(
-                  left: 0,
-                  top: 0,
-                  bottom: 0,
-                  width: 12,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: bookColor.withOpacity(0.8),
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(4),
-                        bottomLeft: Radius.circular(4),
-                      ),
-                      border: Border.all(
-                        color: Colors.white,
-                        width: 1,
-                      ),
-                    ),
-                  ),
-                ),
-
-                // Book content
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 8, 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Book title
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                          shadows: [
-                            Shadow(
-                              color: Colors.black54,
-                              blurRadius: 2,
-                              offset: Offset(1, 1),
-                            ),
-                          ],
-                        ),
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-
-                      const Spacer(),
-
-                      // Date and message count
-                      Text(
-                        formattedDate,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                        ),
-                      ),
-                      Text(
-                        '${conversation.messageCount} messages',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                        ),
-                      ),
+          );
+        },
+        child: Column(
+          children: [
+            // Book cover - with proportional sizing
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      bookColor,
+                      bookColor.withOpacity(0.7),
                     ],
                   ),
-                ),
-
-                // Book icon
-                Positioned(
-                  right: 8,
-                  bottom: 8,
-                  child: Icon(
-                    Icons.auto_stories,
-                    color: Colors.white.withOpacity(0.7),
-                    size: 24,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(4),
+                    topRight: Radius.circular(12),
+                    bottomLeft: Radius.circular(4),
+                    bottomRight: Radius.circular(12),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.3),
+                      blurRadius: 5,
+                      offset: const Offset(3, 3),
+                    ),
+                  ],
+                  border: Border.all(
+                    color: Colors.white,
+                    width: 1,
                   ),
                 ),
-              ],
-            ),
-          ),
+                child: Stack(
+                  children: [
+                    // Book spine
+                    Positioned(
+                      left: 0,
+                      top: 0,
+                      bottom: 0,
+                      width: 12,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: bookColor.withOpacity(0.8),
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(4),
+                            bottomLeft: Radius.circular(4),
+                          ),
+                          border: Border.all(
+                            color: Colors.white,
+                            width: 1,
+                          ),
+                        ),
+                      ),
+                    ),
 
-          // Action buttons - more compact and better aligned
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.only(top: 4),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Assign button
-                SizedBox(
-                  width: 40,
-                  height: 36,
-                  child: IconButton(
+                    // Book content
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 16, 8, 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Book title
+                          Text(
+                            title,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              shadows: [
+                                Shadow(
+                                  color: Colors.black54,
+                                  blurRadius: 2,
+                                  offset: Offset(1, 1),
+                                ),
+                              ],
+                            ),
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+
+                          const Spacer(),
+
+                          // Date and message count
+                          Text(
+                            formattedDate,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                            ),
+                          ),
+                          Text(
+                            '${conversation.messageCount} messages',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Book icon
+                    Positioned(
+                      right: 8,
+                      bottom: 8,
+                      child: Icon(
+                        Icons.auto_stories,
+                        color: Colors.white.withOpacity(0.7),
+                        size: 24,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Action buttons - more compact and better aligned
+            Container(
+              width: double.infinity,
+              height: 30,
+              color: Colors.grey[100],
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  // Assign button
+                  IconButton(
                     padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
                     onPressed: () => _showAssignStoryDialog(conversation),
-                    icon: const Icon(Icons.child_care),
+                    icon: const Icon(Icons.child_care, size: 16),
                     color: Colors.deepPurple,
                     tooltip: 'Assign to Child',
                   ),
-                ),
-                const SizedBox(width: 16),
-                // View button
-                SizedBox(
-                  width: 40,
-                  height: 36,
-                  child: IconButton(
+                  // View button
+                  IconButton(
                     padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
                     onPressed: () {
                       Navigator.push(
                         context,
@@ -545,15 +556,15 @@ class _StoryHistoryScreenState extends State<StoryHistoryScreen> {
                         ),
                       );
                     },
-                    icon: const Icon(Icons.visibility),
+                    icon: const Icon(Icons.visibility, size: 16),
                     color: Colors.deepPurple,
                     tooltip: 'View Story',
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
