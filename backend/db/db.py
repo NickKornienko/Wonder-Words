@@ -45,6 +45,5 @@ def init_db(app):
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     db.init_app(app)
     with app.app_context():
-        if os.path.exists('conversations.db'):
-            os.remove('conversations.db')
+        # Create tables if they don't exist, but don't delete the database
         db.create_all()
