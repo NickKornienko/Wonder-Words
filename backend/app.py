@@ -164,6 +164,38 @@ def confirm_new_story_route():
         return jsonify({"message": "Query and confirmation required"})
 
 
+@app.route('/delete_conversation', methods=['DELETE'])
+@firebase_auth_required
+def delete_conversation():
+    # Use Firebase user ID from the token
+    user_id = request.firebase_user.get('localId', 'user_id_placeholder')
+    conversation_id = request.args.get('conversation_id')
+    
+    if not conversation_id:
+        return jsonify({"error": "Conversation ID is required"}), 400
+    
+    try:
+        # Verify the conversation belongs to the user
+        conversation = Conversation.query.filter_by(id=conversation_id, user_id=user_id).first()
+        if not conversation:
+            return jsonify({"error": "Conversation not found or access denied"}), 404
+        
+        # Delete any story assignments associated with this conversation
+        StoryAssignment.query.filter_by(conversation_id=conversation_id).delete()
+        
+        # Delete all messages associated with this conversation
+        Message.query.filter_by(conversation_id=conversation_id).delete()
+        
+        # Delete the conversation
+        db.session.delete(conversation)
+        db.session.commit()
+        
+        return jsonify({"message": "Conversation deleted successfully"})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route('/get_conversations', methods=['GET'])
 @firebase_auth_required
 def get_conversations():

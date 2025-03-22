@@ -618,6 +618,17 @@ class _StoryHistoryScreenState extends State<StoryHistoryScreen> {
                         color: Colors.deepPurple,
                         tooltip: 'View Story',
                       ),
+                      // Delete button - only show for parent accounts
+                      if (!authProvider.isChild)
+                        IconButton(
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: () =>
+                              _showDeleteConfirmationDialog(conversation),
+                          icon: const Icon(Icons.delete, size: 16),
+                          color: Colors.red,
+                          tooltip: 'Delete Story',
+                        ),
                     ],
                   );
                 },
@@ -627,5 +638,74 @@ class _StoryHistoryScreenState extends State<StoryHistoryScreen> {
         ),
       ),
     );
+  }
+
+  // Show confirmation dialog before deleting a story
+  Future<void> _showDeleteConfirmationDialog(Conversation conversation) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Story'),
+        content: const Text(
+          'Are you sure you want to delete this story? This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      try {
+        // Show loading indicator
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const Center(
+            child: CircularProgressIndicator(),
+          ),
+        );
+
+        // Delete the conversation
+        await _storyService.deleteConversation(conversation.id);
+
+        // Close loading dialog
+        if (mounted) Navigator.pop(context);
+
+        // Show success message
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Story deleted successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+
+        // Refresh the list
+        _loadConversations();
+      } catch (e) {
+        // Close loading dialog
+        if (mounted) Navigator.pop(context);
+
+        // Show error message
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to delete story: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
   }
 }
