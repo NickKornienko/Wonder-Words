@@ -410,7 +410,11 @@ class _ChildAccountsScreenState extends State<ChildAccountsScreen> {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        return List<Map<String, dynamic>>.from(data['child_accounts']);
+        final accounts =
+            List<Map<String, dynamic>>.from(data['child_accounts']);
+        print('Child accounts fetched: ${accounts.length}');
+        print('Child accounts data: $accounts');
+        return accounts;
       } else {
         throw Exception(
             'Failed to fetch child accounts: ${response.statusCode}');
