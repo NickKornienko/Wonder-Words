@@ -164,11 +164,20 @@ class _StoryHistoryScreenState extends State<StoryHistoryScreen> {
     String? selectedChildUsername;
     final titleController = TextEditingController();
 
-    // Extract a title from the preview
-    final previewWords = conversation.preview.split(' ');
-    final suggestedTitle = previewWords.length > 3
-        ? '${previewWords.take(3).join(' ')}...'
-        : conversation.preview;
+    // Extract title from the preview if it's in the TITLE: STORY: format
+    String suggestedTitle;
+    if (conversation.preview.contains("TITLE:") &&
+        conversation.preview.contains("STORY:")) {
+      final parts = conversation.preview.split("STORY:");
+      final titlePart = parts[0].trim();
+      suggestedTitle = titlePart.replaceFirst("TITLE:", "").trim();
+    } else {
+      // Fallback to the old method if the format is not found
+      final previewWords = conversation.preview.split(' ');
+      suggestedTitle = previewWords.length > 3
+          ? '${previewWords.take(3).join(' ')}...'
+          : conversation.preview;
+    }
     titleController.text = suggestedTitle;
 
     if (!mounted) return;
@@ -423,11 +432,20 @@ class _StoryHistoryScreenState extends State<StoryHistoryScreen> {
     final colorIndex = conversation.id.hashCode % bookColors.length;
     final bookColor = bookColors[colorIndex.abs()];
 
-    // Extract a title from the preview
-    final previewWords = conversation.preview.split(' ');
-    final title = previewWords.length > 5
-        ? '${previewWords.take(5).join(' ')}...'
-        : conversation.preview;
+    // Extract title from the preview if it's in the TITLE: STORY: format
+    String title;
+    if (conversation.preview.contains("TITLE:") &&
+        conversation.preview.contains("STORY:")) {
+      final parts = conversation.preview.split("STORY:");
+      final titlePart = parts[0].trim();
+      title = titlePart.replaceFirst("TITLE:", "").trim();
+    } else {
+      // Fallback to the old method if the format is not found
+      final previewWords = conversation.preview.split(' ');
+      title = previewWords.length > 5
+          ? '${previewWords.take(5).join(' ')}...'
+          : conversation.preview;
+    }
 
     return Card(
       margin: const EdgeInsets.all(1), // Small margin
