@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from db.db import db, init_db, Conversation, Message, SenderType, ChildAccount
+from db.story_assignment import StoryAssignment, StoryTheme, init_story_assignment_db
 from llm.llm import handler, new_story_generator, add_to_story
 from firebase_auth import firebase_auth_required
 from child_auth import (
@@ -10,6 +11,7 @@ from child_auth import (
 import os
 from dotenv import load_dotenv
 import jwt
+import random
 
 # Load environment variables
 load_dotenv()
@@ -19,6 +21,7 @@ CORS(app)  # Enable CORS for all routes
 
 # Initialize the SQLAlchemy db instance
 init_db(app)
+init_story_assignment_db(app)
 
 
 def log_message(conversation_id, sender_type, code, content):
@@ -95,9 +98,28 @@ def handle_request():
             response = "Sorry, I can only tell stories. Please ask me to tell you a story."
         elif code == 1:  # If the user asks for something related to a story but violates safety rules
             response = "Sorry, I can't tell that story. Please ask me to tell you a story."
+        elif code == 2:  # If the user asks for a new story
+            story_data = generate_new_story(query)
+            if isinstance(story_data, dict):
+                title = story_data.get("title", "New Story")
+                story = story_data.get("story", "")
+                # Format the response with title and story
+                response = f"TITLE: {title}\n\nSTORY: {story}"
+                log_message(conversation.id, SenderType.MODEL, code, response)
+            else:
+                response = story_data
+                log_message(conversation.id, SenderType.MODEL, code, response)
         elif code == 3:  # If the user asks for an addition to an existing story
-            response = add_to_existing_story(conversation.id, query)
-            log_message(conversation.id, SenderType.MODEL, code, response)
+            story_data = add_to_existing_story(conversation.id, query)
+            if isinstance(story_data, dict):
+                title = story_data.get("title", "Continued Story")
+                story = story_data.get("story", "")
+                # Format the response with title and story
+                response = f"TITLE: {title}\n\nSTORY: {story}"
+                log_message(conversation.id, SenderType.MODEL, code, response)
+            else:
+                response = story_data
+                log_message(conversation.id, SenderType.MODEL, code, response)
         else:
             response = f"Invalid code: {code}"
 
@@ -122,8 +144,16 @@ def confirm_new_story_route():
             db.session.add(conversation)
             db.session.commit()
 
-            response = generate_new_story(query)
-            log_message(conversation.id, SenderType.MODEL, 2, response)
+            story_data = generate_new_story(query)
+            if isinstance(story_data, dict):
+                title = story_data.get("title", "New Story")
+                story = story_data.get("story", "")
+                # Format the response with title and story
+                response = f"TITLE: {title}\n\nSTORY: {story}"
+                log_message(conversation.id, SenderType.MODEL, 2, response)
+            else:
+                response = story_data
+                log_message(conversation.id, SenderType.MODEL, 2, response)
 
             return jsonify({"message": "New story initiated.", "response": response, "conversation_id": conversation.id})
         elif confirmation.lower() == 'n':
@@ -310,8 +340,16 @@ def handle_child_request():
         elif code == 1:  # If the user asks for something related to a story but violates safety rules
             response = "Sorry, I can't tell that story. Please ask me to tell you a story."
         elif code == 2:  # If the user asks for a new story
-            response = generate_new_story(query)
-            log_message(conversation.id, SenderType.MODEL, code, response)
+            story_data = generate_new_story(query)
+            if isinstance(story_data, dict):
+                title = story_data.get("title", "New Story")
+                story = story_data.get("story", "")
+                # Format the response with title and story
+                response = f"TITLE: {title}\n\nSTORY: {story}"
+                log_message(conversation.id, SenderType.MODEL, code, response)
+            else:
+                response = story_data
+                log_message(conversation.id, SenderType.MODEL, code, response)
         elif code == 3:  # If the user asks for an addition to an existing story
             response = add_to_existing_story(conversation.id, query)
             log_message(conversation.id, SenderType.MODEL, code, response)
@@ -340,8 +378,16 @@ def confirm_child_new_story():
             db.session.add(conversation)
             db.session.commit()
 
-            response = generate_new_story(query)
-            log_message(conversation.id, SenderType.MODEL, 2, response)
+            story_data = generate_new_story(query)
+            if isinstance(story_data, dict):
+                title = story_data.get("title", "New Story")
+                story = story_data.get("story", "")
+                # Format the response with title and story
+                response = f"TITLE: {title}\n\nSTORY: {story}"
+                log_message(conversation.id, SenderType.MODEL, 2, response)
+            else:
+                response = story_data
+                log_message(conversation.id, SenderType.MODEL, 2, response)
 
             return jsonify({"message": "New story initiated.", "response": response, "conversation_id": conversation.id})
         elif confirmation.lower() == 'n':
@@ -410,6 +456,164 @@ def get_child_conversation_messages():
         return jsonify({"messages": result})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@app.route('/assign_story', methods=['POST'])
+@firebase_auth_required
+def assign_story():
+    data = request.get_json()
+    conversation_id = data.get('conversation_id')
+    child_username = data.get('child_username')
+    title = data.get('title')
+    
+    if not all([conversation_id, child_username, title]):
+        return jsonify({"error": "All fields are required"}), 400
+    
+    # Verify the conversation exists and belongs to the parent
+    parent_uid = request.firebase_user.get('localId', 'user_id_placeholder')
+    conversation = Conversation.query.filter_by(id=conversation_id, user_id=parent_uid).first()
+    if not conversation:
+        return jsonify({"error": "Conversation not found or access denied"}), 404
+    
+    # Verify the child account exists and belongs to the parent
+    child_account = ChildAccount.query.filter_by(username=child_username, parent_uid=parent_uid).first()
+    if not child_account:
+        return jsonify({"error": "Child account not found or access denied"}), 404
+    
+    # Create the story assignment
+    assignment = StoryAssignment(
+        conversation_id=conversation_id,
+        child_username=child_username,
+        title=title
+    )
+    
+    db.session.add(assignment)
+    db.session.commit()
+    
+    return jsonify({"message": "Story assigned successfully", "assignment_id": assignment.id})
+
+
+@app.route('/get_assigned_stories', methods=['GET'])
+@child_auth_required
+def get_assigned_stories():
+    # Get the child username from the token
+    username = request.child_user.get('username')
+    
+    # Query assigned stories for this child
+    assignments = StoryAssignment.query.filter_by(child_username=username).all()
+    
+    result = []
+    for assignment in assignments:
+        # Get the first model message from the conversation (the story content)
+        first_story = Message.query.filter_by(
+            conversation_id=assignment.conversation_id,
+            sender_type=SenderType.MODEL
+        ).order_by(Message.created_at).first()
+        
+        if first_story:
+            result.append({
+                'id': assignment.id,
+                'conversation_id': assignment.conversation_id,
+                'title': assignment.title,
+                'assigned_at': assignment.assigned_at.isoformat(),
+                'preview': first_story.content[:100] + '...' if len(first_story.content) > 100 else first_story.content
+            })
+    
+    return jsonify({"assigned_stories": result})
+
+
+@app.route('/generate_themed_story', methods=['POST'])
+@child_auth_required
+def generate_themed_story():
+    data = request.get_json()
+    theme = data.get('theme')
+    
+    if not theme:
+        return jsonify({"error": "Theme is required"}), 400
+    
+    # Validate the theme
+    try:
+        story_theme = StoryTheme(theme)
+    except ValueError:
+        return jsonify({"error": "Invalid theme"}), 400
+    
+    # Generate a prompt based on the theme
+    prompts = {
+        StoryTheme.DRAGONS: [
+            "Tell me a story about a friendly dragon who helps a village",
+            "Tell me a story about a dragon who can't breathe fire",
+            "Tell me a story about a baby dragon learning to fly"
+        ],
+        StoryTheme.SPACE: [
+            "Tell me a story about astronauts discovering a new planet",
+            "Tell me a story about aliens visiting Earth",
+            "Tell me a story about a space adventure with talking robots"
+        ],
+        StoryTheme.ANIMALS: [
+            "Tell me a story about talking animals in a forest",
+            "Tell me a story about a brave little mouse",
+            "Tell me a story about animals working together to solve a problem"
+        ],
+        StoryTheme.MAGIC: [
+            "Tell me a story about a child discovering they have magic powers",
+            "Tell me a story about a magical school",
+            "Tell me a story about a wizard's apprentice"
+        ],
+        StoryTheme.PIRATES: [
+            "Tell me a story about a kind pirate who helps others",
+            "Tell me a story about finding a treasure map",
+            "Tell me a story about a pirate adventure with a talking parrot"
+        ],
+        StoryTheme.DINOSAURS: [
+            "Tell me a story about friendly dinosaurs",
+            "Tell me a story about a time-traveling adventure to see dinosaurs",
+            "Tell me a story about a baby dinosaur finding its family"
+        ],
+        StoryTheme.FAIRY_TALE: [
+            "Tell me a fairy tale about a brave princess who saves a prince",
+            "Tell me a fairy tale with a happy ending",
+            "Tell me a fairy tale about magical creatures in an enchanted forest"
+        ],
+        StoryTheme.ADVENTURE: [
+            "Tell me an adventure story about exploring a mysterious cave",
+            "Tell me an adventure story about finding a lost city",
+            "Tell me an adventure story about a magical journey"
+        ]
+    }
+    
+    # Select a random prompt for the chosen theme
+    prompt = random.choice(prompts[story_theme])
+    
+    # Use parent UID from the child token for database operations
+    parent_uid = request.child_user.get('parent_uid', 'user_id_placeholder')
+    
+    # Create a new conversation
+    conversation = Conversation(user_id=parent_uid)
+    db.session.add(conversation)
+    db.session.commit()
+    
+    # Log the user message
+    log_message(conversation.id, SenderType.USER, 2, prompt)
+    
+    # Generate the story
+    story_data = generate_new_story(prompt)
+    if isinstance(story_data, dict):
+        title = story_data.get("title", f"{story_theme.value.title()} Story")
+        story = story_data.get("story", "")
+        # Format the response with title and story
+        response = f"TITLE: {title}\n\nSTORY: {story}"
+        log_message(conversation.id, SenderType.MODEL, 2, response)
+    else:
+        response = story_data
+        title = f"{story_theme.value.title()} Story"
+        log_message(conversation.id, SenderType.MODEL, 2, response)
+    
+    return jsonify({
+        "response": response,
+        "conversation_id": conversation.id,
+        "title": title,
+        "theme": theme
+    })
 
 
 if __name__ == '__main__':

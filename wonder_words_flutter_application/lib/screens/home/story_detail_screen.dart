@@ -241,6 +241,19 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
     final dateFormat = DateFormat('MMM d, h:mm a');
     final formattedDate = dateFormat.format(message.createdAt);
 
+    // Parse title and story if the message is in the TITLE: STORY: format
+    String? title;
+    String content = message.content;
+
+    if (!isUser &&
+        message.content.contains("TITLE:") &&
+        message.content.contains("STORY:")) {
+      final parts = message.content.split("STORY:");
+      final titlePart = parts[0].trim();
+      title = titlePart.replaceFirst("TITLE:", "").trim();
+      content = parts[1].trim();
+    }
+
     return Align(
       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
@@ -258,8 +271,22 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Display title if available
+            if (title != null && !isUser)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8.0),
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    color: isUser ? Colors.white : Colors.black,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+            // Display content
             Text(
-              message.content,
+              content,
               style: TextStyle(
                 color: isUser ? Colors.white : Colors.black,
               ),
@@ -281,7 +308,8 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
                       color: isUser ? Colors.white70 : Colors.black54,
                       size: 16,
                     ),
-                    onPressed: () => _speak(message.content),
+                    onPressed: () => _speak(
+                        content), // Speak only the story content, not the title
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                     splashRadius: 16,
