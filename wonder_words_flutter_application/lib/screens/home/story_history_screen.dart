@@ -44,7 +44,30 @@ class _StoryHistoryScreenState extends State<StoryHistoryScreen> {
     });
 
     try {
-      final conversations = await _storyService.getConversations();
+      // Get the AuthProvider to check if the user is a child
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+      // Load conversations based on account type
+      List<Conversation> conversations;
+      if (authProvider.isChild) {
+        // For child accounts, only show assigned stories and stories they created
+        final assignedStories = await _storyService.getAssignedStories();
+        final childConversations = await _storyService.getConversations();
+
+        // Create a set of conversation IDs from assigned stories
+        final Set<String> assignedConversationIds =
+            assignedStories.map((story) => story.conversationId).toSet();
+
+        // Filter conversations to only include assigned ones and ones created by the child
+        conversations = childConversations.where((conversation) {
+          // Include if it's in the assigned stories or if it was created by the child
+          return assignedConversationIds.contains(conversation.id);
+        }).toList();
+      } else {
+        // For parent accounts, show all conversations
+        conversations = await _storyService.getConversations();
+      }
+
       setState(() {
         _conversations = conversations;
         _isLoading = false;
@@ -59,9 +82,13 @@ class _StoryHistoryScreenState extends State<StoryHistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Get the AuthProvider to check if the user is a child
+    final authProvider = Provider.of<AuthProvider>(context);
+    final isChild = authProvider.isChild;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Stories'),
+        title: Text(isChild ? 'My Books' : 'My Stories'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -540,37 +567,42 @@ class _StoryHistoryScreenState extends State<StoryHistoryScreen> {
               width: double.infinity,
               height: 30,
               color: Colors.grey[100],
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  // Assign button
-                  IconButton(
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                    onPressed: () => _showAssignStoryDialog(conversation),
-                    icon: const Icon(Icons.child_care, size: 16),
-                    color: Colors.deepPurple,
-                    tooltip: 'Assign to Child',
-                  ),
-                  // View button
-                  IconButton(
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => StoryDetailScreen(
-                            conversationId: conversation.id,
-                          ),
+              child: Consumer<AuthProvider>(
+                builder: (context, authProvider, child) {
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      // Assign button - only show for parent accounts
+                      if (!authProvider.isChild)
+                        IconButton(
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: () => _showAssignStoryDialog(conversation),
+                          icon: const Icon(Icons.child_care, size: 16),
+                          color: Colors.deepPurple,
+                          tooltip: 'Assign to Child',
                         ),
-                      );
-                    },
-                    icon: const Icon(Icons.visibility, size: 16),
-                    color: Colors.deepPurple,
-                    tooltip: 'View Story',
-                  ),
-                ],
+                      // View button
+                      IconButton(
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => StoryDetailScreen(
+                                conversationId: conversation.id,
+                              ),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.visibility, size: 16),
+                        color: Colors.deepPurple,
+                        tooltip: 'View Story',
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
           ],
