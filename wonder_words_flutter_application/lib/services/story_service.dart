@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
 import '../models/conversation.dart';
+import '../models/assigned_story.dart';
 import '../config/api_config.dart';
 import 'auth/auth_provider.dart' as app_auth;
 
@@ -260,6 +261,132 @@ class StoryService {
         return messagesJson.map((json) => Message.fromJson(json)).toList();
       } else {
         throw Exception('Failed to get messages: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error connecting to server: $e');
+    }
+  }
+
+  // Method to assign a story to a child
+  Future<Map<String, dynamic>> assignStory(
+      String conversationId, String childUsername, String title) async {
+    if (_context == null) {
+      throw Exception('Context not initialized');
+    }
+
+    try {
+      final String idToken = await _getIdToken();
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/assign_story'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $idToken',
+        },
+        body: jsonEncode({
+          'conversation_id': conversationId,
+          'child_username': childUsername,
+          'title': title,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        throw Exception('Failed to assign story: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error connecting to server: $e');
+    }
+  }
+
+  // Method to get assigned stories for a child
+  Future<List<AssignedStory>> getAssignedStories() async {
+    if (_context == null) {
+      throw Exception('Context not initialized');
+    }
+
+    try {
+      final String idToken = await _getIdToken();
+
+      final response = await http.get(
+        Uri.parse('$baseUrl/get_assigned_stories'),
+        headers: {
+          'Authorization': 'Bearer $idToken',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = jsonDecode(response.body);
+        final List<dynamic> storiesJson = data['assigned_stories'];
+        return storiesJson.map((json) => AssignedStory.fromJson(json)).toList();
+      } else {
+        throw Exception(
+            'Failed to get assigned stories: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error connecting to server: $e');
+    }
+  }
+
+  // Method to generate a themed story
+  Future<Map<String, dynamic>> generateThemedStory(String theme) async {
+    if (_context == null) {
+      throw Exception('Context not initialized');
+    }
+
+    try {
+      final String idToken = await _getIdToken();
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/generate_themed_story'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $idToken',
+        },
+        body: jsonEncode({
+          'theme': theme,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        throw Exception(
+            'Failed to generate themed story: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error connecting to server: $e');
+    }
+  }
+
+  // Method to delete a conversation
+  Future<void> deleteConversation(String conversationId) async {
+    if (_context == null) {
+      throw Exception('Context not initialized');
+    }
+
+    try {
+      final String idToken = await _getIdToken();
+      final authProvider =
+          Provider.of<app_auth.AuthProvider>(_context!, listen: false);
+
+      // Only parent accounts can delete conversations
+      if (authProvider.isChild) {
+        throw Exception('Child accounts cannot delete stories');
+      }
+
+      final response = await http.delete(
+        Uri.parse(
+            '$baseUrl/delete_conversation?conversation_id=$conversationId'),
+        headers: {
+          'Authorization': 'Bearer $idToken',
+        },
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception(
+            'Failed to delete conversation: ${response.statusCode}');
       }
     } catch (e) {
       throw Exception('Error connecting to server: $e');
