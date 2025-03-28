@@ -15,7 +15,8 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
+# Exclude Python lib/ but not Flutter lib/
+/lib/
 lib64/
 parts/
 sdist/
