@@ -84,12 +84,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         backgroundColor: Colors.deepPurple,
         foregroundColor: Colors.white,
         actions: [
-          if (!isChild) // Only show sign out for parent accounts
-            IconButton(
-              icon: const Icon(Icons.logout),
-              onPressed: _signOut,
-              tooltip: 'Sign Out',
-            ),
+          // Show sign out for all accounts
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: _signOut,
+            tooltip: 'Sign Out',
+          ),
         ],
       ),
       body: Container(
@@ -352,24 +352,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
 
-              // Sign Out Button (for parent accounts)
-              if (authProvider.isParent)
-                Padding(
-                  padding: const EdgeInsets.only(top: 32.0),
-                  child: ElevatedButton.icon(
-                    onPressed: _signOut,
-                    icon: const Icon(Icons.logout),
-                    label: const Text('Sign Out'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 12,
-                      ),
+              // Sign Out Button (for all accounts)
+              Padding(
+                padding: const EdgeInsets.only(top: 32.0),
+                child: ElevatedButton.icon(
+                  onPressed: _signOut,
+                  icon: const Icon(Icons.logout),
+                  label: const Text('Sign Out'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
                     ),
                   ),
                 ),
+              ),
             ],
           ),
         ),
