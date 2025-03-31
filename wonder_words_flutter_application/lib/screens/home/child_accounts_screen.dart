@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../../services/auth/auth_provider.dart';
 import '../../services/auth/auth_service.dart';
+import '../../config/api_config.dart';
+import 'kid_friendly_story_screen.dart';
 
 class ChildAccountsScreen extends StatefulWidget {
   const ChildAccountsScreen({Key? key}) : super(key: key);
@@ -13,6 +17,9 @@ class ChildAccountsScreen extends StatefulWidget {
 class _ChildAccountsScreenState extends State<ChildAccountsScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
+  final _usernameController = TextEditingController();
+  final _pinController = TextEditingController();
+  final _ageController = TextEditingController();
   bool _isCreating = false;
   bool _isLoading = false;
   String? _error;
@@ -20,6 +27,9 @@ class _ChildAccountsScreenState extends State<ChildAccountsScreen> {
   @override
   void dispose() {
     _nameController.dispose();
+    _usernameController.dispose();
+    _pinController.dispose();
+    _ageController.dispose();
     super.dispose();
   }
 
@@ -32,14 +42,27 @@ class _ChildAccountsScreenState extends State<ChildAccountsScreen> {
 
       try {
         final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+        // Parse age to integer
+        int? age;
+        if (_ageController.text.isNotEmpty) {
+          age = int.tryParse(_ageController.text.trim());
+        }
+
         final success = await authProvider.createChildAccount(
           _nameController.text.trim(),
+          username: _usernameController.text.trim(),
+          pin: _pinController.text.trim(),
+          age: age ?? 8, // Default to 8 if parsing fails
         );
 
         if (success && mounted) {
           setState(() {
             _isCreating = false;
             _nameController.clear();
+            _usernameController.clear();
+            _pinController.clear();
+            _ageController.clear();
           });
 
           ScaffoldMessenger.of(context).showSnackBar(
@@ -63,6 +86,94 @@ class _ChildAccountsScreenState extends State<ChildAccountsScreen> {
             _isLoading = false;
           });
         }
+      }
+    }
+  }
+
+  // Navigate to the child's story screen
+  void _navigateToChildStoryScreen(Map<String, dynamic> childAccount) async {
+    try {
+      // Get the child's username and PIN
+      final username = childAccount['username'];
+      final pin =
+          childAccount['pin'] ?? '1234'; // Use actual PIN or default to 1234
+
+      setState(() {
+        _isLoading = true;
+      });
+
+      // Call the backend API to authenticate the child
+      final response = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}/child_login'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'username': username,
+          'pin': pin,
+        }),
+      );
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      if (response.statusCode == 200) {
+        // Parse the response
+        final data = json.decode(response.body);
+        final token = data['token'];
+        final displayName = data['display_name'];
+        final age = data['age'];
+
+        // Update the AuthProvider with the child's authentication information
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+        // Create a child user data object
+        final childUserData = UserData(
+          uid:
+              'child-${DateTime.now().millisecondsSinceEpoch}', // Generate a temporary UID
+          email: 'child@example.com', // Placeholder email
+          displayName: displayName,
+          accountType: AccountType.child,
+          username: username,
+          pin: pin,
+          age: age,
+        );
+
+        // Set the user data in the AuthProvider
+        authProvider.setChildUserData(childUserData, token);
+
+        if (mounted) {
+          // Navigate to the KidFriendlyStoryScreen
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const KidFriendlyStoryScreen(),
+            ),
+          );
+        }
+      } else {
+        // Handle authentication error
+        final data = json.decode(response.body);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(data['error'] ?? 'Failed to login as child'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
   }
@@ -134,6 +245,75 @@ class _ChildAccountsScreenState extends State<ChildAccountsScreen> {
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Please enter a name for the child';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Username Field
+                      TextFormField(
+                        controller: _usernameController,
+                        decoration: InputDecoration(
+                          labelText: 'Username',
+                          prefixIcon: const Icon(Icons.person),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter a username for the child';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+
+                      // PIN Field
+                      TextFormField(
+                        controller: _pinController,
+                        decoration: InputDecoration(
+                          labelText: 'PIN (4 digits)',
+                          prefixIcon: const Icon(Icons.lock_outline),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        keyboardType: TextInputType.number,
+                        maxLength: 4,
+                        obscureText: true,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter a PIN';
+                          }
+                          if (value.length != 4 ||
+                              int.tryParse(value) == null) {
+                            return 'PIN must be exactly 4 digits';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Age Field
+                      TextFormField(
+                        controller: _ageController,
+                        decoration: InputDecoration(
+                          labelText: 'Age',
+                          prefixIcon: const Icon(Icons.cake),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        keyboardType: TextInputType.number,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter the child\'s age';
+                          }
+                          final age = int.tryParse(value);
+                          if (age == null || age < 1 || age > 17) {
+                            return 'Please enter a valid age (1-17)';
                           }
                           return null;
                         },
@@ -212,65 +392,193 @@ class _ChildAccountsScreenState extends State<ChildAccountsScreen> {
     );
   }
 
+  Future<List<Map<String, dynamic>>> _fetchChildAccounts() async {
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final token = await authProvider.getIdToken();
+
+      if (token == null) {
+        throw Exception('Failed to get authentication token');
+      }
+
+      final response = await http.get(
+        Uri.parse('${ApiConfig.baseUrl}/get_child_accounts'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final accounts =
+            List<Map<String, dynamic>>.from(data['child_accounts']);
+        print('Child accounts fetched: ${accounts.length}');
+        print('Child accounts data: $accounts');
+        return accounts;
+      } else {
+        throw Exception(
+            'Failed to fetch child accounts: ${response.statusCode}');
+      }
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+      });
+      return [];
+    }
+  }
+
   Widget _buildChildAccountsList() {
-    // This is a placeholder for the child accounts list
-    // In a real implementation, you would fetch child accounts from the backend
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(
-            Icons.family_restroom,
-            size: 80,
-            color: Colors.deepPurple,
-          ),
-          const SizedBox(height: 24),
-          const Text(
-            'Child Accounts',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.deepPurple,
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: _fetchChildAccounts(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.error_outline,
+                  size: 64,
+                  color: Colors.red,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Error: ${snapshot.error}',
+                  style: const TextStyle(color: Colors.red),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {});
+                  },
+                  child: const Text('Retry'),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'Create child accounts to let your children enjoy personalized stories.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.black87,
+          );
+        }
+
+        final childAccounts = snapshot.data ?? [];
+
+        if (childAccounts.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.family_restroom,
+                  size: 80,
+                  color: Colors.deepPurple,
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  'Child Accounts',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.deepPurple,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Create child accounts to let your children enjoy personalized stories.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 32),
+                const Text(
+                  'No child accounts yet',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontStyle: FontStyle.italic,
+                    color: Colors.grey,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      _isCreating = true;
+                    });
+                  },
+                  icon: const Icon(Icons.add),
+                  label: const Text('Create Child Account'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.deepPurple,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 32),
-          const Text(
-            'No child accounts yet',
-            style: TextStyle(
-              fontSize: 18,
-              fontStyle: FontStyle.italic,
-              color: Colors.grey,
-            ),
-          ),
-          const SizedBox(height: 16),
-          ElevatedButton.icon(
-            onPressed: () {
-              setState(() {
-                _isCreating = true;
-              });
-            },
-            icon: const Icon(Icons.add),
-            label: const Text('Create Child Account'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.deepPurple,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(
-                horizontal: 24,
-                vertical: 12,
+          );
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: childAccounts.length,
+          itemBuilder: (context, index) {
+            final account = childAccounts[index];
+            return Card(
+              elevation: 2,
+              margin: const EdgeInsets.only(bottom: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
-            ),
-          ),
-        ],
-      ),
+              child: InkWell(
+                onTap: () => _navigateToChildStoryScreen(account),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.all(16),
+                  leading: CircleAvatar(
+                    backgroundColor: Colors.orange,
+                    radius: 24,
+                    child: Text(
+                      account['display_name']?[0]?.toUpperCase() ?? 'C',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ),
+                  title: Text(
+                    account['display_name'] ?? 'Child',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 4),
+                      Text('Username: ${account['username']}'),
+                      Text('Age: ${account['age']}'),
+                    ],
+                  ),
+                  trailing: const Icon(
+                    Icons.arrow_forward_ios,
+                    color: Colors.deepPurple,
+                    size: 16,
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }
