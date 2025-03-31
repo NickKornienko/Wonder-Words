@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth/auth_provider.dart';
 import '../../services/story_service.dart';
+import '../../services/tts/google_tts_service.dart';
 import 'story_history_screen.dart';
-import 'package:flutter_tts/flutter_tts.dart';
 import 'package:wonder_words_flutter_application/services/debug/storyDetailsForm.dart';
 
 class Message {
@@ -19,7 +19,7 @@ class StoryScreen extends StatefulWidget {
   @override
   State<StoryScreen> createState() => StoryScreenState();
 
-  static AppBar buildAppBar(BuildContext context, Function showVoiceSelectionDialog, Function refreshMessages, {bool isStoryDetailsForm = false}) {
+  static AppBar buildAppBar(BuildContext context, Function showVoiceInfoDialog, Function refreshMessages, {bool isStoryDetailsForm = false}) {
     return AppBar(
       title: const Text('Wonder Words'),
       backgroundColor: Colors.deepPurple,
@@ -36,7 +36,7 @@ class StoryScreen extends StatefulWidget {
         if (!isStoryDetailsForm)
           IconButton(
             icon: const Icon(Icons.record_voice_over),
-            onPressed: () => showVoiceSelectionDialog(),
+            onPressed: () => showVoiceInfoDialog(),
             tooltip: 'Select Voice',
           ),
         IconButton(
@@ -77,7 +77,7 @@ class StoryScreen extends StatefulWidget {
 class StoryScreenState extends State<StoryScreen> {
   final TextEditingController _promptController = TextEditingController();
   final StoryService _storyService = StoryService();
-  final FlutterTts _flutterTts = FlutterTts();
+  final GoogleTtsService _ttsService = GoogleTtsService();
   final ScrollController _scrollController = ScrollController();
 
   String? _conversationId;
@@ -85,6 +85,13 @@ class StoryScreenState extends State<StoryScreen> {
   bool _needsConfirmation = false;
   bool _isSpeaking = false;
   String _pendingQuery = '';
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Set the context for the StoryService
+    _storyService.setContext(context);
+  }
 
   final List<Message> _messages = [
     Message(
@@ -96,119 +103,20 @@ class StoryScreenState extends State<StoryScreen> {
   @override
   void initState() {
     super.initState();
-    _initTts();
+    // Listen for TTS state changes
+    _ttsService.addStateListener((isSpeaking) {
+      if (mounted) {
+        setState(() {
+          _isSpeaking = isSpeaking;
+        });
+      }
+    });
   }
 
-  String _selectedVoice = '';
-  List<String> _availableVoices = [];
-
-  Future<void> _initTts() async {
-    _flutterTts.setStartHandler(() {
-      if (mounted) {
-        setState(() {
-          _isSpeaking = true;
-        });
-      }
-    });
-
-    _flutterTts.setCompletionHandler(() {
-      if (mounted) {
-        setState(() {
-          _isSpeaking = false;
-        });
-      }
-    });
-
-    _flutterTts.setErrorHandler((error) {
-      if (mounted) {
-        setState(() {
-          _isSpeaking = false;
-        });
-      }
-    });
-
-    // Set language to English
-    await _flutterTts.setLanguage("en-US");
-
-    // Get available voices
-    try {
-      // First try to get all voices
-      var voices = await _flutterTts.getVoices;
-      List<String> voiceNames = [];
-
-      if (voices != null) {
-        for (var voice in voices) {
-          if (voice is Map && voice.containsKey('name')) {
-            voiceNames.add(voice['name']);
-          }
-        }
-      }
-
-      // Try to set language to get language-specific voices
-      if (voiceNames.isEmpty) {
-        await _flutterTts.setLanguage("en-US");
-        // Wait a moment for language to be set
-        await Future.delayed(const Duration(milliseconds: 100));
-        // Try to get voices again
-        voices = await _flutterTts.getVoices;
-        if (voices != null) {
-          for (var voice in voices) {
-            if (voice is Map && voice.containsKey('name')) {
-              voiceNames.add(voice['name']);
-            }
-          }
-        }
-      }
-
-      // If still no voices, add some default voice names that might be available
-      if (voiceNames.isEmpty) {
-        voiceNames = [
-          "Microsoft David - English (United States)",
-          "Microsoft Zira - English (United States)",
-          "Microsoft Mark - English (United States)",
-          "Google US English",
-          "Google UK English Female",
-          "Google UK English Male",
-          "en-US-language",
-          "en-US-x-sfg#female_1-local",
-          "en-US-x-sfg#male_1-local",
-        ];
-      }
-
-      setState(() {
-        _availableVoices = voiceNames;
-        if (voiceNames.isNotEmpty) {
-          _selectedVoice = voiceNames.first;
-          _flutterTts.setVoice({"name": _selectedVoice});
-        }
-      });
-
-      // Debug voice information
-      print("Available voices: $_availableVoices");
-      var engines = await _flutterTts.getEngines;
-      print("Available engines: $engines");
-    } catch (e) {
-      print("Failed to get voices: $e");
-    }
-
-    // Set speech rate and pitch for better quality
-    await _flutterTts.setSpeechRate(0.9); // More natural speech rate
-    await _flutterTts.setPitch(1.0); // Normal pitch
-    await _flutterTts.setVolume(1.0); // Full volume
-  }
-
+  /// Speak the given text using Google Cloud TTS
   Future<void> _speak(String text) async {
     if (text.isNotEmpty) {
-      if (_isSpeaking) {
-        await _flutterTts.stop();
-        if (mounted) {
-          setState(() {
-            _isSpeaking = false;
-          });
-        }
-      } else {
-        await _flutterTts.speak(text);
-      }
+      await _ttsService.speak(text);
     }
   }
 
@@ -216,7 +124,7 @@ class StoryScreenState extends State<StoryScreen> {
   void dispose() {
     _promptController.dispose();
     _scrollController.dispose();
-    _flutterTts.stop();
+    _ttsService.dispose();
     super.dispose();
   }
 
@@ -365,66 +273,72 @@ class StoryScreenState extends State<StoryScreen> {
     });
   }
 
-  void _showVoiceSelectionDialog() {
-    if (_availableVoices.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No voices available')),
-      );
-      return;
-    }
+  // Show information about the Google Cloud TTS voice and allow voice selection
+  void _showVoiceInfoDialog() {
+    // Get the current selected voice
+    final currentVoice = _ttsService.selectedVoice;
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Select Voice'),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: ListView.builder(
-            shrinkWrap: true,
-            itemCount: _availableVoices.length,
-            itemBuilder: (context, index) {
-              final voice = _availableVoices[index];
-              return RadioListTile<String>(
-                title: Text(voice),
-                value: voice,
-                groupValue: _selectedVoice,
-                onChanged: (value) async {
-                  if (value != null) {
-                    try {
-                      // Try different ways to set the voice
-                      await _flutterTts.setVoice({"name": value});
-
-                      // Also try setting by language
-                      await _flutterTts.setLanguage("en-US");
-
-                      // Debug voice selection
-                      print("Selected voice: $value");
-
-                      // Speak a test phrase to confirm voice change
-                      await _flutterTts.speak("Voice selected");
-
-                      setState(() {
-                        _selectedVoice = value;
-                      });
-                      Navigator.pop(context);
-                    } catch (e) {
-                      print("Error setting voice: $e");
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Error setting voice: $e')),
-                      );
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Voice Settings'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Using Google Cloud Text-to-Speech',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'This app uses Google\'s Neural2 voice technology for high-quality, natural-sounding narration.',
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Select a voice:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: DropdownButton<GoogleTtsVoice>(
+                  isExpanded: true,
+                  value: currentVoice,
+                  underline: Container(), // Remove the default underline
+                  items: _ttsService.voices.map((voice) {
+                    return DropdownMenuItem<GoogleTtsVoice>(
+                      value: voice,
+                      child: Text(voice.displayName),
+                    );
+                  }).toList(),
+                  onChanged: (GoogleTtsVoice? newVoice) async {
+                    if (newVoice != null) {
+                      await _ttsService.setVoice(newVoice);
+                      setState(() {}); // Update the dialog state
                     }
-                  }
-                },
-              );
-            },
+                  },
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'If you\'re offline, the app will automatically switch to your device\'s built-in text-to-speech.',
+                style: TextStyle(fontStyle: FontStyle.italic, fontSize: 12),
+              ),
+            ],
           ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close'),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-        ],
       ),
     );
   }
@@ -435,7 +349,7 @@ class StoryScreenState extends State<StoryScreen> {
     final isChild = authProvider.isChild;
 
     return Scaffold(
-      appBar: StoryScreen.buildAppBar(context, _showVoiceSelectionDialog, _refreshMessages),
+      appBar: StoryScreen.buildAppBar(context, _showVoiceInfoDialog, _refreshMessages),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(

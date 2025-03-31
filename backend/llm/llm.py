@@ -47,8 +47,12 @@ def new_story_generator(query):
                     "You are the writer for a storytelling AI that can generate children's stories based on a given prompt."
                     "You should take the user input and generate a new story based on it."
                     "The story should be appropriate for children and should be creative and engaging."
-                    "You should return the story as the output."
-                    "Only return the story and nothing else, include metacommentary 'such as sure here is a story or here is a story about'."
+                    "You should return BOTH a title and a story in the following format:\n\n"
+                    "TITLE: [Your creative, unique title for the story]\n\n"
+                    "STORY: [The story content]\n\n"
+                    "The title should be creative, unique, and descriptive - avoid generic titles like 'The Dragon' or 'Space Adventure'."
+                    "Instead, use specific, imaginative titles like 'Sparky the Fire-Breathing Friend' or 'Journey to the Purple Moon'."
+                    "Do not include phrases like 'Once upon a time' in the title."
                     "Limit the story to 100 words."
                 ),
             },
@@ -60,7 +64,30 @@ def new_story_generator(query):
         model=model,
     )
 
-    return chat_completion.choices[0].message.content
+    response = chat_completion.choices[0].message.content
+    
+    # Parse the response to extract title and story
+    try:
+        # Split by the STORY: marker
+        parts = response.split("STORY:", 1)
+        
+        # Extract title from the first part
+        title_part = parts[0].strip()
+        title = title_part.replace("TITLE:", "").strip()
+        
+        # Extract story from the second part (if it exists)
+        story = parts[1].strip() if len(parts) > 1 else response
+        
+        # If we couldn't parse properly, just return the original response
+        if not title or not story:
+            return response
+            
+        # Store the title in a global variable or database for later use
+        # For now, we'll just return the story, but we'll modify app.py to handle the title
+        return {"title": title, "story": story}
+    except:
+        # If parsing fails, return the original response
+        return {"title": "New Story", "story": response}
 
 
 def fetch_conversation_history(conversation_id):
@@ -86,9 +113,17 @@ def add_to_story(conversation_id, query):
 
     # Extract the most recent story from the conversation history
     existing_story = ""
+    existing_title = "Continued Story"
     for message in reversed(conversation_history):
         if message.sender_type == SenderType.MODEL and message.code in [2, 3]:
-            existing_story = message.content
+            # Check if the content has a title format
+            if "TITLE:" in message.content and "STORY:" in message.content:
+                parts = message.content.split("STORY:", 1)
+                title_part = parts[0].strip()
+                existing_title = title_part.replace("TITLE:", "").strip()
+                existing_story = parts[1].strip()
+            else:
+                existing_story = message.content
             break
 
     if not existing_story:
@@ -104,20 +139,41 @@ def add_to_story(conversation_id, query):
                     "You are the writer for a storytelling AI that can generate children's stories based on a given prompt."
                     "You should take the existing story and the new user input to generate an extended story."
                     "The story should be appropriate for children and should be creative and engaging."
-                    "You should return the extended story as the output."
-                    "Only return the story and nothing else, include metacommentary 'such as sure here is a story or here is a story about'."
+                    "You should return BOTH the original title and the extended story in the following format:\n\n"
+                    "TITLE: [Keep the original title]\n\n"
+                    "STORY: [The extended story content]\n\n"
                     "Limit the extended part of the story to 100 words."
                     "This should be a full rewrite of the story, not just a continuation, but it should be consistent with the existing story."
                 ),
             },
             {
                 "role": "user",
-                "content": f"Existing Story: {existing_story}\nNew Input: {query}",
+                "content": f"Existing Title: {existing_title}\nExisting Story: {existing_story}\nNew Input: {query}",
             }
         ],
         model=model,
     )
 
-    extended_story = chat_completion.choices[0].message.content
-
-    return extended_story
+    response = chat_completion.choices[0].message.content
+    
+    # Parse the response to extract title and story
+    try:
+        # Split by the STORY: marker
+        parts = response.split("STORY:", 1)
+        
+        # Extract title from the first part
+        title_part = parts[0].strip()
+        title = title_part.replace("TITLE:", "").strip()
+        
+        # Extract story from the second part (if it exists)
+        story = parts[1].strip() if len(parts) > 1 else response
+        
+        # If we couldn't parse properly, just return the original response
+        if not title or not story:
+            return response
+            
+        # Return both title and story
+        return {"title": title, "story": story}
+    except:
+        # If parsing fails, return the original response
+        return {"title": existing_title, "story": response}

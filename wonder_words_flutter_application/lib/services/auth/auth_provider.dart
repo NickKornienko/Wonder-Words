@@ -68,7 +68,8 @@ class AuthProvider with ChangeNotifier {
   }
 
   // Create child account
-  Future<bool> createChildAccount(String displayName) async {
+  Future<bool> createChildAccount(String displayName,
+      {String? username, String? pin, int? age}) async {
     if (_userData == null || _userData!.accountType != AccountType.parent) {
       _setError('Only parent accounts can create child accounts');
       return false;
@@ -78,7 +79,13 @@ class AuthProvider with ChangeNotifier {
     _clearError();
 
     try {
-      await _authService.createChildAccount(displayName, _userData!.uid);
+      await _authService.createChildAccount(
+        displayName: displayName,
+        parentUid: _userData!.uid,
+        username: username ?? 'child_${DateTime.now().millisecondsSinceEpoch}',
+        pin: pin ?? '1234', // Default PIN
+        age: age ?? 8, // Default age
+      );
       return true;
     } catch (e) {
       _setError(e.toString());
@@ -149,6 +156,29 @@ class AuthProvider with ChangeNotifier {
       _setLoading(false);
     }
   }
+
+  // Get Firebase ID token
+  Future<String?> getIdToken() async {
+    try {
+      return await _authService.getIdToken();
+    } catch (e) {
+      _setError(e.toString());
+      return null;
+    }
+  }
+
+  // Set child user data (used for child login)
+  void setChildUserData(UserData childUserData, String token) {
+    _userData = childUserData;
+    _childToken = token; // Store the child token
+    notifyListeners();
+  }
+
+  // Child token
+  String? _childToken;
+
+  // Get the child token
+  String? get childToken => _childToken;
 
   // Helper methods
   void _setLoading(bool value) {
