@@ -4,7 +4,10 @@ import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 import 'services/auth/auth_provider.dart';
 import 'screens/auth/login_screen.dart';
+import 'screens/auth/child_login_screen.dart';
 import 'screens/home/home_screen.dart';
+import 'screens/home/child_accounts_screen.dart';
+import 'screens/auth/account_selection_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -39,6 +42,13 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       home: const AuthWrapper(),
+      routes: {
+        '/login': (context) => const LoginScreen(),
+        '/child-login': (context) => const ChildLoginScreen(),
+        '/home': (context) => const HomeScreen(),
+        '/child-accounts': (context) => const ChildAccountsScreen(),
+        '/account-selection': (context) => const AccountSelectionScreen(),
+      },
     );
   }
 }
@@ -83,7 +93,11 @@ class _AuthWrapperState extends State<AuthWrapper> {
     return Consumer<AuthProvider>(
       builder: (context, authProvider, _) {
         if (authProvider.isAuthenticated) {
-          return const HomeScreen();
+          if (authProvider.isParent) {
+            return const AccountSelectionScreen();
+          } else {
+            return const HomeScreen();
+          }
         } else {
           return const LoginScreen();
         }

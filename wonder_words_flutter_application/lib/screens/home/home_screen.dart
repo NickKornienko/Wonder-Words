@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../services/auth/auth_provider.dart';
 import '../auth/login_screen.dart';
 import 'story_screen.dart';
+import 'kid_friendly_story_screen.dart';
 import 'profile_screen.dart';
 import 'child_accounts_screen.dart';
 import 'story_history_screen.dart';
@@ -41,7 +42,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // Screens for child account
     final List<Widget> childScreens = [
-      const StoryScreen(),
+      const KidFriendlyStoryScreen(),
       const ProfileScreen(),
     ];
 
