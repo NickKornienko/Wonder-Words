@@ -1,6 +1,8 @@
-
+# config files for debug
 ip_address.json
 tokens.json
+# config files for release
+firebase_options.dart  
 
 .DS_Store
 # Byte-compiled / optimized / DLL files
