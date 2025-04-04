@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
+import 'package:wonder_words_flutter_application/colors.dart';
 import 'dart:convert';
 import '../../services/auth/auth_provider.dart';
 import '../../services/auth/auth_service.dart';
@@ -106,13 +108,10 @@ class _ChildLoginScreenState extends State<ChildLoginScreen> {
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.purple[300]!,
-              Colors.purple[600]!,
-            ],
+          color: ColorTheme.backgroundColor,
+          image: const DecorationImage(
+            image: AssetImage('assets/megafrog.png'),
+            fit: BoxFit.cover,
           ),
         ),
         child: SafeArea(
@@ -123,292 +122,192 @@ class _ChildLoginScreenState extends State<ChildLoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // App Logo/Icon
-                  const Icon(
-                    Icons.auto_stories,
-                    size: 80,
-                    color: Colors.white,
-                  ),
-                  const SizedBox(height: 24),
-
-                  // App Name
-                  const Text(
-                    'Wonder Words',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-
-                  // App Tagline
-                  const Text(
-                    'Stories just for you!',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 48),
-
                   // Login Card - More child-friendly design
-                  Card(
-                    elevation: 12,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(24),
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            Colors.white,
-                            Colors.purple[50]!,
-                          ],
-                        ),
-                      ),
-                      padding: const EdgeInsets.all(24.0),
-                      child: Form(
-                        key: _formKey,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            // Fun header for kids
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(
-                                  Icons.emoji_people,
-                                  size: 32,
-                                  color: Colors.deepPurple,
-                                ),
-                                const SizedBox(width: 8),
-                                const Text(
-                                  'Welcome, Explorer!',
-                                  style: TextStyle(
-                                    fontSize: 24,
+                  Container(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // Fun header for kids
+                          const SizedBox(height: 100),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'Hi there! I\'m',
+                                style: TextStyle(
+                                  fontSize: 32,
+                                  color: ColorTheme.textColor,
+                                  fontFamily: GoogleFonts.montserrat(
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.deepPurple,
-                                  ),
+                                  ).fontFamily,
                                 ),
-                                const SizedBox(width: 8),
-                                const Icon(
-                                  Icons.stars,
-                                  size: 32,
-                                  color: Colors.deepPurple,
+                              ),
+                              Text(
+                                ' Hopper',
+                                style: TextStyle(
+                                  fontSize: 32,
+                                  color: ColorTheme.accentYellowColor,
+                                  fontFamily: GoogleFonts.montserrat(
+                                    fontWeight: FontWeight.bold,
+                                  ).fontFamily,
                                 ),
-                              ],
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 5),
+                          Text(
+                            'What\'s your name?',
+                            style: TextStyle(
+                              fontSize: 25,
+                              color: ColorTheme.accentYellowColor,
+                              fontFamily: GoogleFonts.montserrat(
+                                      fontWeight: FontWeight.bold)
+                                  .fontFamily,
                             ),
-                            const SizedBox(height: 8),
-                            const Text(
-                              'Enter your magic words to begin',
-                              style: TextStyle(
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 24),
+
+                          // Username Field - Matching the PIN field style
+                          TextFormField(
+                            controller: _usernameController,
+                            decoration: InputDecoration(
+                              labelText: 'Your Name',
+                              labelStyle: TextStyle(
                                 fontSize: 16,
-                                color: Colors.purple,
+                                color: ColorTheme.textColor,
+                                fontFamily: GoogleFonts.montserrat().fontFamily,
                               ),
-                              textAlign: TextAlign.center,
+                              prefixIcon: Icon(
+                                Icons.person,
+                                color: ColorTheme.pink,
+                              ),
+                              filled: true,
+                              fillColor: Colors.white,
+                              contentPadding: const EdgeInsets.symmetric(
+                                vertical: 16,
+                                horizontal: 16,
+                              ),
                             ),
-                            const SizedBox(height: 24),
-
-                            // Username Field - Matching the PIN field style
-                            TextFormField(
-                              controller: _usernameController,
-                              decoration: InputDecoration(
-                                labelText: 'Your Name',
-                                labelStyle: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.deepPurple,
-                                ),
-                                prefixIcon: const Icon(
-                                  Icons.person,
-                                  color: Colors.deepPurple,
-                                ),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(20),
-                                  borderSide: const BorderSide(
-                                    color: Colors.deepPurple,
-                                    width: 2,
-                                  ),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(20),
-                                  borderSide: const BorderSide(
-                                    color: Colors.deepPurple,
-                                    width: 2,
-                                  ),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(20),
-                                  borderSide: const BorderSide(
-                                    color: Colors.purple,
-                                    width: 3,
-                                  ),
-                                ),
-                                filled: true,
-                                fillColor: Colors.purple[50],
-                                contentPadding: const EdgeInsets.symmetric(
-                                  vertical: 16,
-                                  horizontal: 16,
-                                ),
-                              ),
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              textCapitalization: TextCapitalization.words,
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Please enter your username';
-                                }
-                                return null;
-                              },
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
                             ),
-                            const SizedBox(height: 16),
+                            textCapitalization: TextCapitalization.words,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter your username';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
 
-                            // PIN Field - More kid-friendly design
-                            TextFormField(
-                              controller: _pinController,
-                              decoration: InputDecoration(
-                                labelText: 'Secret PIN',
-                                labelStyle: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.deepPurple,
-                                ),
-                                prefixIcon: const Icon(
-                                  Icons.lock_outline,
-                                  color: Colors.deepPurple,
-                                ),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(20),
-                                  borderSide: const BorderSide(
-                                    color: Colors.deepPurple,
-                                    width: 2,
-                                  ),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(20),
-                                  borderSide: const BorderSide(
-                                    color: Colors.deepPurple,
-                                    width: 2,
-                                  ),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(20),
-                                  borderSide: const BorderSide(
-                                    color: Colors.purple,
-                                    width: 3,
-                                  ),
-                                ),
-                                filled: true,
-                                fillColor: Colors.purple[50],
-                                contentPadding: const EdgeInsets.symmetric(
-                                  vertical: 16,
-                                  horizontal: 16,
-                                ),
+                          // PIN Field - More kid-friendly design
+                          TextFormField(
+                            controller: _pinController,
+                            decoration: InputDecoration(
+                              labelText: 'Secret PIN',
+                              labelStyle: TextStyle(
+                                fontSize: 16,
+                                color: ColorTheme.textColor,
+                                fontFamily: GoogleFonts.montserrat().fontFamily,
                               ),
-                              style: const TextStyle(
-                                fontSize: 18,
-                                letterSpacing: 8,
-                                fontWeight: FontWeight.bold,
+                              prefixIcon: Icon(
+                                Icons.lock_outline,
+                                color: ColorTheme.orange,
                               ),
-                              textAlign: TextAlign.center,
-                              obscureText: true,
-                              keyboardType: TextInputType.number,
-                              maxLength: 4,
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Please enter your secret PIN';
-                                }
-                                if (value.length != 4 ||
-                                    int.tryParse(value) == null) {
-                                  return 'PIN must be exactly 4 digits';
-                                }
-                                return null;
-                              },
+                              filled: true,
+                              fillColor: Colors.white,
+                              contentPadding: const EdgeInsets.symmetric(
+                                vertical: 16,
+                                horizontal: 16,
+                              ),
                             ),
-                            const SizedBox(height: 24),
+                            style: const TextStyle(
+                              fontSize: 18,
+                              letterSpacing: 8,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                            obscureText: true,
+                            keyboardType: TextInputType.number,
+                            maxLength: 4,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter your secret PIN';
+                              }
+                              if (value.length != 4 ||
+                                  int.tryParse(value) == null) {
+                                return 'PIN must be exactly 4 digits';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 24),
 
-                            // Login Button - More child-friendly design
-                            Container(
-                              height: 60,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(30),
-                                gradient: LinearGradient(
-                                  colors: [
-                                    Colors.purple,
-                                    Colors.deepPurple,
-                                    Colors.indigo,
-                                  ],
+                          // Login Button - More child-friendly design
+                          Container(
+                            height: 60,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(30),
+                              color: ColorTheme.accentBlueColor,
+                            ),
+                            child: ElevatedButton(
+                              onPressed: _isLoading ? null : _login,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.transparent,
+                                foregroundColor: ColorTheme.darkPurple,
+                                shadowColor: Colors.transparent,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(30),
                                 ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.purple.withOpacity(0.5),
-                                    spreadRadius: 1,
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
                               ),
-                              child: ElevatedButton(
-                                onPressed: _isLoading ? null : _login,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.transparent,
-                                  foregroundColor: Colors.white,
-                                  shadowColor: Colors.transparent,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(30),
-                                  ),
-                                ),
-                                child: _isLoading
-                                    ? const SizedBox(
-                                        width: 24,
-                                        height: 24,
-                                        child: CircularProgressIndicator(
-                                          color: Colors.white,
-                                          strokeWidth: 2,
-                                        ),
-                                      )
-                                    : const Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            Icons.login_rounded,
-                                            size: 24,
-                                          ),
-                                          SizedBox(width: 8),
-                                          Text(
-                                            'Start Adventure!',
-                                            style: TextStyle(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ],
+                              child: _isLoading
+                                  ? const SizedBox(
+                                      width: 24,
+                                      height: 24,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2,
                                       ),
+                                    )
+                                  : Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          'let\'s read',
+                                          style: TextStyle(
+                                            fontSize: 25,
+                                            color: ColorTheme.darkPurple,
+                                            fontFamily: GoogleFonts.montserrat(
+                                                    fontWeight: FontWeight.bold)
+                                                .fontFamily,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                            ),
+                          ),
+
+                          // Error Message
+                          if (_error != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 16),
+                              child: Text(
+                                _error!,
+                                style: const TextStyle(
+                                  color: Colors.red,
+                                  fontSize: 14,
+                                ),
+                                textAlign: TextAlign.center,
                               ),
                             ),
-
-                            // Error Message
-                            if (_error != null)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 16),
-                                child: Text(
-                                  _error!,
-                                  style: const TextStyle(
-                                    color: Colors.red,
-                                    fontSize: 14,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                          ],
-                        ),
+                        ],
                       ),
                     ),
                   ),
@@ -425,7 +324,6 @@ class _ChildLoginScreenState extends State<ChildLoginScreen> {
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 16,
-                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
