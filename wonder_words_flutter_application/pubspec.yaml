@@ -75,6 +75,8 @@ flutter:
   #   - images/a_dot_ham.jpeg
   assets:
     - assets/frog.png
+    - assets/megafrog.png
+    - assets/splashscreen.png
     - secrets/tokens.json
     - secrets/ip_address.json
   # An image asset can refer to one or more resolution-specific "variants", see

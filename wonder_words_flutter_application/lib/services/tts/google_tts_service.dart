@@ -450,7 +450,6 @@ class GoogleTtsService {
           _notifyListeners();
         }
       });
-  
 
       // Update usage tracking
       await _updateUsage(text.length);
