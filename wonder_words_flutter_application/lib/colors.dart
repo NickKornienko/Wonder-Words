@@ -15,4 +15,9 @@ class ColorTheme {
   static Color accentYellowColor = hexToColor("#FFF06E");
   static Color backgroundColor = hexToColor("#FEFAEB");
   static Color textColor = hexToColor("#000000");
+  static Color pink = hexToColor("#EDCACB");
+  static Color orange = hexToColor("#E9C466");
+  static Color yellow = hexToColor("#FFF06E");
+  static Color green = hexToColor("#9AC997");
+  static Color darkPurple = hexToColor("#727999");
 }

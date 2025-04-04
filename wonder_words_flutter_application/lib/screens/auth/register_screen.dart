@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:wonder_words_flutter_application/colors.dart';
 import '../../services/auth/auth_provider.dart';
-import 'login_screen.dart';
 import '../home/home_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -52,19 +53,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Create Account'),
-        backgroundColor: Colors.deepPurple,
-        foregroundColor: Colors.white,
+        backgroundColor: ColorTheme.accentYellowColor,
       ),
-      body: Container(
+      body: DecoratedBox(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.purple[100]!,
-              Colors.purple[200]!,
-            ],
+          color: ColorTheme.backgroundColor,
+          image: const DecorationImage(
+            image: AssetImage('assets/splashscreen.png'),
+            fit: BoxFit.none,
           ),
         ),
         child: SafeArea(
@@ -74,27 +70,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Logo and App Name
-                  const Icon(
-                    Icons.auto_stories,
-                    size: 60,
-                    color: Colors.deepPurple,
-                  ),
                   const SizedBox(height: 16),
-                  const Text(
+                  Text(
                     'Join Wonder Words',
                     style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.deepPurple,
+                      fontSize: 32,
+                      color: ColorTheme.textColor,
+                      fontFamily: GoogleFonts.montserrat(
+                        fontWeight: FontWeight.bold,
+                      ).fontFamily,
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
+                  Text(
                     'Create a parent account',
                     style: TextStyle(
                       fontSize: 16,
-                      color: Colors.deepPurple,
+                      color: ColorTheme.textColor,
+                      fontFamily: GoogleFonts.montserrat().fontFamily,
                     ),
                   ),
                   const SizedBox(height: 32),
@@ -102,6 +95,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   // Registration Form
                   Card(
                     elevation: 8,
+                    color: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
@@ -230,7 +224,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               onPressed:
                                   authProvider.isLoading ? null : _register,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.deepPurple,
+                                backgroundColor: ColorTheme.secondaryColor,
                                 foregroundColor: Colors.white,
                                 padding:
                                     const EdgeInsets.symmetric(vertical: 12),
@@ -242,10 +236,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   ? const CircularProgressIndicator(
                                       color: Colors.white,
                                     )
-                                  : const Text(
-                                      'Create Account',
-                                      style: TextStyle(fontSize: 16),
-                                    ),
+                                  : Text('Create Account',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontFamily: GoogleFonts.montserrat(
+                                                fontWeight: FontWeight.bold)
+                                            .fontFamily,
+                                      )),
                             ),
 
                             // Error Message
@@ -277,7 +274,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         onPressed: () {
                           Navigator.of(context).pop();
                         },
-                        child: const Text('Login'),
+                        child: Text('Login',
+                            style: TextStyle(color: ColorTheme.secondaryColor)),
                       ),
                     ],
                   ),

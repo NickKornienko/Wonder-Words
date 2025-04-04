@@ -185,6 +185,15 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                               textAlign: TextAlign.center,
                             ),
+                            Text(
+                              'Login to your account',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontFamily: GoogleFonts.montserrat().fontFamily,
+                                color: ColorTheme.textColor,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
                             const SizedBox(height: 24),
 
                             // Email Field
@@ -343,14 +352,14 @@ class _LoginScreenState extends State<LoginScreen> {
                         borderRadius: BorderRadius.circular(30),
                         gradient: LinearGradient(
                           colors: [
-                            Colors.blue[300]!,
-                            Colors.purple[300]!,
-                            Colors.pink[300]!,
+                            ColorTheme.accentYellowColor,
+                            ColorTheme.primaryColor,
+                            ColorTheme.accentBlueColor,
                           ],
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.purple.withOpacity(0.3),
+                            color: Colors.black.withOpacity(0.3),
                             spreadRadius: 1,
                             blurRadius: 8,
                             offset: const Offset(0, 4),
