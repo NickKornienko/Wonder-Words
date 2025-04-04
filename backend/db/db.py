@@ -1,9 +1,10 @@
 from flask_sqlalchemy import SQLAlchemy
 import os
-import subprocess
 from sqlalchemy import Enum
 import enum
+from dotenv import load_dotenv
 
+load_dotenv()
 db = SQLAlchemy()
 
 
@@ -42,11 +43,15 @@ class ChildAccount(db.Model):
 
 
 def init_db(app):
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///conversations.db'
+    db_user = os.getenv("DB_USER")
+    db_password = os.getenv("DB_PASSWORD")
+    db_host = os.getenv("DB_HOST")
+    db_name = os.getenv("DB_NAME")
+
+    app.config['SQLALCHEMY_DATABASE_URI'] = (
+        f"mysql+mysqlconnector://{db_user}:{db_password}@{db_host}/{db_name}"
+    )
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     db.init_app(app)
     with app.app_context():
-        # Create tables if they don't exist, but don't delete the database
         db.create_all()
-        # Run the create_tables.py script
-        subprocess.run(['python', 'create_tables.py'], check=True)
