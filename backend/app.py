@@ -10,11 +10,10 @@ from child_auth import (
 )
 import os
 from dotenv import load_dotenv
-import jwt
 import random
 
 # Load environment variables
-load_dotenv()
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -23,13 +22,15 @@ CORS(app)  # Enable CORS for all routes
 init_db(app)
 init_story_assignment_db(app)
 
+
 @app.route('/log_message', methods=['POST'])
 def log_message(conversation_id, sender_type, code, content):
     # Process the data as needed
     # For example, you can log it or save it to a database
-    
+
     try:
-        print(f"Logging message with conversation_id: {conversation_id}, sender_type: {sender_type}, code: {code}, content: {content}")
+        print(
+            f"Logging message with conversation_id: {conversation_id}, sender_type: {sender_type}, code: {code}, content: {content}")
         message = Message(
             conversation_id=conversation_id,
             sender_type=sender_type,
@@ -43,10 +44,12 @@ def log_message(conversation_id, sender_type, code, content):
         print(f"Error logging message: {e}")
     return jsonify({'status': 'success', 'message': 'Log message received'}), 200
 
+
 @app.route('/fetch_conversations_by_user', methods=['POST'])
 def fetch_conversations_by_user(user_id):
     conversations = Conversation.query.filter_by(user_id=user_id).all()
     return conversations
+
 
 @app.route('/fetch_messages_by_user_and_conversation', methods=['POST'])
 def fetch_messages_by_user_and_conversation(user_id, conversation_id):
@@ -102,7 +105,8 @@ def handle_request():
         if code == 2 and conversation_id:  # If the user asks for a new story and there is an existing conversation
             return jsonify({"confirmation": "Are you sure you want to start a new story? Please respond with 'yes' or 'no'.", "conversation_id": conversation_id})
 
-        print(f"Calling log_message with conversation_id: {conversation.id}, sender_type: {SenderType.USER}, code: {code}, query: {query}")
+        print(
+            f"Calling log_message with conversation_id: {conversation.id}, sender_type: {SenderType.USER}, code: {code}, query: {query}")
         log_message(conversation.id, SenderType.USER, code, query)
 
         if code == 0:  # If the user asks for something unrelated to telling a story
@@ -181,26 +185,28 @@ def delete_conversation():
     # Use Firebase user ID from the token
     user_id = request.firebase_user.get('localId', 'user_id_placeholder')
     conversation_id = request.args.get('conversation_id')
-    
+
     if not conversation_id:
         return jsonify({"error": "Conversation ID is required"}), 400
-    
+
     try:
         # Verify the conversation belongs to the user
-        conversation = Conversation.query.filter_by(id=conversation_id, user_id=user_id).first()
+        conversation = Conversation.query.filter_by(
+            id=conversation_id, user_id=user_id).first()
         if not conversation:
             return jsonify({"error": "Conversation not found or access denied"}), 404
-        
+
         # Delete any story assignments associated with this conversation
-        StoryAssignment.query.filter_by(conversation_id=conversation_id).delete()
-        
+        StoryAssignment.query.filter_by(
+            conversation_id=conversation_id).delete()
+
         # Delete all messages associated with this conversation
         Message.query.filter_by(conversation_id=conversation_id).delete()
-        
+
         # Delete the conversation
         db.session.delete(conversation)
         db.session.commit()
-        
+
         return jsonify({"message": "Conversation deleted successfully"})
     except Exception as e:
         db.session.rollback()
@@ -212,23 +218,25 @@ def delete_conversation():
 def get_conversations():
     # Use Firebase user ID from the token
     user_id = request.firebase_user.get('localId', 'user_id_placeholder')
-    
+
     try:
         conversations = fetch_conversations_by_user(user_id)
         result = []
-        
+
         for conversation in conversations:
             # Get the first message (story) for each conversation
-            messages = Message.query.filter_by(conversation_id=conversation.id).order_by(Message.created_at).all()
-            first_story = next((msg for msg in messages if msg.sender_type == SenderType.MODEL), None)
-            
+            messages = Message.query.filter_by(
+                conversation_id=conversation.id).order_by(Message.created_at).all()
+            first_story = next(
+                (msg for msg in messages if msg.sender_type == SenderType.MODEL), None)
+
             result.append({
                 'id': conversation.id,
                 'created_at': conversation.created_at.isoformat(),
                 'preview': first_story.content[:100] + '...' if first_story else 'No story content',
                 'message_count': len(messages)
             })
-            
+
         return jsonify({"conversations": result})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -240,19 +248,21 @@ def get_conversation_messages():
     # Use Firebase user ID from the token
     user_id = request.firebase_user.get('localId', 'user_id_placeholder')
     conversation_id = request.args.get('conversation_id')
-    
+
     if not conversation_id:
         return jsonify({"error": "Conversation ID is required"}), 400
-    
+
     try:
         # Verify the conversation belongs to the user
-        conversation = Conversation.query.filter_by(id=conversation_id, user_id=user_id).first()
+        conversation = Conversation.query.filter_by(
+            id=conversation_id, user_id=user_id).first()
         if not conversation:
             return jsonify({"error": "Conversation not found or access denied"}), 404
-        
-        messages = fetch_messages_by_user_and_conversation(user_id, conversation_id)
+
+        messages = fetch_messages_by_user_and_conversation(
+            user_id, conversation_id)
         result = []
-        
+
         for message in messages:
             result.append({
                 'id': message.id,
@@ -261,7 +271,7 @@ def get_conversation_messages():
                 'created_at': message.created_at.isoformat(),
                 'code': message.code
             })
-            
+
         return jsonify({"messages": result})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -275,21 +285,21 @@ def create_child_account():
     pin = data.get('pin')
     display_name = data.get('display_name')
     age = data.get('age')
-    
+
     # Use Firebase user ID from the token as the parent UID
     parent_uid = request.firebase_user.get('localId', 'user_id_placeholder')
-    
+
     if not all([username, pin, display_name, age]):
         return jsonify({"error": "All fields are required"}), 400
-    
+
     # Check if username already exists
     existing_account = ChildAccount.query.filter_by(username=username).first()
     if existing_account:
         return jsonify({"error": "Username already exists"}), 409
-    
+
     # Save the child account
     success = save_child_account(username, pin, parent_uid, display_name, age)
-    
+
     if success:
         return jsonify({"message": "Child account created successfully"})
     else:
@@ -301,24 +311,24 @@ def child_login():
     data = request.get_json()
     username = data.get('username')
     pin = data.get('pin')
-    
+
     if not all([username, pin]):
         return jsonify({"error": "Username and PIN are required"}), 400
-    
+
     # Verify child credentials
     child_data = verify_child_credentials(username, pin)
-    
+
     if not child_data:
         return jsonify({"error": "Invalid username or PIN"}), 401
-    
+
     # Generate a token for the child
     token = generate_child_token(
-        username, 
-        child_data['parent_uid'], 
-        child_data['display_name'], 
+        username,
+        child_data['parent_uid'],
+        child_data['display_name'],
         child_data['age']
     )
-    
+
     return jsonify({
         "token": token,
         "display_name": child_data['display_name'],
@@ -331,16 +341,16 @@ def child_login():
 def get_child_accounts():
     # Use Firebase user ID from the token
     parent_uid = request.firebase_user.get('localId', 'user_id_placeholder')
-    
+
     # Print the parent_uid for debugging
     print(f"Parent UID: {parent_uid}")
-    
+
     # Query all child accounts (temporarily removed parent_uid filter)
     child_accounts = ChildAccount.query.all()
-    
+
     # Print the number of child accounts found
     print(f"Found {len(child_accounts)} child accounts (all)")
-    
+
     # Format the results
     result = []
     for account in child_accounts:
@@ -349,7 +359,7 @@ def get_child_accounts():
             'display_name': account.display_name,
             'age': account.age
         })
-    
+
     return jsonify({"child_accounts": result})
 
 
@@ -359,10 +369,10 @@ def handle_child_request():
     data = request.get_json()
     query = data.get('query')
     conversation_id = data.get('conversation_id')
-    
+
     # Use parent UID from the child token for database operations
     parent_uid = request.child_user.get('parent_uid', 'user_id_placeholder')
-    
+
     if query:
         try:
             code = int(handler(query))
@@ -417,7 +427,7 @@ def confirm_child_new_story():
     query = data.get('query')
     confirmation = data.get('confirmation')
     conversation_id = data.get('conversation_id')
-    
+
     # Use parent UID from the child token for database operations
     parent_uid = request.child_user.get('parent_uid', 'user_id_placeholder')
 
@@ -452,23 +462,25 @@ def confirm_child_new_story():
 def get_child_conversations():
     # Use parent UID from the child token for database operations
     parent_uid = request.child_user.get('parent_uid', 'user_id_placeholder')
-    
+
     try:
         conversations = fetch_conversations_by_user(parent_uid)
         result = []
-        
+
         for conversation in conversations:
             # Get the first message (story) for each conversation
-            messages = Message.query.filter_by(conversation_id=conversation.id).order_by(Message.created_at).all()
-            first_story = next((msg for msg in messages if msg.sender_type == SenderType.MODEL), None)
-            
+            messages = Message.query.filter_by(
+                conversation_id=conversation.id).order_by(Message.created_at).all()
+            first_story = next(
+                (msg for msg in messages if msg.sender_type == SenderType.MODEL), None)
+
             result.append({
                 'id': conversation.id,
                 'created_at': conversation.created_at.isoformat(),
                 'preview': first_story.content[:100] + '...' if first_story else 'No story content',
                 'message_count': len(messages)
             })
-            
+
         return jsonify({"conversations": result})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -480,19 +492,21 @@ def get_child_conversation_messages():
     # Use parent UID from the child token for database operations
     parent_uid = request.child_user.get('parent_uid', 'user_id_placeholder')
     conversation_id = request.args.get('conversation_id')
-    
+
     if not conversation_id:
         return jsonify({"error": "Conversation ID is required"}), 400
-    
+
     try:
         # Verify the conversation belongs to the parent
-        conversation = Conversation.query.filter_by(id=conversation_id, user_id=parent_uid).first()
+        conversation = Conversation.query.filter_by(
+            id=conversation_id, user_id=parent_uid).first()
         if not conversation:
             return jsonify({"error": "Conversation not found or access denied"}), 404
-        
-        messages = fetch_messages_by_user_and_conversation(parent_uid, conversation_id)
+
+        messages = fetch_messages_by_user_and_conversation(
+            parent_uid, conversation_id)
         result = []
-        
+
         for message in messages:
             result.append({
                 'id': message.id,
@@ -501,7 +515,7 @@ def get_child_conversation_messages():
                 'created_at': message.created_at.isoformat(),
                 'code': message.code
             })
-            
+
         return jsonify({"messages": result})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -514,31 +528,33 @@ def assign_story():
     conversation_id = data.get('conversation_id')
     child_username = data.get('child_username')
     title = data.get('title')
-    
+
     if not all([conversation_id, child_username, title]):
         return jsonify({"error": "All fields are required"}), 400
-    
+
     # Verify the conversation exists and belongs to the parent
     parent_uid = request.firebase_user.get('localId', 'user_id_placeholder')
-    conversation = Conversation.query.filter_by(id=conversation_id, user_id=parent_uid).first()
+    conversation = Conversation.query.filter_by(
+        id=conversation_id, user_id=parent_uid).first()
     if not conversation:
         return jsonify({"error": "Conversation not found or access denied"}), 404
-    
+
     # Verify the child account exists and belongs to the parent
-    child_account = ChildAccount.query.filter_by(username=child_username, parent_uid=parent_uid).first()
+    child_account = ChildAccount.query.filter_by(
+        username=child_username, parent_uid=parent_uid).first()
     if not child_account:
         return jsonify({"error": "Child account not found or access denied"}), 404
-    
+
     # Create the story assignment
     assignment = StoryAssignment(
         conversation_id=conversation_id,
         child_username=child_username,
         title=title
     )
-    
+
     db.session.add(assignment)
     db.session.commit()
-    
+
     return jsonify({"message": "Story assigned successfully", "assignment_id": assignment.id})
 
 
@@ -547,10 +563,11 @@ def assign_story():
 def get_assigned_stories():
     # Get the child username from the token
     username = request.child_user.get('username')
-    
+
     # Query assigned stories for this child
-    assignments = StoryAssignment.query.filter_by(child_username=username).all()
-    
+    assignments = StoryAssignment.query.filter_by(
+        child_username=username).all()
+
     result = []
     for assignment in assignments:
         # Get the first model message from the conversation (the story content)
@@ -558,7 +575,7 @@ def get_assigned_stories():
             conversation_id=assignment.conversation_id,
             sender_type=SenderType.MODEL
         ).order_by(Message.created_at).first()
-        
+
         if first_story:
             result.append({
                 'id': assignment.id,
@@ -567,7 +584,7 @@ def get_assigned_stories():
                 'assigned_at': assignment.assigned_at.isoformat(),
                 'preview': first_story.content[:100] + '...' if len(first_story.content) > 100 else first_story.content
             })
-    
+
     return jsonify({"assigned_stories": result})
 
 
@@ -576,16 +593,16 @@ def get_assigned_stories():
 def generate_themed_story():
     data = request.get_json()
     theme = data.get('theme')
-    
+
     if not theme:
         return jsonify({"error": "Theme is required"}), 400
-    
+
     # Validate the theme
     try:
         story_theme = StoryTheme(theme)
     except ValueError:
         return jsonify({"error": "Invalid theme"}), 400
-    
+
     # Generate a prompt based on the theme
     prompts = {
         StoryTheme.DRAGONS: [
@@ -629,21 +646,21 @@ def generate_themed_story():
             "Tell me an adventure story about a magical journey"
         ]
     }
-    
+
     # Select a random prompt for the chosen theme
     prompt = random.choice(prompts[story_theme])
-    
+
     # Use parent UID from the child token for database operations
     parent_uid = request.child_user.get('parent_uid', 'user_id_placeholder')
-    
+
     # Create a new conversation
     conversation = Conversation(user_id=parent_uid)
     db.session.add(conversation)
     db.session.commit()
-    
+
     # Log the user message
     log_message(conversation.id, SenderType.USER, 2, prompt)
-    
+
     # Generate the story
     story_data = generate_new_story(prompt)
     if isinstance(story_data, dict):
@@ -656,7 +673,7 @@ def generate_themed_story():
         response = story_data
         title = f"{story_theme.value.title()} Story"
         log_message(conversation.id, SenderType.MODEL, 2, response)
-    
+
     return jsonify({
         "response": response,
         "conversation_id": conversation.id,
@@ -666,5 +683,5 @@ def generate_themed_story():
 
 
 if __name__ == '__main__':
-    #app.run(debug=True)
+    # app.run(debug=True)
     app.run(host='0.0.0.0', port=5000, debug=True)

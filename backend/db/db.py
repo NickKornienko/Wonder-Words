@@ -2,9 +2,7 @@ from flask_sqlalchemy import SQLAlchemy
 import os
 from sqlalchemy import Enum
 import enum
-from dotenv import load_dotenv
 
-load_dotenv()
 db = SQLAlchemy()
 
 
@@ -47,6 +45,9 @@ def init_db(app):
     db_password = os.getenv("DB_PASSWORD")
     db_host = os.getenv("DB_HOST")
     db_name = os.getenv("DB_NAME")
+
+    print(f"Connecting to database at {db_host} with user {db_user}")
+    print(f"Using database {db_name}")
 
     app.config['SQLALCHEMY_DATABASE_URI'] = (
         f"mysql+mysqlconnector://{db_user}:{db_password}@{db_host}/{db_name}"
