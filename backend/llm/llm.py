@@ -6,12 +6,16 @@ from db.db import db, Conversation, Message, SenderType
 
 model = "gpt-4o-mini"
 
-load_dotenv()
+load_dotenv(dotenv_path=os.path.join(
+    os.path.dirname(__file__), '..', '..', '.env'))
+
 client = OpenAI(
     api_key=os.getenv("OPENAI_API_KEY"),
 )
 
 language_handling_subprompt = "Important: Respond to the user's input in the language they are using. Interpret their request in their language to make decisions to your instructions."
+
+
 def handler(query):
     chat_completion = client.chat.completions.create(
         messages=[
@@ -65,23 +69,23 @@ def new_story_generator(query):
     )
 
     response = chat_completion.choices[0].message.content
-    
+
     # Parse the response to extract title and story
     try:
         # Split by the STORY: marker
         parts = response.split("STORY:", 1)
-        
+
         # Extract title from the first part
         title_part = parts[0].strip()
         title = title_part.replace("TITLE:", "").strip()
-        
+
         # Extract story from the second part (if it exists)
         story = parts[1].strip() if len(parts) > 1 else response
-        
+
         # If we couldn't parse properly, just return the original response
         if not title or not story:
             return response
-            
+
         # Store the title in a global variable or database for later use
         # For now, we'll just return the story, but we'll modify app.py to handle the title
         return {"title": title, "story": story}
@@ -155,23 +159,23 @@ def add_to_story(conversation_id, query):
     )
 
     response = chat_completion.choices[0].message.content
-    
+
     # Parse the response to extract title and story
     try:
         # Split by the STORY: marker
         parts = response.split("STORY:", 1)
-        
+
         # Extract title from the first part
         title_part = parts[0].strip()
         title = title_part.replace("TITLE:", "").strip()
-        
+
         # Extract story from the second part (if it exists)
         story = parts[1].strip() if len(parts) > 1 else response
-        
+
         # If we couldn't parse properly, just return the original response
         if not title or not story:
             return response
-            
+
         # Return both title and story
         return {"title": title, "story": story}
     except:
