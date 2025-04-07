@@ -10,6 +10,8 @@ String configFileName = 'ip_address.json';
 String tokenKey = 'device_ip';
 Future<String> deviceIP = _loadKeyFromConfigFile(configFileName, tokenKey);
 final StoryService _storyService = StoryService();
+// initialize the storyservice context
+
 bool _needsConfirmation = false;
 
 Future<String> _loadKeyFromConfigFile(String configFileName, String tokenKey) async {
@@ -142,6 +144,13 @@ class _StoryDetailsState extends State<StoryDetails> {
       _formKey.currentState!.save();
       widget.onSubmit(_submittedData);
     }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Set the context for the StoryService
+    _storyService.setContext(context);
   }
 
   final TextEditingController _titleController = TextEditingController();
