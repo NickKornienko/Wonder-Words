@@ -29,7 +29,7 @@ class StoryDetails extends StatefulWidget {
   final Function(Map<String, dynamic>) onSubmit;
   final Function(String, String, String) onResponse; // Modify the callback function to accept three parameters
   String model;
-  String taskType;
+  String taskType = 'story-generation';
   List<String> models = ['gpt', 'llama'];
   List<String> taskTypes = ['story-generation', 'prompt-generation', 'story-continuation'];
   StoryDetails({required this.onSubmit, required this.model, required this.taskType, required this.onResponse}) {
@@ -233,9 +233,11 @@ class _StoryDetailsState extends State<StoryDetails> {
           if (taskType == 'story-generation' || taskType == 'story-continuation') {
             widget.onResponse(response['response'], '', '');
           } else if (taskType == 'prompt-generation') {
-            widget.onResponse('', storyRequest.formatStoryRequest(taskType), response['choices'][0]['message']['content']);
+            // print the keys in the json respons
+            print(response.keys);
+            widget.onResponse('', storyRequest.formatStoryRequest(taskType), response['response']);
           } else {
-            widget.onResponse('', storyRequest.formatStoryRequest(taskType), response['choices'][0]['message']['content']);
+            widget.onResponse('', storyRequest.formatStoryRequest(taskType), response['response']);
           }
         } 
       } else {
@@ -246,6 +248,10 @@ class _StoryDetailsState extends State<StoryDetails> {
 
   Future<Map<String, dynamic>?> _sendGptRequest(String userInput) async {
     String ip = await deviceIP;
+    if (ip.isEmpty) {
+      print('Error: IP address is empty. Please check your configuration.');
+      return null;
+    }
     String url = 'http://$ip:5000/handle_request';
     final String idToken = await _storyService.getIdToken();
     print('Sending GPT request to $url');
@@ -266,13 +272,21 @@ class _StoryDetailsState extends State<StoryDetails> {
       body: jsonEncode(data),
     );
 
+    if (response == null) {
+      print('Error: Response is null. The server might not have responded.');
+      return {
+        'error': 'Failed to get response from GPT API'
+      };
+    }
+
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     } else {
       print('Failed to get response from GPT API');
-      print(response.body);
-      print(response.statusCode);
-      return null;
+      // return map with error message
+      return {
+        'error': 'Failed to get response from GPT API'
+      };
     }
   }
 

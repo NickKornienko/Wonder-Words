@@ -14,7 +14,7 @@ class StoryDetailsForm extends StatefulWidget {
 
 class _StoryDetailsFormState extends State<StoryDetailsForm> {
   Map<String, dynamic> _submittedData = {};
-  String _model = 'llama'; // Add a state variable for the model
+  String _model = 'gpt'; // Add a state variable for the model
   String _taskType = 'story-generation'; // Add a state variable for the task type
   String _responseText = '';
   String _promptResponseText = '';
@@ -36,7 +36,6 @@ class _StoryDetailsFormState extends State<StoryDetailsForm> {
 
   void _handleResponse(String response, String formattedRequest, String promptResponse) {
     setState(() {
-      print('Response: $response');
       // only set if the parameters are not null or empty strings
       if (response.isNotEmpty) {
         _responseText = response;
@@ -127,7 +126,7 @@ class _StoryDetailsFormState extends State<StoryDetailsForm> {
                                       DropdownButton<String>(
                                         value: _model,
                                         onChanged: _toggleModel,
-                                        items: <String>['llama', 'gpt'].map<DropdownMenuItem<String>>((String value) {
+                                        items: <String>['gpt', 'llama'].map<DropdownMenuItem<String>>((String value) {
                                           return DropdownMenuItem<String>(
                                             value: value,
                                             child: Text(value),
