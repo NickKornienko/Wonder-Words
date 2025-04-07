@@ -208,36 +208,32 @@ class _StoryDetailsState extends State<StoryDetails> {
     }
 
     if (model == 'gpt') {
-      print(storyRequest.formatStoryRequest(taskType));
       final response = await _sendGptRequest(storyRequest.formatStoryRequest(taskType));
 
       if (response != null) {
-        print(response);
         if (response.containsKey('confirmation')) {
           print('confirmation expected');
           setState(() {
             lastUserInput = storyRequest.formatStoryRequest(taskType);
             pendingConfirmation = true;
           });
-          print(response);
-          //final confirmResponse = await _sendConfirmation('y');
-          //if (confirmResponse != null) {
-          //  setState(() {
-          //    conversationId = confirmResponse['conversation_id'] as int?;
-          //    pendingConfirmation = false;
-          //  });
-          //  widget.onResponse(confirmResponse['response'] ?? '', '', '');
-          //}
         } else {
-          print('In else');
           if (taskType == 'story-generation' || taskType == 'story-continuation') {
-            widget.onResponse(response['response'], '', '');
+            // guard clause to check if respons has 'message' key indicating error message
+            //check if message key is in response
+            if (!response.containsKey('message')) {
+              widget.onResponse(response['response'], '', '');
+            }
           } else if (taskType == 'prompt-generation') {
             // print the keys in the json respons
-            print(response.keys);
-            widget.onResponse('', storyRequest.formatStoryRequest(taskType), response['response']);
+            if (!response.containsKey('message')) {
+              widget.onResponse('', storyRequest.formatStoryRequest(taskType), response['response']);
+            }
           } else {
-            widget.onResponse('', storyRequest.formatStoryRequest(taskType), response['response']);
+            if (!response.containsKey('message')) {
+              // print the keys in the json respons
+              widget.onResponse('', storyRequest.formatStoryRequest(taskType), response['response']);
+            }
           }
         } 
       } else {
