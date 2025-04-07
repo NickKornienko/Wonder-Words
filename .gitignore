@@ -1,6 +1,6 @@
 # config files for debug
-ip_address.json
-tokens.json
+#ip_address.json
+#tokens.json
 # config files for release
 firebase_options.dart
 
