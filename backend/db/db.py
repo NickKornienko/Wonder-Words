@@ -1,6 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
 import os
-from sqlalchemy import Enum
+from sqlalchemy import Enum, inspect
 import enum
 
 db = SQLAlchemy()
@@ -80,6 +80,9 @@ def init_db(app):
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     db.init_app(app)
     with app.app_context():
-        print("Creating tables if they do not exist...")
-        db.create_all()
+        inspector=inspect(db.engine)
+        for table_name in db.metadata.tables.keys():
+            if not inspector.has_table(table_name):
+                print(f"Creating table: {table_name}")
+                db.create_all()
         print("Database setup completed!")
