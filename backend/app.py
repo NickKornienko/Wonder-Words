@@ -1,6 +1,9 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-from db.db import db, init_db, Conversation, Message, SenderType, ChildAccount
+from db.db import db
+
+# Clear only the 'story_assignment' table from the metadata
+from db.db import db, init_db, Conversation, Message, SenderType, ChildAccount, StoryAssignment, StoryTheme
 from llm.llm import handler, new_story_generator, add_to_story
 from firebase_auth import firebase_auth_required
 from child_auth import (
@@ -19,7 +22,6 @@ CORS(app)  # Enable CORS for all routes
 
 # Initialize the SQLAlchemy db instance
 init_db(app)
-
 
 @app.route('/log_message', methods=['POST'])
 def log_message(conversation_id, sender_type, code, content):
