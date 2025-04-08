@@ -410,7 +410,11 @@ def handle_child_request():
                 response = story_data
                 log_message(conversation.id, SenderType.MODEL, code, response)
         elif code == 3:  # If the user asks for an addition to an existing story
-            response = add_to_existing_story(conversation.id, query)
+            story_data = add_to_existing_story(conversation.id, query)
+            title = story_data.get("title", "New Story")
+            story = story_data.get("story", "")
+            # Format the response with title and story
+            response = f"TITLE: {title}\n\nSTORY: {story}"
             log_message(conversation.id, SenderType.MODEL, code, response)
         else:
             response = f"Invalid code: {code}"
