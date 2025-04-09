@@ -8,6 +8,7 @@ import '../../services/story_service.dart';
 import '../../services/auth/auth_provider.dart';
 import '../../config/api_config.dart';
 import 'story_detail_screen.dart';
+import 'package:flutter/foundation.dart';
 
 class StoryHistoryScreen extends StatefulWidget {
   const StoryHistoryScreen({super.key});
@@ -124,8 +125,13 @@ class _StoryHistoryScreenState extends State<StoryHistoryScreen> {
         throw Exception('Failed to get authentication token');
       }
 
+      // Call the backend API to authenticate the child
+      // Use baseUrl from ApiConfig if running on web, and deviceUrl if running on a device
+      const isWeb = kIsWeb;
+      const url = isWeb ? ApiConfig.baseUrl : ApiConfig.deviceUrl;
+
       final response = await http.get(
-        Uri.parse('${ApiConfig.baseUrl}/get_child_accounts'),
+        Uri.parse('$url/get_child_accounts'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',

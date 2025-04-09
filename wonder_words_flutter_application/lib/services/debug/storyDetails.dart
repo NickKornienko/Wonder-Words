@@ -2,28 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:wonder_words_flutter_application/config/api_config.dart';
 import 'package:wonder_words_flutter_application/services/debug/storyInference.dart';
 import 'package:wonder_words_flutter_application/services/debug/storyRequest.dart';
 import 'package:wonder_words_flutter_application/services/story_service.dart';
+// import api keys
+import 'package:wonder_words_flutter_application/config/api_keys.dart';
+// import kisWeb to check if the app is running on web
+import 'package:flutter/foundation.dart' show kIsWeb;
 
-String configFileName = 'ip_address.json';
-String tokenKey = 'device_ip';
-Future<String> deviceIP = _loadKeyFromConfigFile(configFileName, tokenKey);
 final StoryService _storyService = StoryService();
 // initialize the storyservice context
-
 bool _needsConfirmation = false;
-
-Future<String> _loadKeyFromConfigFile(String configFileName, String tokenKey) async {
-  try {
-    // using rootBundle to access the config file
-    final content = await rootBundle.loadString('secrets/$configFileName');
-    final jsonObject = jsonDecode(content);
-    return jsonObject[tokenKey];
-  } catch (e) {
-    throw Exception('Error reading API key from file: $e');
-  }
-}
 
 class StoryDetails extends StatefulWidget {
   final Function(Map<String, dynamic>) onSubmit;
@@ -186,7 +176,7 @@ class _StoryDetailsState extends State<StoryDetails> {
 
     if (model == 'llama') {
       WidgetsFlutterBinding.ensureInitialized();
-      final hfKey = await _loadKeyFromConfigFile('tokens.json', 'hf_token');
+      String hfKey = ApiKeys.huggingfaceApiKey;
 
       final openai = OpenAI(baseURL: 'https://zq0finoawyna397e.us-east-1.aws.endpoints.huggingface.cloud/v1/chat', apiKey: hfKey); // Replace with your actual key
 
@@ -243,12 +233,10 @@ class _StoryDetailsState extends State<StoryDetails> {
   }
 
   Future<Map<String, dynamic>?> _sendGptRequest(String userInput) async {
-    String ip = await deviceIP;
-    if (ip.isEmpty) {
-      print('Error: IP address is empty. Please check your configuration.');
-      return null;
-    }
-    String url = 'http://$ip:5000/handle_request';
+    const isWeb = kIsWeb;
+    const base = isWeb ? ApiConfig.baseUrl : ApiConfig.deviceUrl;
+
+    String url = 'http://$base/handle_request';
     final String idToken = await _storyService.getIdToken();
     print('Sending GPT request to $url');
 
@@ -287,8 +275,10 @@ class _StoryDetailsState extends State<StoryDetails> {
   }
 
   Future<Map<String, dynamic>?> _sendConfirmation(String confirmation) async {
-    String ip = await deviceIP;
-    String url = 'http://$ip:5000/confirm_new_story';
+    const isWeb = kIsWeb;
+    const base = isWeb ? ApiConfig.baseUrl : ApiConfig.deviceUrl;
+
+    String url = 'http://$base/confirm_new_story';
     final String idToken = await _storyService.getIdToken();
     print('Sending confirmation to $url');
 
