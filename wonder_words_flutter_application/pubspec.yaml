@@ -32,7 +32,7 @@ dependencies:
     sdk: flutter
   flutter_test:
     sdk: flutter
-
+  web: ^1.0.0
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -51,6 +51,8 @@ dependencies:
   crypto: ^3.0.3 # For generating hashes for caching
   connectivity_plus: ^5.0.1 # For checking internet connectivity
   shared_preferences: ^2.2.0 # For persistent storage and usage tracking
+  # web specific html package
+
 
 
   # The "flutter_lints" package below contains a set of recommended lints to
@@ -76,8 +78,7 @@ flutter:
     - assets/frog.png
     - assets/megafrog.png
     - assets/splashscreen.png
-    - secrets/tokens.json
-    - secrets/ip_address.json
+
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware
 
