@@ -9,6 +9,12 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../config/api_keys.dart';
+// Conditionally import package:web for web platform
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
+
+
+import 'package:web/web.dart' if (dart.library.html) 'package:web/web.dart' as html;
 
 /// Voice model for Google Cloud TTS
 class GoogleTtsVoice {
@@ -32,6 +38,9 @@ class GoogleTtsVoice {
 class GoogleTtsService {
   final AudioPlayer _audioPlayer = AudioPlayer();
   final FlutterTts _flutterTts = FlutterTts(); // Fallback TTS
+  late final html.HTMLAudioElement? audioElement;
+
+
   bool _isSpeaking = false;
   final List<Function(bool)> _stateListeners = [];
 
@@ -142,13 +151,17 @@ class GoogleTtsService {
   late GoogleTtsVoice _selectedVoice;
 
   GoogleTtsService() {
+    if (kIsWeb) {
+      audioElement = html.HTMLAudioElement(); // web version
+    } else {
+      audioElement = null;
+    }
     _selectedVoice = _voices[0]; // Default to first voice
     _initFallbackTts();
     _initUsageTracking();
     _initCache();
     _loadSelectedVoice();
   }
-
   /// Get the list of available voices
   List<GoogleTtsVoice> get voices => _voices;
 
@@ -258,6 +271,7 @@ class GoogleTtsService {
 
   /// Notify all listeners of state changes
   void _notifyListeners() {
+    print("Notifying listeners: isSpeaking = $_isSpeaking");
     for (var listener in _stateListeners) {
       listener(_isSpeaking);
     }
@@ -328,6 +342,8 @@ class GoogleTtsService {
     _isSpeaking = false;
     await _audioPlayer.stop();
     await _flutterTts.stop();
+    audioElement?.pause();
+    _notifyListeners();
   }
 
   /// Speak using Google Cloud TTS
@@ -400,64 +416,52 @@ class GoogleTtsService {
     }
   }
 
-  /// Speak using Google Cloud TTS on web platform
-  Future<void> _speakWithGoogleTtsWeb(String text) async {
-    final apiKey = ApiKeys.googleCloudApiKey;
-    final url =
-        'https://texttospeech.googleapis.com/v1/text:synthesize?key=$apiKey';
+Future<void> _speakWithGoogleTtsWeb(String text) async {
+  final apiKey = ApiKeys.googleCloudApiKey;
+  final url =
+      'https://texttospeech.googleapis.com/v1/text:synthesize?key=$apiKey';
 
-    final response = await http.post(
-      Uri.parse(url),
-      headers: {'Content-Type': 'application/json'},
-      body: json.encode({
-        'input': {'text': text},
-        'voice': {
-          'languageCode': _selectedVoice.languageCode,
-          'name': _selectedVoice.name,
-          'ssmlGender': _selectedVoice.gender
-        },
-        'audioConfig': {
-          'audioEncoding': 'MP3',
-          'speakingRate': 0.9, // Slightly slower for storytelling
-          'pitch': 0.0, // Natural pitch
-          'volumeGainDb': 1.0 // Slightly louder
-        }
-      }),
-    );
+  final response = await http.post(
+    Uri.parse(url),
+    headers: {'Content-Type': 'application/json'},
+    body: json.encode({
+      'input': {'text': text},
+      'voice': {
+        'languageCode': 'en-US',
+        'name': 'en-US-Neural2-F',
+        'ssmlGender': 'FEMALE'
+      },
+      'audioConfig': {
+        'audioEncoding': 'MP3',
+        'speakingRate': 0.9,
+        'pitch': 0.0,
+        'volumeGainDb': 1.0
+      }
+    }),
+  );
 
-    if (response.statusCode == 200) {
-      // Get the base64-encoded audio content
-      final audioContent = json.decode(response.body)['audioContent'];
+  if (response.statusCode == 200) {
+    final audioContent = json.decode(response.body)['audioContent'];
+    final audioUrl = 'data:audio/mp3;base64,$audioContent';
 
-      // Create a data URL for the audio
-      final audioUrl = 'data:audio/mp3;base64,$audioContent';
+  audioElement!.src = audioUrl;
+  audioElement!.autoplay = true;
+  audioElement!.onPlay.listen((_) {
+    _isSpeaking = true;
+    _notifyListeners();
+  });
+  audioElement!.onEnded.listen((_) {
+    _isSpeaking = false;
+    _notifyListeners();
+  });
 
-      // Create an HTML audio element
-      final audio = AudioPlayer();
-      await audio.setUrl(audioUrl);
+  audioElement!.play();
+    // save the audioElement object so that it can be called from within the stop class
 
-      // Set up event listeners
-      _isSpeaking = true;
-      _notifyListeners();
-
-      // Play the audio
-      audio.play();
-
-      // Listen for completion
-      audio.playerStateStream.listen((state) {
-        if (state.processingState == ProcessingState.completed) {
-          _isSpeaking = false;
-          _notifyListeners();
-        }
-      });
-
-      // Update usage tracking
-      await _updateUsage(text.length);
-    } else {
-      throw Exception('Failed to synthesize speech: ${response.body}');
-    }
+  } else {
+    throw Exception('Failed to synthesize speech: ${response.body}');
   }
-
+}
   /// Speak using the device's built-in TTS
   Future<void> _speakWithFallbackTts(String text) async {
     if (text.isEmpty) return;
