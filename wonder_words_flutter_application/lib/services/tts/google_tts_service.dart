@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:crypto/crypto.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'package:just_audio/just_audio.dart';
 import 'package:path_provider/path_provider.dart';
@@ -9,12 +8,6 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../config/api_keys.dart';
-// Conditionally import package:web for web platform
-import 'dart:io' show Platform;
-import 'package:flutter/foundation.dart' show kIsWeb;
-
-
-import 'package:web/web.dart' if (dart.library.html) 'package:web/web.dart' as html;
 
 /// Voice model for Google Cloud TTS
 class GoogleTtsVoice {
@@ -38,10 +31,10 @@ class GoogleTtsVoice {
 class GoogleTtsService {
   final AudioPlayer _audioPlayer = AudioPlayer();
   final FlutterTts _flutterTts = FlutterTts(); // Fallback TTS
-  late final html.HTMLAudioElement? audioElement;
 
 
-  bool _isSpeaking = false;
+
+  bool isSpeaking = false;
   final List<Function(bool)> _stateListeners = [];
 
   // Free tier limits
@@ -151,11 +144,6 @@ class GoogleTtsService {
   late GoogleTtsVoice _selectedVoice;
 
   GoogleTtsService() {
-    if (kIsWeb) {
-      audioElement = html.HTMLAudioElement(); // web version
-    } else {
-      audioElement = null;
-    }
     _selectedVoice = _voices[0]; // Default to first voice
     _initFallbackTts();
     _initUsageTracking();
@@ -270,10 +258,10 @@ class GoogleTtsService {
   }
 
   /// Notify all listeners of state changes
-  void _notifyListeners() {
-    print("Notifying listeners: isSpeaking = $_isSpeaking");
+  void notifyListeners() {
+    print("Notifying listeners: isSpeaking = $isSpeaking");
     for (var listener in _stateListeners) {
-      listener(_isSpeaking);
+      listener(isSpeaking);
     }
   }
 
@@ -285,28 +273,25 @@ class GoogleTtsService {
     await _flutterTts.setVolume(1.0); // Full volume
 
     _flutterTts.setStartHandler(() {
-      _isSpeaking = true;
-      _notifyListeners();
+      isSpeaking = true;
+      notifyListeners();
     });
 
     _flutterTts.setCompletionHandler(() {
-      _isSpeaking = false;
-      _notifyListeners();
+      isSpeaking = false;
+      notifyListeners();
     });
 
     _flutterTts.setErrorHandler((error) {
-      _isSpeaking = false;
-      _notifyListeners();
+      isSpeaking = false;
+      notifyListeners();
       print('Fallback TTS error: $error');
     });
   }
 
-  /// Check if the service is currently speaking
-  bool get isSpeaking => _isSpeaking;
-
   /// Speak the given text using Google Cloud TTS or fallback to device TTS if offline
   Future<void> speak(String text) async {
-    if (_isSpeaking) {
+    if (isSpeaking) {
       await stop();
       return;
     }
@@ -339,11 +324,10 @@ class GoogleTtsService {
 
   /// Stop speaking
   Future<void> stop() async {
-    _isSpeaking = false;
+    isSpeaking = false;
     await _audioPlayer.stop();
     await _flutterTts.stop();
-    audioElement?.pause();
-    _notifyListeners();
+    notifyListeners();
   }
 
   /// Speak using Google Cloud TTS
@@ -355,17 +339,18 @@ class GoogleTtsService {
       final textHash = md5.convert(utf8.encode(text)).toString();
 
       // For web platform, use direct API call and HTML audio
-      if (kIsWeb) {
-        try {
-          print('Running on web platform with Google Cloud TTS');
-          await _speakWithGoogleTtsWeb(text);
-          return;
-        } catch (e) {
-          print('Error with web Google TTS: $e');
-          await _speakWithFallbackTts(text);
-          return;
-        }
-      }
+      //if (kIsWeb) {
+      //  try {
+      //    print('Running on web platform with Google Cloud TTS');
+      //    
+      //    await _speakWithGoogleTtsWeb(text);
+      //    return;
+      //  } catch (e) {
+      //    print('Error with web Google TTS: $e');
+      //    await _speakWithFallbackTts(text);
+      //    return;
+      //  }
+      //}
 
       // Native platform implementation
       // Check if we have this text cached
@@ -390,8 +375,8 @@ class GoogleTtsService {
       }
 
       // Play the audio
-      _isSpeaking = true;
-      _notifyListeners();
+      isSpeaking = true;
+      notifyListeners();
 
       try {
         await _audioPlayer.setFilePath(audioPath);
@@ -400,8 +385,8 @@ class GoogleTtsService {
         // Listen for completion
         _audioPlayer.playerStateStream.listen((state) {
           if (state.processingState == ProcessingState.completed) {
-            _isSpeaking = false;
-            _notifyListeners();
+            isSpeaking = false;
+            notifyListeners();
           }
         });
       } catch (e) {
@@ -416,61 +401,18 @@ class GoogleTtsService {
     }
   }
 
-Future<void> _speakWithGoogleTtsWeb(String text) async {
-  final apiKey = ApiKeys.googleCloudApiKey;
-  final url =
-      'https://texttospeech.googleapis.com/v1/text:synthesize?key=$apiKey';
 
-  final response = await http.post(
-    Uri.parse(url),
-    headers: {'Content-Type': 'application/json'},
-    body: json.encode({
-      'input': {'text': text},
-      'voice': {
-        'languageCode': 'en-US',
-        'name': 'en-US-Neural2-F',
-        'ssmlGender': 'FEMALE'
-      },
-      'audioConfig': {
-        'audioEncoding': 'MP3',
-        'speakingRate': 0.9,
-        'pitch': 0.0,
-        'volumeGainDb': 1.0
-      }
-    }),
-  );
-
-  if (response.statusCode == 200) {
-    final audioContent = json.decode(response.body)['audioContent'];
-    final audioUrl = 'data:audio/mp3;base64,$audioContent';
-
-  audioElement!.src = audioUrl;
-  audioElement!.autoplay = true;
-  audioElement!.onPlay.listen((_) {
-    _isSpeaking = true;
-    _notifyListeners();
-  });
-  audioElement!.onEnded.listen((_) {
-    _isSpeaking = false;
-    _notifyListeners();
-  });
-
-  audioElement!.play();
-    // save the audioElement object so that it can be called from within the stop class
-
-  } else {
-    throw Exception('Failed to synthesize speech: ${response.body}');
-  }
-}
   /// Speak using the device's built-in TTS
   Future<void> _speakWithFallbackTts(String text) async {
     if (text.isEmpty) return;
 
     try {
-      _isSpeaking = true;
+      isSpeaking = true;
+      notifyListeners();
       await _flutterTts.speak(text);
     } catch (e) {
-      _isSpeaking = false;
+      isSpeaking = false;
+      notifyListeners();
       print('Error in fallback TTS: $e');
     }
   }
