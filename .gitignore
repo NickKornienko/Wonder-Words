@@ -127,6 +127,7 @@ celerybeat.pid
 *.sage.py
 
 # Environments
+.env
 .venv
 env/
 venv/
@@ -135,7 +136,6 @@ env.bak/
 venv.bak/
 
 # API keys and sensitive information
-.env
 wonder_words_flutter_application/lib/firebase_options.dart
 
 # Spyder project settings

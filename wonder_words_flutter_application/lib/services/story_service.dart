@@ -8,21 +8,13 @@ import 'package:flutter/services.dart' show rootBundle;
 import '../models/assigned_story.dart';
 import '../config/api_config.dart';
 import 'auth/auth_provider.dart' as app_auth;
+import 'package:flutter/foundation.dart';
 
-Future<String> _loadKeyFromConfigFile(String configFileName, String tokenKey) async {
-  try {
-    // using rootBundle to access the config file
-    final content = await rootBundle.loadString('secrets/$configFileName');
-    final jsonObject = jsonDecode(content);
-    return jsonObject[tokenKey];
-  } catch (e) {
-    throw Exception('Error reading API key from file: $e');
-  }
-}
 
 class StoryService {
   // Get the base URL from ApiConfig
-  final String baseUrl = ApiConfig.baseUrl;
+  static const isWeb = kIsWeb;
+  static const baseUrl = isWeb ? ApiConfig.baseUrl : ApiConfig.deviceUrl;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   // Store the BuildContext for later use

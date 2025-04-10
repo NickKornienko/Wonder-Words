@@ -6,7 +6,10 @@ import 'package:wonder_words_flutter_application/colors.dart';
 import 'dart:convert';
 import '../../services/auth/auth_provider.dart';
 import '../../services/auth/auth_service.dart';
-import '../home/home_screen.dart';
+// load the ApiConfig class to access deviceiP
+import '../../config/api_config.dart';
+// loading the kIsWeb to check if on web
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class ChildLoginScreen extends StatefulWidget {
   const ChildLoginScreen({Key? key}) : super(key: key);
@@ -41,10 +44,15 @@ class _ChildLoginScreenState extends State<ChildLoginScreen> {
         print('Attempting child login with:');
         print('Username: ${_usernameController.text.trim()}');
         print('PIN: ${_pinController.text.trim()}');
+        // Resolve the device IP from ApiConfig depending on if web environment or device
+        
+        const resolvedUrl = kIsWeb
+            ? ApiConfig.baseUrl
+            : ApiConfig.deviceUrl;
 
         // Call the backend API to authenticate the child
         final response = await http.post(
-          Uri.parse('http://localhost:5000/child_login'),
+          Uri.parse('$resolvedUrl/child_login'),
           headers: {'Content-Type': 'application/json'},
           body: json.encode({
             'username': _usernameController.text.trim(),
