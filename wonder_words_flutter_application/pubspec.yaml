@@ -48,6 +48,7 @@ dependencies:
   google_fonts: ^6.2.1
   # Google Cloud TTS dependencies
   just_audio: ^0.9.34 # For audio playback
+  just_audio_web: ^0.4.15 # For web audio playback
   path_provider: ^2.0.15 # For file operations
   crypto: ^3.0.3 # For generating hashes for caching
   connectivity_plus: ^5.0.1 # For checking internet connectivity
@@ -80,7 +81,7 @@ flutter:
     - assets/frog.png
     - assets/megafrog.png
     - assets/splashscreen.png
-    - ../.env
+    - assets/.env
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware

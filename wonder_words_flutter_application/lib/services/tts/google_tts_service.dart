@@ -8,6 +8,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 
 /// Voice model for Google Cloud TTS
@@ -92,21 +93,21 @@ class GoogleTtsService {
     ),
     GoogleTtsVoice(
       name: 'en-US-Neural2-H',
+      displayName: 'Female 4 (Neural)',
+      languageCode: 'en-US',
+      gender: 'FEMALE',
+      isNeural: true,
+    ),
+    GoogleTtsVoice(
+      name: 'en-US-Neural2-I',
       displayName: 'Male 3 (Neural)',
       languageCode: 'en-US',
       gender: 'MALE',
       isNeural: true,
     ),
     GoogleTtsVoice(
-      name: 'en-US-Neural2-I',
-      displayName: 'Male 4 (Neural)',
-      languageCode: 'en-US',
-      gender: 'MALE',
-      isNeural: true,
-    ),
-    GoogleTtsVoice(
       name: 'en-US-Neural2-J',
-      displayName: 'Male 5 (Neural)',
+      displayName: 'Male 4 (Neural)',
       languageCode: 'en-US',
       gender: 'MALE',
       isNeural: true,
@@ -363,16 +364,27 @@ class GoogleTtsService {
       notifyListeners();
 
       try {
-        await _audioPlayer.setFilePath(audioPath);
-        await _audioPlayer.play();
-
-        // Listen for completion
-        _audioPlayer.playerStateStream.listen((state) {
-          if (state.processingState == ProcessingState.completed) {
-            isSpeaking = false;
-            notifyListeners();
+        if (kIsWeb && audioPath.startsWith('memory://')) {
+          // For web, use the base64 content directly with _flutterTts
+          final base64Content = _audioCache[textHash];
+          if (base64Content != null) {
+            await _flutterTts.speak(text); // Use fallback TTS for web
+          } else {
+            throw Exception('Base64 content not found in cache for web playback.');
           }
-        });
+        } else {
+          // For non-web platforms, play the audio file
+          await _audioPlayer.setFilePath(audioPath);
+          await _audioPlayer.play();
+
+          // Listen for completion
+          _audioPlayer.playerStateStream.listen((state) {
+            if (state.processingState == ProcessingState.completed) {
+              isSpeaking = false;
+              notifyListeners();
+            }
+          });
+        }
       } catch (e) {
         print('Error playing audio: $e');
         // Fallback to device TTS
@@ -404,7 +416,6 @@ class GoogleTtsService {
   /// Call the Google Cloud TTS API to synthesize speech
   Future<String> _synthesizeSpeech(String text, String textHash) async {
     try {
-      
       // Loading the API key from the .env file
       final String apiKey = dotenv.env['GOOGLE_CLOUD_API_KEY'] ?? '';
       if (apiKey.isEmpty) {
@@ -439,16 +450,21 @@ class GoogleTtsService {
         final bytes = base64.decode(audioContent);
 
         try {
-          // Save to a temporary file
-          final tempDir = await getTemporaryDirectory();
-          final file = File(
-              '${tempDir.path}/tts_${DateTime.now().millisecondsSinceEpoch}.mp3');
-          await file.writeAsBytes(bytes);
+          if (kIsWeb) {
+            // For web, return the base64 string directly
+            _audioCache[textHash] = audioContent; // Cache the base64 content
+            return 'memory://$textHash'; // Return a placeholder path
+          } else {
+            // Save to a temporary file for non-web platforms
+            final tempDir = await getTemporaryDirectory();
+            final file = File('${tempDir.path}/tts_${DateTime.now().millisecondsSinceEpoch}.mp3');
+            await file.writeAsBytes(bytes);
 
-          // Save to persistent cache
-          await _saveToCacheStorage(textHash, file.path);
+            // Save to persistent cache
+            await _saveToCacheStorage(textHash, file.path);
 
-          return file.path;
+            return file.path;
+          }
         } catch (e) {
           // If we can't access the file system (e.g., on web), fall back to device TTS
           print('Error accessing file system: $e');
@@ -465,7 +481,9 @@ class GoogleTtsService {
 
   /// Clean up resources
   void dispose() {
+    if (!kIsWeb) {
+      _flutterTts.stop();
+    }
     _audioPlayer.dispose();
-    _flutterTts.stop();
   }
 }
