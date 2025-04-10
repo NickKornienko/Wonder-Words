@@ -4,6 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../../config/api_config.dart';
+import 'package:flutter/foundation.dart';
 
 enum AccountType { parent, child }
 
@@ -241,10 +242,13 @@ class AuthService {
       if (token == null) {
         throw Exception('Failed to get authentication token');
       }
-
+      // Call the backend API to authenticate the child
+      // Use baseUrl from ApiConfig if running on web, and deviceUrl if running on a device
+      const isWeb = kIsWeb;
+      const url = isWeb ? ApiConfig.baseUrl : ApiConfig.deviceUrl;
       // Make API call to backend
       final response = await http.post(
-        Uri.parse('${ApiConfig.baseUrl}/create_child_account'),
+        Uri.parse('$url/create_child_account'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
