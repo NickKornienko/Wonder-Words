@@ -8,10 +8,12 @@ import 'screens/auth/child_login_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/home/child_accounts_screen.dart';
 import 'screens/auth/account_selection_screen.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
+  // load env
+  dotenv.load(fileName: "../.env");
   // Initialize Firebase
   try {
     await Firebase.initializeApp(
