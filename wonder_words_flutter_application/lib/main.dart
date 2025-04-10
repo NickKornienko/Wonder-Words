@@ -13,7 +13,12 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // load env
-  dotenv.load(fileName: "../.env");
+  // Construct the path to the .env file two levels up
+  await dotenv.load(fileName: ".env");
+  //verify that the env was loaded properly
+  if (dotenv.env['GOOGLE_CLOUD_API_KEY'] == null) {
+    print('Environment variables not loaded properly');
+  }
   // Initialize Firebase
   try {
     await Firebase.initializeApp(
@@ -21,7 +26,7 @@ void main() async {
     );
   } catch (e) {
     print('Failed to initialize Firebase: $e');
-    // Continue without Firebase for development
+    // Continue without Firebase for developmentr
   }
 
   runApp(
