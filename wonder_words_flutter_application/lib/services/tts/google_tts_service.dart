@@ -7,7 +7,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../config/api_keys.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 
 /// Voice model for Google Cloud TTS
 class GoogleTtsVoice {
@@ -337,23 +338,6 @@ class GoogleTtsService {
     try {
       // Generate a hash of the text to use as a cache key
       final textHash = md5.convert(utf8.encode(text)).toString();
-
-      // For web platform, use direct API call and HTML audio
-      //if (kIsWeb) {
-      //  try {
-      //    print('Running on web platform with Google Cloud TTS');
-      //    
-      //    await _speakWithGoogleTtsWeb(text);
-      //    return;
-      //  } catch (e) {
-      //    print('Error with web Google TTS: $e');
-      //    await _speakWithFallbackTts(text);
-      //    return;
-      //  }
-      //}
-
-      // Native platform implementation
-      // Check if we have this text cached
       String? audioPath = _audioCache[textHash];
 
       // If not cached, call the API
@@ -420,7 +404,12 @@ class GoogleTtsService {
   /// Call the Google Cloud TTS API to synthesize speech
   Future<String> _synthesizeSpeech(String text, String textHash) async {
     try {
-      final apiKey = ApiKeys.googleCloudApiKey;
+      
+      // Loading the API key from the .env file
+      final String apiKey = dotenv.env['GOOGLE_CLOUD_API_KEY'] ?? '';
+      if (apiKey.isEmpty) {
+        throw Exception('Google Cloud API key is not set. Please configure it in the .env file.');
+      }
       final url =
           'https://texttospeech.googleapis.com/v1/text:synthesize?key=$apiKey';
 

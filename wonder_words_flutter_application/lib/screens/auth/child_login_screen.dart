@@ -6,22 +6,10 @@ import 'package:wonder_words_flutter_application/colors.dart';
 import 'dart:convert';
 import '../../services/auth/auth_provider.dart';
 import '../../services/auth/auth_service.dart';
-
-import 'package:flutter/services.dart' show rootBundle;
-String configFileName = 'ip_address.json';
-String tokenKey = 'device_ip';
-Future<String> deviceIP = _loadKeyFromConfigFile(configFileName, tokenKey);
-
-Future<String> _loadKeyFromConfigFile(String configFileName, String tokenKey) async {
-  try {
-    // using rootBundle to access the config file
-    final content = await rootBundle.loadString('secrets/$configFileName');
-    final jsonObject = jsonDecode(content);
-    return jsonObject[tokenKey];
-  } catch (e) {
-    throw Exception('Error reading API key from file: $e');
-  }
-}
+// load the ApiConfig class to access deviceiP
+import '../../config/api_config.dart';
+// loading the kIsWeb to check if on web
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class ChildLoginScreen extends StatefulWidget {
   const ChildLoginScreen({Key? key}) : super(key: key);
@@ -56,11 +44,15 @@ class _ChildLoginScreenState extends State<ChildLoginScreen> {
         print('Attempting child login with:');
         print('Username: ${_usernameController.text.trim()}');
         print('PIN: ${_pinController.text.trim()}');
-        String resolvedDeviceIP = await deviceIP;
+        // Resolve the device IP from ApiConfig depending on if web environment or device
+        
+        const resolvedUrl = kIsWeb
+            ? ApiConfig.baseUrl
+            : ApiConfig.deviceUrl;
 
         // Call the backend API to authenticate the child
         final response = await http.post(
-          Uri.parse('http://$resolvedDeviceIP:5000/child_login'),
+          Uri.parse('$resolvedUrl/child_login'),
           headers: {'Content-Type': 'application/json'},
           body: json.encode({
             'username': _usernameController.text.trim(),
