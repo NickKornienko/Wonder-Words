@@ -6,14 +6,15 @@ import 'package:wonder_words_flutter_application/config/api_config.dart';
 import 'package:wonder_words_flutter_application/services/debug/storyInference.dart';
 import 'package:wonder_words_flutter_application/services/debug/storyRequest.dart';
 import 'package:wonder_words_flutter_application/services/story_service.dart';
-// import api keys
-import 'package:wonder_words_flutter_application/config/api_keys.dart';
 // import kisWeb to check if the app is running on web
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 final StoryService _storyService = StoryService();
 // initialize the storyservice context
 bool _needsConfirmation = false;
+// define the .env file
+
 
 class StoryDetails extends StatefulWidget {
   final Function(Map<String, dynamic>) onSubmit;
@@ -105,16 +106,26 @@ class SubmitButton extends StatelessWidget {
           print('Submitted user input');
           print('new story request');
           print('Last user input: $lastUserInput');
-          final confirmResponse = await sendConfirmation('y');
-          if (confirmResponse != null) {
-            setConversationId(confirmResponse['conversation_id'] as int?);
-            setPendingConfirmation(false);
-            if (taskType == 'story-generation' || taskType == 'story-continuation') {
-              onResponse(confirmResponse['response'] ?? '', '', '');
-            } else if (taskType == 'prompt-generation') {
-              onResponse('', lastUserInput, confirmResponse['response'] ?? '');
+          // if model = 'llama' don't send confirmation
+          if (!(model == 'llama')) {
+            print('here');
+            final confirmResponse = await sendConfirmation('y');
+            print('Confirmation response: $confirmResponse'); 
+            if (confirmResponse != null) {
+              setConversationId(confirmResponse['conversation_id'] as int?);
+              setPendingConfirmation(false);
+    
+              if (taskType == 'story-generation' || taskType == 'story-continuation') {
+                onResponse(confirmResponse['response'] ?? '', '', '');
+              } else if (taskType == 'prompt-generation') {
+                onResponse('', lastUserInput, confirmResponse['response'] ?? '');
+              }
             }
+          } {
+            handleSubmit(model, taskType);
           }
+          // llama model doesn't have a confirmation step
+
         } else {
           print('continued story request');
           print('Last user input: $lastUserInput');
@@ -173,12 +184,27 @@ class _StoryDetailsState extends State<StoryDetails> {
     if (!isNewStory && taskType == 'story-generation') {
       taskType = 'story-continuation';
     }
-
+    print('Task type: $taskType');
+    print('model: $model');
     if (model == 'llama') {
+      print('calling llama');
       WidgetsFlutterBinding.ensureInitialized();
-      String hfKey = ApiKeys.huggingfaceApiKey;
+      // Loading the API key from the .env file
+      final apiKey = dotenv.env['HUGGINGFACE_API_KEY'];
+      if (apiKey == null || apiKey.isEmpty) {
+        throw Exception('HUGGINGFACE_API_KEY is not defined. Please set it in your environment variables.');
+      }
+      print('API Key loaded successfully');
 
-      final openai = OpenAI(baseURL: 'https://zq0finoawyna397e.us-east-1.aws.endpoints.huggingface.cloud/v1/chat', apiKey: hfKey); // Replace with your actual key
+      if (apiKey.isEmpty) {
+        print('HUGGINGFACE_API_KEY is not defined. Please set it in your environment variables.');
+        throw Exception('HUGGINGFACE_API_KEY is not defined. Please set it in your environment variables.');
+      }
+      
+      
+      print('calling huggingface');
+
+      final openai = OpenAI(baseURL: 'https://zq0finoawyna397e.us-east-1.aws.endpoints.huggingface.cloud/v1/chat', apiKey: apiKey); // Replace with your actual key
 
       final response = await openai.chatCompletionsCreate({
         "model": "tgi",
@@ -236,7 +262,7 @@ class _StoryDetailsState extends State<StoryDetails> {
     const isWeb = kIsWeb;
     const base = isWeb ? ApiConfig.baseUrl : ApiConfig.deviceUrl;
 
-    String url = 'http://$base/handle_request';
+    String url = '$base/handle_request';
     final String idToken = await _storyService.getIdToken();
     print('Sending GPT request to $url');
 
@@ -247,7 +273,7 @@ class _StoryDetailsState extends State<StoryDetails> {
     Map<String, dynamic> data = {
       'query': userInput,
       'user_id': 'test_user',
-      if (conversationId != null) 'conversation_id': conversationId,
+        if (conversationId != null) 'conversation_id': conversationId
     };
 
     http.Response response = await http.post(
@@ -255,14 +281,7 @@ class _StoryDetailsState extends State<StoryDetails> {
       headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $idToken'},
       body: jsonEncode(data),
     );
-
-    if (response == null) {
-      print('Error: Response is null. The server might not have responded.');
-      return {
-        'error': 'Failed to get response from GPT API'
-      };
-    }
-
+    print(response.body);
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     } else {
@@ -278,9 +297,10 @@ class _StoryDetailsState extends State<StoryDetails> {
     const isWeb = kIsWeb;
     const base = isWeb ? ApiConfig.baseUrl : ApiConfig.deviceUrl;
 
-    String url = 'http://$base/confirm_new_story';
+    String url = '$base/confirm_new_story';
     final String idToken = await _storyService.getIdToken();
     print('Sending confirmation to $url');
+    print('Last user input: $lastUserInput');
 
     Map<String, dynamic> data = {
       'query': lastUserInput,
@@ -294,8 +314,9 @@ class _StoryDetailsState extends State<StoryDetails> {
       headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $idToken'},
       body: jsonEncode(data),
     );
-
+    print(response.body);
     if (response.statusCode == 200) {
+      print('Confirmation response received');
       return jsonDecode(response.body);
     } else {
       print('Failed to get confirmation response from GPT API');
