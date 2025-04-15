@@ -114,21 +114,21 @@ Widget buildContinuationButtons(List<Map<String, dynamic>> continuationOptions,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
+                  Expanded(child: Icon(
                     option['icon'],
                     size: 40,
                     color: Colors.white,
-                  ),
-                  SizedBox(height: 8),
-                  Text(
+                  )),
+                  const SizedBox(height: 4),
+                  Expanded(child: Text(
                     option['name'],
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
                     ),
                     textAlign: TextAlign.center,
-                  ),
+                  )),
                 ],
               ),
             ),
@@ -187,25 +187,29 @@ Widget buildThemeButtons(
                 mainAxisAlignment: MainAxisAlignment.center,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
+                  Expanded(
+                  child: Icon(
                     theme['icon'],
                     size: 36,
                     color: Colors.white,
                   ),
-                  SizedBox(height: 4),
-                  Padding(
+                  ),
+                  const SizedBox(height: 4),
+                  Expanded(
+                  child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 4.0),
                     child: Text(
-                      theme['name'],
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                    theme['name'],
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
                   ),
                 ],
               ),
