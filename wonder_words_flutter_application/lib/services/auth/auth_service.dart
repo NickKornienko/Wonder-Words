@@ -258,6 +258,7 @@ class AuthService {
           'pin': pin,
           'display_name': displayName,
           'age': age,
+          'parent_uid': parentUid,
         }),
       );
 

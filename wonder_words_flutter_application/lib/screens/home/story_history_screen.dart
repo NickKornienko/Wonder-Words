@@ -158,6 +158,7 @@ class _StoryHistoryScreenState extends State<StoryHistoryScreen> {
     if (childAccounts.isEmpty) {
       if (!mounted) return;
 
+      // Use the root context for the ScaffoldMessenger
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('You need to create child accounts first'),
@@ -188,10 +189,11 @@ class _StoryHistoryScreenState extends State<StoryHistoryScreen> {
 
     if (!mounted) return;
 
+    // Pass the root context to the dialog
     await showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setState) => AlertDialog(
           title: const Text('Assign Story to Child'),
           content: SingleChildScrollView(
             child: Column(
@@ -224,7 +226,7 @@ class _StoryHistoryScreenState extends State<StoryHistoryScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Navigator.pop(dialogContext),
               child: const Text('Cancel'),
             ),
             ElevatedButton(
@@ -232,17 +234,20 @@ class _StoryHistoryScreenState extends State<StoryHistoryScreen> {
                   selectedChildUsername == null || titleController.text.isEmpty
                       ? null
                       : () async {
-                          Navigator.pop(context);
+                          Navigator.pop(dialogContext);
 
                           try {
+                            print('Assigning story to $selectedChildUsername');
                             final result = await _storyService.assignStory(
                               conversation.id,
                               selectedChildUsername!,
                               titleController.text,
                             );
+                            print('Assign story result: $result');
 
                             if (!mounted) return;
 
+                            // Use the root context for the ScaffoldMessenger
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(
@@ -253,6 +258,7 @@ class _StoryHistoryScreenState extends State<StoryHistoryScreen> {
                           } catch (e) {
                             if (!mounted) return;
 
+                            // Use the root context for the ScaffoldMessenger
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text('Failed to assign story: $e'),
