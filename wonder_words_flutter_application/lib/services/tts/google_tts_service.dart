@@ -35,7 +35,6 @@ class GoogleTtsService {
   final FlutterTts _flutterTts = FlutterTts(); // Fallback TTS
 
 
-
   bool isSpeaking = false;
   final List<Function(bool)> _stateListeners = [];
 
@@ -57,14 +56,14 @@ class GoogleTtsService {
       isNeural: true,
     ),
     GoogleTtsVoice(
-      name: 'en-US-Neural2-M',
+      name: 'en-US-Neural2-A',
       displayName: 'Male (Neural)',
       languageCode: 'en-US',
       gender: 'MALE',
       isNeural: true,
     ),
     GoogleTtsVoice(
-      name: 'en-US-Neural2-C',
+      name: 'en-US-Chirp3-HD-Zephyr',
       displayName: 'Child (Neural)',
       languageCode: 'en-US',
       gender: 'FEMALE',
@@ -145,6 +144,8 @@ class GoogleTtsService {
   // Currently selected voice (default to first voice)
   late GoogleTtsVoice _selectedVoice;
 
+
+  // Private constructor
   GoogleTtsService() {
     _selectedVoice = _voices[0]; // Default to first voice
     _initFallbackTts();
@@ -152,6 +153,7 @@ class GoogleTtsService {
     _initCache();
     _loadSelectedVoice();
   }
+
   /// Get the list of available voices
   List<GoogleTtsVoice> get voices => _voices;
 
@@ -161,7 +163,7 @@ class GoogleTtsService {
   /// Set the voice to use
   Future<void> setVoice(GoogleTtsVoice voice) async {
     _selectedVoice = voice;
-
+    print('Setting voice to: ${voice.displayName}');
     // Save the selected voice
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('tts_selected_voice', voice.name);
@@ -169,6 +171,7 @@ class GoogleTtsService {
 
   /// Load the previously selected voice
   Future<void> _loadSelectedVoice() async {
+    print('Loading selected voice from storage...');
     try {
       final prefs = await SharedPreferences.getInstance();
       final voiceName = prefs.getString('tts_selected_voice');
@@ -261,7 +264,7 @@ class GoogleTtsService {
 
   /// Notify all listeners of state changes
   void notifyListeners() {
-    print("Notifying listeners: isSpeaking = $isSpeaking");
+    //print("Notifying listeners: isSpeaking = $isSpeaking");
     for (var listener in _stateListeners) {
       listener(isSpeaking);
     }
@@ -311,6 +314,7 @@ class GoogleTtsService {
       final hasInternet = connectivityResult != ConnectivityResult.none;
 
       if (hasInternet) {
+
         await _speakWithGoogleTts(text);
         // Update usage only if Google TTS was used successfully
         await _updateUsage(text.length);
@@ -334,16 +338,21 @@ class GoogleTtsService {
 
   /// Speak using Google Cloud TTS
   Future<void> _speakWithGoogleTts(String text) async {
-    if (text.isEmpty) return;
+    print('Using Google TTS...');
+    if (text.isEmpty) {
+      print('Text is empty, nothing to speak.');
+      return;
+    }
 
     try {
-      // Generate a hash of the text to use as a cache key
-      final textHash = md5.convert(utf8.encode(text)).toString();
+      // Generate a hash of the text combined with the selected voice
+      final textHash = md5.convert(utf8.encode('$text|${_selectedVoice.name}')).toString();
       String? audioPath = _audioCache[textHash];
 
-      // If not cached, call the API
+      // If not cached, or if the voice has changed, call the API to synthesize speech
       if (audioPath == null) {
         try {
+          print('Calling _synthesizeSpeech in GoogleTtsService...');
           audioPath = await _synthesizeSpeech(text, textHash);
           _audioCache[textHash] = audioPath;
 
@@ -368,11 +377,13 @@ class GoogleTtsService {
           // For web, use the base64 content directly with _flutterTts
           final base64Content = _audioCache[textHash];
           if (base64Content != null) {
+            print('Playing audio using flutterTts for web playback...');
             await _flutterTts.speak(text); // Use fallback TTS for web
           } else {
             throw Exception('Base64 content not found in cache for web playback.');
           }
         } else {
+          print('Playing audio using just_audio...');
           // For non-web platforms, play the audio file
           await _audioPlayer.setFilePath(audioPath);
           await _audioPlayer.play();
@@ -400,11 +411,13 @@ class GoogleTtsService {
 
   /// Speak using the device's built-in TTS
   Future<void> _speakWithFallbackTts(String text) async {
+    print('Using fallback TTS...');
     if (text.isEmpty) return;
 
     try {
       isSpeaking = true;
       notifyListeners();
+      print('Using fallback TTS...');
       await _flutterTts.speak(text);
     } catch (e) {
       isSpeaking = false;

@@ -136,6 +136,7 @@ class _KidFriendlyStoryScreenState extends State<KidFriendlyStoryScreen>
     )..repeat(reverse: true);
 
     // Listen for TTS state changes
+  
     _ttsService.addStateListener((isSpeaking) {
       if (mounted) {
         setState(() {
@@ -368,7 +369,7 @@ class _KidFriendlyStoryScreenState extends State<KidFriendlyStoryScreen>
   // Show information about the Google Cloud TTS voice and allow voice selection
   void _showVoiceSelectionDialog() {
     // Get the current selected voice
-    final currentVoice = _ttsService.selectedVoice;
+    var currentVoice = _ttsService.selectedVoice;
 
     showDialog(
       context: context,
@@ -429,28 +430,30 @@ class _KidFriendlyStoryScreenState extends State<KidFriendlyStoryScreen>
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: Colors.deepPurple, width: 2),
                       ),
-                      child: DropdownButton<GoogleTtsVoice>(
+                        child: DropdownButton<GoogleTtsVoice>(
                         isExpanded: true,
                         value: currentVoice,
                         underline: Container(),
                         icon: Icon(Icons.arrow_drop_down_circle,
-                            color: Colors.deepPurple),
+                          color: Colors.deepPurple),
                         items: _ttsService.voices.map((voice) {
                           return DropdownMenuItem<GoogleTtsVoice>(
-                            value: voice,
-                            child: Text(
-                              voice.displayName,
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.deepPurple,
-                              ),
+                          value: voice,
+                          child: Text(
+                            voice.displayName,
+                            style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.deepPurple,
                             ),
+                          ),
                           );
                         }).toList(),
                         onChanged: (GoogleTtsVoice? newVoice) async {
                           if (newVoice != null) {
-                            await _ttsService.setVoice(newVoice);
-                            setState(() {}); // Update the dialog state
+                          await _ttsService.setVoice(newVoice);
+                          setState(() {
+                            currentVoice = newVoice; // Update the selected voice
+                          });
                           }
                         },
                       ),
