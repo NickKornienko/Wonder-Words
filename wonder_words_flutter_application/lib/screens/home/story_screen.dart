@@ -320,6 +320,7 @@ class StoryScreenState extends State<StoryScreen> {
                   onChanged: (GoogleTtsVoice? newVoice) async {
                     if (newVoice != null) {
                       await _ttsService.setVoice(newVoice);
+                      print('Set voice as: ${newVoice.displayName}');
                       setState(() {}); // Update the dialog state
                     }
                   },
