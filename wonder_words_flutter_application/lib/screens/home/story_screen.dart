@@ -276,7 +276,7 @@ class StoryScreenState extends State<StoryScreen> {
   // Show information about the Google Cloud TTS voice and allow voice selection
   void _showVoiceInfoDialog() {
     // Get the current selected voice
-    final currentVoice = _ttsService.selectedVoice;
+    var currentVoice = _ttsService.selectedVoice;
 
     showDialog(
       context: context,
@@ -321,6 +321,7 @@ class StoryScreenState extends State<StoryScreen> {
                     if (newVoice != null) {
                       await _ttsService.setVoice(newVoice);
                       print('Set voice as: ${newVoice.displayName}');
+                      currentVoice = newVoice; // Update the current voice for the dialog
                       setState(() {}); // Update the dialog state
                     }
                   },
