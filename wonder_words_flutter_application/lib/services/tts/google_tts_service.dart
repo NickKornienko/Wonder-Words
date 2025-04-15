@@ -144,23 +144,15 @@ class GoogleTtsService {
   // Currently selected voice (default to first voice)
   late GoogleTtsVoice _selectedVoice;
 
-  // Singleton instance
-  static final GoogleTtsService _instance = GoogleTtsService._internal();
 
   // Private constructor
-  GoogleTtsService._internal() {
+  GoogleTtsService() {
     _selectedVoice = _voices[0]; // Default to first voice
     _initFallbackTts();
     _initUsageTracking();
     _initCache();
     _loadSelectedVoice();
   }
-
-  // Factory constructor to return the singleton instance
-  factory GoogleTtsService() {
-    return _instance;
-  }
-
 
   /// Get the list of available voices
   List<GoogleTtsVoice> get voices => _voices;
