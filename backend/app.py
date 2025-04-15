@@ -278,16 +278,16 @@ def get_conversation_messages():
 
 
 @app.route('/create_child_account', methods=['POST'])
-@firebase_auth_required
 def create_child_account():
     data = request.get_json()
     username = data.get('username')
     pin = data.get('pin')
     display_name = data.get('display_name')
     age = data.get('age')
-
-    # Use Firebase user ID from the token as the parent UID
-    parent_uid = request.firebase_user.get('localId', 'user_id_placeholder')
+    parent_uid = data.get('parent_uid')  # Parent UID passed from the frontend
+    print('parent_uid from frontend:', parent_uid)
+    if not parent_uid:
+        return jsonify({"error": "Parent UID is required"}), 400
 
     if not all([username, pin, display_name, age]):
         return jsonify({"error": "All fields are required"}), 400
@@ -340,7 +340,10 @@ def child_login():
 @firebase_auth_required
 def get_child_accounts():
     # Use Firebase user ID from the token
-    parent_uid = request.firebase_user.get('localId', 'user_id_placeholder')
+    parent_uid = request.firebase_user.get('localId')
+    # get the firebase user using the parent_uid
+    parent = request.firebase_user.get(parent_uid)
+    print(parent)
 
     # Print the parent_uid for debugging
     print(f"Parent UID: {parent_uid}")
@@ -533,19 +536,25 @@ def assign_story():
     child_username = data.get('child_username')
     title = data.get('title')
 
+    print(f"Assigning story with conversation_id: {conversation_id}, child_username: {child_username}, title: {title}")
     if not all([conversation_id, child_username, title]):
         return jsonify({"error": "All fields are required"}), 400
 
+    # Retrieve the parent UID from the Firebase token
+    parent_uid = request.firebase_user.get('localId')
+    print(f"Parent UID: {parent_uid}")
+
     # Verify the conversation exists and belongs to the parent
-    parent_uid = request.firebase_user.get('localId', 'user_id_placeholder')
     conversation = Conversation.query.filter_by(
         id=conversation_id, user_id=parent_uid).first()
     if not conversation:
         return jsonify({"error": "Conversation not found or access denied"}), 404
+    print(f"Conversation found: {conversation}")
 
     # Verify the child account exists and belongs to the parent
     child_account = ChildAccount.query.filter_by(
         username=child_username, parent_uid=parent_uid).first()
+    print(f"Child account found: {child_account}")
     if not child_account:
         return jsonify({"error": "Child account not found or access denied"}), 404
 
