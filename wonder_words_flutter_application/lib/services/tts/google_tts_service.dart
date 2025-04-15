@@ -56,14 +56,14 @@ class GoogleTtsService {
       isNeural: true,
     ),
     GoogleTtsVoice(
-      name: 'en-US-Neural2-M',
+      name: 'en-US-Neural2-A',
       displayName: 'Male (Neural)',
       languageCode: 'en-US',
       gender: 'MALE',
       isNeural: true,
     ),
     GoogleTtsVoice(
-      name: 'en-US-Neural2-C',
+      name: 'en-US-Chirp3-HD-Zephyr',
       displayName: 'Child (Neural)',
       languageCode: 'en-US',
       gender: 'FEMALE',
