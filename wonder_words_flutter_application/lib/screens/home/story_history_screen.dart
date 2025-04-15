@@ -598,42 +598,48 @@ class _StoryHistoryScreenState extends State<StoryHistoryScreen> {
                     children: [
                       // Assign button - only show for parent accounts
                       if (!authProvider.isChild)
-                        IconButton(
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                          onPressed: () => _showAssignStoryDialog(conversation),
-                          icon: const Icon(Icons.child_care, size: 16),
-                          color: Colors.deepPurple,
-                          tooltip: 'Assign to Child',
+                        Expanded(
+                          child: IconButton(
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            onPressed: () => _showAssignStoryDialog(conversation),
+                            icon: const Icon(Icons.child_care, size: 16),
+                            color: Colors.deepPurple,
+                            tooltip: 'Assign to Child',
+                          ),
                         ),
                       // View button
-                      IconButton(
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => StoryDetailScreen(
-                                conversationId: conversation.id,
+                      Expanded(
+                        child: IconButton(
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => StoryDetailScreen(
+                                  conversationId: conversation.id,
+                                ),
                               ),
-                            ),
-                          );
-                        },
-                        icon: const Icon(Icons.visibility, size: 16),
-                        color: Colors.deepPurple,
-                        tooltip: 'View Story',
+                            );
+                          },
+                          icon: const Icon(Icons.visibility, size: 16),
+                          color: Colors.deepPurple,
+                          tooltip: 'View Story',
+                        ),
                       ),
                       // Delete button - only show for parent accounts
                       if (!authProvider.isChild)
-                        IconButton(
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                          onPressed: () =>
-                              _showDeleteConfirmationDialog(conversation),
-                          icon: const Icon(Icons.delete, size: 16),
-                          color: Colors.red,
-                          tooltip: 'Delete Story',
+                        Expanded(
+                          child: IconButton(
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            onPressed: () =>
+                                _showDeleteConfirmationDialog(conversation),
+                            icon: const Icon(Icons.delete, size: 16),
+                            color: Colors.red,
+                            tooltip: 'Delete Story',
+                          ),
                         ),
                     ],
                   );
