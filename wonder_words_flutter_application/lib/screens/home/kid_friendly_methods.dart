@@ -116,14 +116,14 @@ Widget buildContinuationButtons(List<Map<String, dynamic>> continuationOptions,
                 children: [
                   Expanded(child: Icon(
                     option['icon'],
-                    size: 40,
+                    size: 30,
                     color: Colors.white,
                   )),
                   const SizedBox(height: 4),
                   Expanded(child: Text(
                     option['name'],
                     style: const TextStyle(
-                      fontSize: 16,
+                      fontSize: 14,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
                     ),
