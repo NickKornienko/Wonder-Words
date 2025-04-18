@@ -542,7 +542,6 @@ def assign_story():
 
     # Retrieve the parent UID from the Firebase token
     parent_uid = request.firebase_user.get('localId')
-    print(f"Parent UID: {parent_uid}")
 
     # Verify the conversation exists and belongs to the parent
     conversation = Conversation.query.filter_by(
