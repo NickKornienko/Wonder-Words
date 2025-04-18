@@ -3,6 +3,9 @@ from dotenv import load_dotenv
 from flask import jsonify
 from openai import OpenAI
 from db.db import db, Conversation, Message, SenderType
+import mysql
+from mysql.connector import Error
+import pandas as pd
 
 model = "gpt-4o-mini"
 
@@ -12,10 +15,74 @@ load_dotenv(dotenv_path=os.path.join(
 client = OpenAI(
     api_key=os.getenv("OPENAI_API_KEY"),
 )
+# Database connection details
+host = os.getenv("DB_HOST")
+user = os.getenv("DB_USER")
+password = os.getenv("DB_PASSWORD")
+database = os.getenv("DB_NAME")
 
+def connect_to_database():
+    """Create a connection to the MySQL database."""
+    try:
+        connection = mysql.connector.connect(
+            host=host,
+            user=user,
+            password=password,
+            database=database
+        )
+        if connection.is_connected():
+            print("Connected to the database")
+            return connection
+    except Error as e:
+        print(f"Error while connecting to MySQL: {e}")
+        return None
+
+def add_to_prompt_table(features, vocabulary, user_prompt, model_response):
+    """Add a new prompt and its features to the MySQL database."""
+    connection = connect_to_database()
+    if connection:
+        print("Adding new prompt to the database...")
+        try:
+            cursor = connection.cursor()
+            # Insert the new prompt into the prompts table
+            insert_query = """
+                INSERT INTO prompt_data (features, vocabulary, user_prompt, model_response)
+                VALUES (%s, %s, %s, %s)
+            """
+            cursor.execute(insert_query, (features, vocabulary, user_prompt, model_response))
+            connection.commit()
+            print("New prompt added successfully")
+        except Error as e:
+            print(f"Error while inserting data: {e}")
+        finally:
+            cursor.close()
+            connection.close()
+    else:
+        print("Failed to connect to the database. Prompt not added.")
+
+def add_to_meta_prompt_table(user_meta_prompt, model_meta_response):
+    """Add a new meta prompt and its response to the MySQL database."""
+    connection = connect_to_database()
+    if connection:
+        try:
+            cursor = connection.cursor()
+            # Insert the new meta prompt into the meta_prompts table
+            insert_query = """
+                INSERT INTO meta_prompt_data (user_meta_prompt, model_meta_response)
+                VALUES (%s, %s)
+            """
+            cursor.execute(insert_query, (user_meta_prompt, model_meta_response))
+            connection.commit()
+            print("New meta prompt added successfully")
+        except Error as e:
+            print(f"Error while inserting data: {e}")
+        finally:
+            cursor.close()
+            connection.close()
+
+# This subprompt is used to handle the language of the user's input.
 language_handling_subprompt = "Important: Respond to the user's input in the language they are using. Interpret their request in their language to make decisions to your instructions."
-
-
+valid_additions = ['What happens next?','Different Ending', 'Make it funny', 'Add a twist']
 def handler(query):
     chat_completion = client.chat.completions.create(
         messages=[
@@ -28,7 +95,7 @@ def handler(query):
                     "If the user asks for something unrelated to telling a story, respond with code 0."
                     "If the user asks for something related to a story but violates safety rules, respond with code 1."
                     "If the user asks for a new story, respond with code 2."
-                    "If the user asks for an addition to an existing story, respond with code 3."
+                    f"If the user asks for an addition to an existing story, for example {valid_additions},  respond with code 3."
                 ),
             },
             {
@@ -39,9 +106,71 @@ def handler(query):
         model=model,
     )
     return chat_completion.choices[0].message.content
+feature_vocabulary_subprompt = (
+    "\nImportant:"
+    "The narrative features provide guidance on the plot and structure of the story, "
+    "while the vocabulary words are specific terms that should ALWAYS be included in the story. "
+)
+def features_and_vocabulary(query):
+    # chat completion to extract interesting vocabulary from the query
+    vocabulary_completion = client.chat.completions.create(
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    f"{language_handling_subprompt}"
+                    "You are a vocabulary expert for a storytelling AI."
+                    "You should create a list of some existing or novel (around 3-5) vocabulary words that pair well with the story query."
+                    "Return the vocabulary as a comma-separated list of words."
+                    "Aim to include words that are unique, descriptive, and engaging for children."
+                    "Do not include common words or phrases, and only return the vocabulary words without any additional text."
+                ),
+            },
+            {
+                "role": "user",
+                "content": query,
+            }
+        ],
+        model=model,
+    )
+    # chat completion to generate narrative features from the query
+    example_narrative_features = ['dialogue', 'twist', 'moralvalue', 'foreshadowing', 'goodending', 'badending', 'characterdevelopment']
+    features_completion = client.chat.completions.create(
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    f"{language_handling_subprompt}"
+                    "You are a narrative features expert for a storytelling AI."
+                    "You should create a list of some existing or novel (around 3-5) narrative features that pair well with the story query."
+                    f"Example narrative features include: {', '.join(example_narrative_features)}."
+                    "Return the features as a comma-separated list of words."
+                    "Aim to include storytelling or literature narratives that are unique, descriptive, and engaging for children."
+                    "Do not include common words or phrases, and only return the narrative features without any additional text."
+                ),
+            },
+            {
+                "role": "user",
+                "content": query,
+            }
+        ],
+        model=model,
+    )
 
+    vocabulary_response = vocabulary_completion.choices[0].message.content
+    features_response = features_completion.choices[0].message.content
+    return vocabulary_response, features_response
 
 def new_story_generator(query):
+    """Generate a new story based on the user's query."""
+    # Fetch vocabulary and narrative features from the query
+    vocabulary_response, features_response = features_and_vocabulary(query)
+    formatted_prompt = (
+        f"{feature_vocabulary_subprompt}"
+        f"Relevant vocabulary: {vocabulary_response}\n"
+        f"Relevant narrative features: {features_response}\n"
+        f"User prompt: {query}\n"
+    )
     chat_completion = client.chat.completions.create(
         messages=[
             {
@@ -62,13 +191,20 @@ def new_story_generator(query):
             },
             {
                 "role": "user",
-                "content": query,
+                "content": formatted_prompt,
             }
         ],
         model=model,
     )
 
     response = chat_completion.choices[0].message.content
+    # logging the words, features, query, and response to the db's prompt_data table
+    add_to_prompt_table(
+        features=features_response,
+        vocabulary=vocabulary_response,
+        user_prompt=query,
+        model_response=response
+    )
 
     # Parse the response to extract title and story
     try:
@@ -78,7 +214,7 @@ def new_story_generator(query):
         # Extract title from the first part
         title_part = parts[0].strip()
         title = title_part.replace("TITLE:", "").strip()
-
+        
         # Extract story from the second part (if it exists)
         story = parts[1].strip() if len(parts) > 1 else response
 
@@ -88,6 +224,7 @@ def new_story_generator(query):
 
         # Store the title in a global variable or database for later use
         # For now, we'll just return the story, but we'll modify app.py to handle the title
+
         return {"title": title, "story": story}
     except:
         # If parsing fails, return the original response
@@ -132,7 +269,15 @@ def add_to_story(conversation_id, query):
 
     if not existing_story:
         return jsonify({"message": "No existing story found in the conversation history."})
-
+    # format the existing story and the current query for extendiing with new vocabulary and features
+    contextual_query = f"Existing Title: {existing_title}\nExisting Story: {existing_story}\nNew Input: {query}"
+    # Fetch vocabulary and narrative features from the query
+    vocabulary_response, features_response = features_and_vocabulary(contextual_query)
+    feature_vocabulary_prompt = (
+        f"{feature_vocabulary_subprompt}"
+        f"Relevant vocabulary: {vocabulary_response}\n"
+        f"Relevant narrative features: {features_response}\n"
+    )
     # Generate the extended story by appending the new query
     chat_completion = client.chat.completions.create(
         messages=[
@@ -148,17 +293,26 @@ def add_to_story(conversation_id, query):
                     "STORY: [The extended story content]\n\n"
                     "Limit the extended part of the story to 100 words."
                     "This should be a full rewrite of the story, not just a continuation, but it should be consistent with the existing story."
+                    
                 ),
             },
             {
                 "role": "user",
-                "content": f"Existing Title: {existing_title}\nExisting Story: {existing_story}\nNew Input: {query}",
+                "content": feature_vocabulary_prompt + f"Existing Title: {existing_title}\nExisting Story: {existing_story}\nNew Input: {query}",
             }
         ],
         model=model,
     )
 
     response = chat_completion.choices[0].message.content
+
+    # logging the words, features, query, and response to the db's prompt_data table
+    add_to_prompt_table(
+        features=features_response,
+        vocabulary=vocabulary_response,
+        user_prompt=query,
+        model_response=response
+    )
 
     # Parse the response to extract title and story
     try:
