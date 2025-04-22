@@ -60,7 +60,7 @@ def add_to_prompt_table(features, vocabulary, user_prompt, model_response):
     else:
         print("Failed to connect to the database. Prompt not added.")
 
-def add_to_meta_prompt_table(user_meta_prompt, model_meta_response):
+def add_to_meta_prompt_table(user_meta_prompt, prompt_vocabulary, prompt_narratives, model_meta_response, model_meta_vocabulary, model_meta_narratives):
     """Add a new meta prompt and its response to the MySQL database."""
     connection = connect_to_database()
     if connection:
@@ -68,10 +68,10 @@ def add_to_meta_prompt_table(user_meta_prompt, model_meta_response):
             cursor = connection.cursor()
             # Insert the new meta prompt into the meta_prompts table
             insert_query = """
-                INSERT INTO meta_prompt_data (user_meta_prompt, model_meta_response)
-                VALUES (%s, %s)
+                INSERT INTO meta_prompt_data (user_meta_prompt, prompt_vocabulary, prompt_narratives, model_meta_response, model_meta_vocabulary, model_meta_narratives)
+                VALUES (%s, %s, %s, %s, %s, %s)
             """
-            cursor.execute(insert_query, (user_meta_prompt, model_meta_response))
+            cursor.execute(insert_query, (user_meta_prompt, prompt_vocabulary, prompt_narratives, model_meta_response, model_meta_vocabulary, model_meta_narratives))
             connection.commit()
             print("New meta prompt added successfully")
         except Error as e:
@@ -161,8 +161,9 @@ def features_and_vocabulary(query):
     features_response = features_completion.choices[0].message.content
     return vocabulary_response, features_response
 
-def new_story_generator(query):
-    """Generate a new story based on the user's query."""
+
+def story_prompt_generator(query):
+    """Generate a story prompt based on the user's input."""
     # Fetch vocabulary and narrative features from the query
     vocabulary_response, features_response = features_and_vocabulary(query)
     formatted_prompt = (
@@ -171,11 +172,95 @@ def new_story_generator(query):
         f"Relevant narrative features: {features_response}\n"
         f"User prompt: {query}\n"
     )
+
+    return vocabulary_response, features_response, formatted_prompt
+
+meta_prompt_system_prompt = (
+                    f"{language_handling_subprompt}"
+                    "You are a prompt evaluation expert for a storytelling AI."
+                    "You should take the user input and edit their prompt for improvement."
+                    "The updated prompt should be clear, concise, and engaging."
+                    "The vocabulary and narrative should be unique, descriptive, and engaging for children."
+                    "The goal is to improve the prompt, not to provide a story."
+                    "You should only return the updated prompt in the following format:\n\n"
+                    "Updated Prompt: [The updated prompt content]\n\n"
+                    "Updated Vocabulary: [The updated vocabulary content as a list]\n\n"
+                    "Updated Narrative Features: [The updated narrative features content as a list]\n\n"
+)
+
+meta_prompt_gen_user_prompt = '''<|im_start|>user
+                    {language_handling_subprompt} 
+                    Below is a prompt evaluation request that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.
+                    Do not include any additional information or context in your response. Only include the updated prompt, vocabulary, and narrative features.
+                    
+
+                    Prompt for Evaluation: 
+                    {user_prompt}
+
+                    <|im_end|>
+
+                    <|im_start|>assistant
+                    Prompt:'''
+
+def meta_prompt_generator(user_prompt):
+    """Generate a meta prompt based on the user's input."""
+    # Fetch vocabulary and narrative and formatted prompt from the query
+    vocabulary, features, formatted_prompt = story_prompt_generator(user_prompt)
+    # chat completion to generate a meta prompt
     chat_completion = client.chat.completions.create(
         messages=[
             {
                 "role": "system",
-                "content": (
+                "content": meta_prompt_system_prompt,
+            },
+            {
+                "role": "user",
+                "content": meta_prompt_gen_user_prompt.format(
+                    language_handling_subprompt=language_handling_subprompt,
+                    user_prompt=formatted_prompt
+                ),
+            }
+        ],
+        model=model,
+    )
+
+    response = chat_completion.choices[0].message.content
+    # Parse the response to extract updated prompt, vocabulary, and features
+    # Split by the Updated Prompt: marker
+    parts = response.split("Updated Prompt:", 1)
+
+    # Extract updated prompt from the first part
+    updated_prompt_part = parts[0].strip()
+    updated_prompt = updated_prompt_part.replace("Updated Prompt:", "").strip()
+
+    # Extract vocabulary and features from the second part (if it exists)
+    if len(parts) > 1:
+        vocabulary_part = parts[1].split("Updated Vocabulary:", 1)[0].strip()
+        features_part = parts[1].split("Updated Narrative Features:", 1)[0].strip()
+        vocabulary = vocabulary_part.replace("Updated Vocabulary:", "").strip()
+        features = features_part.replace("Updated Narrative Features:", "").strip()
+
+    if not updated_prompt or not vocabulary or not features:
+        # guard clause to prevent empty values using empty strings
+        if not updated_prompt:
+            updated_prompt = ""
+        if not vocabulary:
+            vocabulary = ""
+        if not features:
+            features = ""
+
+    # logging the words, features, query, and response to the db's meta_prompt_data table
+    add_to_meta_prompt_table(
+        user_meta_prompt=formatted_prompt,
+        prompt_vocabulary=vocabulary,
+        prompt_narratives=features,
+        model_meta_response=updated_prompt,
+        model_meta_vocabulary=vocabulary,
+        model_meta_narratives=features
+    )
+    return updated_prompt
+
+story_gen_system_prompt = (
                     f"{language_handling_subprompt}"
                     "You are the writer for a storytelling AI that can generate children's stories based on a given prompt."
                     "You should take the user input and generate a new story based on it."
@@ -187,7 +272,17 @@ def new_story_generator(query):
                     "Instead, use specific, imaginative titles like 'Sparky the Fire-Breathing Friend' or 'Journey to the Purple Moon'."
                     "Do not include phrases like 'Once upon a time' in the title."
                     "Limit the story to 100 words."
-                ),
+                )
+
+def new_story_generator(query):
+    """Generate a new story based on the user's query."""
+    # Fetch vocabulary and narrative features from the query
+    vocabulary, features, formatted_prompt = story_prompt_generator(query)
+    chat_completion = client.chat.completions.create(
+        messages=[
+            {
+                "role": "system",
+                "content": story_gen_system_prompt,
             },
             {
                 "role": "user",
@@ -200,8 +295,8 @@ def new_story_generator(query):
     response = chat_completion.choices[0].message.content
     # logging the words, features, query, and response to the db's prompt_data table
     add_to_prompt_table(
-        features=features_response,
-        vocabulary=vocabulary_response,
+        features=features,
+        vocabulary=vocabulary,
         user_prompt=query,
         model_response=response
     )

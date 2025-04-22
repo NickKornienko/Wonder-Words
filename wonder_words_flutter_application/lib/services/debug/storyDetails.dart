@@ -54,7 +54,7 @@ class StoryDetails extends StatefulWidget {
     _storyDetailsState.refreshInput();
     // also clearing the text controllers
     _storyDetailsState._titleController.clear();
-    _storyDetailsState._promptController.clear();
+    _storyDetailsState._narrativesController.clear();
     _storyDetailsState._vocabularyController.clear();
   }
 
@@ -155,8 +155,12 @@ class _StoryDetailsState extends State<StoryDetails> {
   }
 
   final TextEditingController _titleController = TextEditingController();
-  final TextEditingController _promptController = TextEditingController();
+  final TextEditingController _narrativesController = TextEditingController();
   final TextEditingController _vocabularyController = TextEditingController();
+
+  // New controller for open-ended user prompt
+  final TextEditingController _userPromptController = TextEditingController();
+
   Map<String, dynamic> _submittedData = {};
   StoryRequest? storyRequest;
   int? conversationId;
@@ -172,8 +176,9 @@ class _StoryDetailsState extends State<StoryDetails> {
     setState(() {
       _submittedData = {
         'title': _titleController.text,
-        'prompt': _promptController.text,
+        'prompt': _narrativesController.text,
         'vocabulary': _vocabularyController.text,
+        'userPrompt': _userPromptController.text, // Include the new prompt
       };
     });
 
@@ -224,7 +229,10 @@ class _StoryDetailsState extends State<StoryDetails> {
     }
 
     if (model == 'gpt') {
-      final response = await _sendGptRequest(storyRequest.formatStoryRequest(taskType));
+      // if-else statement to check if the task type is 'story-generation' or 'story-continuation', or 'prompt-generation'
+      final response = taskType == 'prompt-generation'
+          ? await _sendMetaPromptRequest(storyRequest.formatStoryRequest(taskType))
+          : await _sendGptRequest(storyRequest.formatStoryRequest(taskType));
 
       if (response != null) {
         if (response.containsKey('confirmation')) {
@@ -293,6 +301,33 @@ class _StoryDetailsState extends State<StoryDetails> {
     }
   }
 
+  // funciton to send request to /generate_meta_prompt
+  Future<Map<String, dynamic>?> _sendMetaPromptRequest(String userInput) async {
+    const isWeb = kIsWeb;
+    const base = isWeb ? ApiConfig.baseUrl : ApiConfig.deviceUrl;
+
+    String url = '$base/generate_meta_prompt';
+
+    print('Sending meta prompt request to $url');
+
+    Map<String, dynamic> data = {
+      'user_input': userInput,
+    };
+
+    http.Response response = await http.post(
+      Uri.parse(url),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(data),
+    );
+    print(response.body);
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      print('Failed to get response from GPT API');
+      return null;
+    }
+  }
+
   Future<Map<String, dynamic>?> _sendConfirmation(String confirmation) async {
     const isWeb = kIsWeb;
     const base = isWeb ? ApiConfig.baseUrl : ApiConfig.deviceUrl;
@@ -328,7 +363,7 @@ class _StoryDetailsState extends State<StoryDetails> {
 
   void refreshInput() {
     _titleController.clear();
-    _promptController.clear();
+    _narrativesController.clear();
     _vocabularyController.clear();
   }
 
@@ -383,10 +418,10 @@ class _StoryDetailsState extends State<StoryDetails> {
         ),
         const SizedBox(height: 20),
         TextField(
-          controller: _promptController,
+          controller: _narrativesController,
           decoration: InputDecoration(
             border: OutlineInputBorder(),
-            labelText: 'What do you want this story to be?',
+            labelText: 'What are some storytelling narrative features related to your story?',
             filled: true,
             fillColor: Colors.white,
           ),
@@ -397,6 +432,17 @@ class _StoryDetailsState extends State<StoryDetails> {
           decoration: InputDecoration(
             border: OutlineInputBorder(),
             labelText: 'What are some vocabulary words related to your story?',
+            filled: true,
+            fillColor: Colors.white,
+          ),
+        ),
+        const SizedBox(height: 20),
+        // New TextField for open-ended user prompt
+        TextField(
+          controller: _userPromptController,
+          decoration: InputDecoration(
+            border: OutlineInputBorder(),
+            labelText: 'Enter an open-ended prompt for your story',
             filled: true,
             fillColor: Colors.white,
           ),
