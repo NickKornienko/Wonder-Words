@@ -45,7 +45,7 @@ class StoryRequest {
               ### Narratives:
               ${narratives}
 
-              ### Word List:
+              ### Vocabulary:
               ${vocabulary} 
               <|im_end|>\n
 
@@ -66,7 +66,7 @@ class StoryRequest {
               ### Narratives:
               ${narratives}
 
-              ### Word List:
+              ### Vocabulary:
               ${vocabulary} 
               <|im_end|>\n
 
@@ -86,7 +86,7 @@ class StoryRequest {
               Below is a prompt evaluation request that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.
               Do not include any additional information or context in your response, and only provide the updated prompt. Only respond in the following format:
               Story Request: [the improved prompt]
-              Word list: [the improved vocabulary list]
+              Vocabulary: [the improved vocabulary list]
               Narratives: [the improved narratives list]
               
               ## Instruction (prompt evaluation request):

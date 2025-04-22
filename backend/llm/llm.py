@@ -183,9 +183,9 @@ meta_prompt_system_prompt = (
                     "The vocabulary and narrative should be unique, descriptive, and engaging for children."
                     "The goal is to improve the prompt, not to provide a story."
                     "You should only return the updated prompt in the following format:\n\n"
-                    "Updated Prompt: [The updated prompt content]\n\n"
-                    "Updated Vocabulary: [The updated vocabulary content as a list]\n\n"
-                    "Updated Narrative Features: [The updated narrative features content as a list]\n\n"
+                    "Story Request: [The updated prompt content]\n\n"
+                    "Vocabulary: [The updated vocabulary content as a list]\n\n"
+                    "Narratives: [The updated narrative features content as a list]\n\n"
 )
 
 meta_prompt_gen_user_prompt = '''<|im_start|>user
@@ -226,19 +226,33 @@ def meta_prompt_generator(user_prompt):
 
     response = chat_completion.choices[0].message.content
     # Parse the response to extract updated prompt, vocabulary, and features
-    # Split by the Updated Prompt: marker
-    parts = response.split("Updated Prompt:", 1)
-
-    # Extract updated prompt from the first part
-    updated_prompt_part = parts[0].strip()
-    updated_prompt = updated_prompt_part.replace("Updated Prompt:", "").strip()
+    # Split by the "Story Request:" marker, accounting for possible preceding '\n\n'
+    parts = response.split("Story Request:", 1)
+    # Ensure "Story Request:" exists in the response
+    if len(parts) > 1:
+        # Extract updated prompt from the second part
+        updated_prompt = '\nStory Request: ' + parts[1].strip()
+    else:
+        # Handle the case where "Story Request:" is not found
+        updated_prompt = ""
 
     # Extract vocabulary and features from the second part (if it exists)
     if len(parts) > 1:
-        vocabulary_part = parts[1].split("Updated Vocabulary:", 1)[0].strip()
-        features_part = parts[1].split("Updated Narrative Features:", 1)[0].strip()
-        vocabulary = vocabulary_part.replace("Updated Vocabulary:", "").strip()
-        features = features_part.replace("Updated Narrative Features:", "").strip()
+        second_part = parts[1]
+        # Split and extract vocabulary and narratives, accounting for possible '\n\n' or direct markers
+        if "Vocabulary:" in second_part:
+            vocabulary_part = second_part.split("Vocabulary:", 1)[1].split("Narratives:", 1)[0].strip() if "Narratives:" in second_part else second_part.split("Vocabulary:", 1)[1].strip()
+        else:
+            vocabulary_part = ""
+        if "Narratives:" in second_part:
+            features_part = second_part.split("Narratives:", 1)[1].strip()
+        else:
+            features_part = ""
+        vocabulary = vocabulary_part.strip()
+        features = features_part.strip()
+    else:
+        vocabulary = ""
+        features = ""
 
     if not updated_prompt or not vocabulary or not features:
         # guard clause to prevent empty values using empty strings
@@ -248,8 +262,9 @@ def meta_prompt_generator(user_prompt):
             vocabulary = ""
         if not features:
             features = ""
-
+    print('updated story request:', updated_prompt)
     # logging the words, features, query, and response to the db's meta_prompt_data table
+
     add_to_meta_prompt_table(
         user_meta_prompt=formatted_prompt,
         prompt_vocabulary=vocabulary,

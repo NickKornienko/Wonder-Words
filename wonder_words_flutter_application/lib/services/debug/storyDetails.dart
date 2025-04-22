@@ -176,9 +176,9 @@ class _StoryDetailsState extends State<StoryDetails> {
     setState(() {
       _submittedData = {
         'title': _titleController.text,
-        'prompt': _narrativesController.text,
-        'vocabulary': _vocabularyController.text,
-        'userPrompt': _userPromptController.text, // Include the new prompt
+        'prompt': _userPromptController.text,
+        'narratives': _narrativesController.text,
+        'vocabulary': _vocabularyController.text
       };
     });
 
@@ -319,7 +319,7 @@ class _StoryDetailsState extends State<StoryDetails> {
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(data),
     );
-    print(response.body);
+
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     } else {
@@ -349,7 +349,6 @@ class _StoryDetailsState extends State<StoryDetails> {
       headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $idToken'},
       body: jsonEncode(data),
     );
-    print(response.body);
     if (response.statusCode == 200) {
       print('Confirmation response received');
       return jsonDecode(response.body);
