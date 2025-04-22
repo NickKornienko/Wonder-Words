@@ -84,6 +84,32 @@ class StoryService {
       return null;
     }
   }
+  // Method to utilize meta-prompting
+  Future<Map<String, dynamic>> metaPrompt(String userInput) async {
+    if (_context == null) {
+      throw Exception('Context not initialized');
+    }
+
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/generate_meta_prompt'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'user_input': userInput,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        throw Exception('Failed to get meta-prompt: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error connecting to server: $e');
+    }
+  }
 
   // Method to get a new story
   Future<Map<String, dynamic>> getNewStory(String query, String userId) async {
