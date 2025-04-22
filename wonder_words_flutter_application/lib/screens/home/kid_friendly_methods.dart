@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 
+import 'package:google_fonts/google_fonts.dart';
+
 // Confirmation buttons (Yes/No)
 Widget buildConfirmationButtons(
     AnimationController scaleController, Function(String) handleConfirmation) {
@@ -114,13 +116,15 @@ Widget buildContinuationButtons(List<Map<String, dynamic>> continuationOptions,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Expanded(child: Icon(
+                  Expanded(
+                      child: Icon(
                     option['icon'],
                     size: 30,
                     color: Colors.white,
                   )),
                   const SizedBox(height: 4),
-                  Expanded(child: Text(
+                  Expanded(
+                      child: Text(
                     option['name'],
                     style: const TextStyle(
                       fontSize: 14,
@@ -141,82 +145,58 @@ Widget buildContinuationButtons(List<Map<String, dynamic>> continuationOptions,
 
 // Theme buttons for story generation
 Widget buildThemeButtons(
-    List<Map<String, dynamic>> storyThemes,
-    AnimationController bounceController,
-    Function(String) generateThemedStory) {
-  return ListView.builder(
-    scrollDirection: Axis.horizontal,
-    padding: EdgeInsets.symmetric(horizontal: 12),
-    itemCount: storyThemes.length,
-    itemBuilder: (context, index) {
-      final theme = storyThemes[index];
-      return Padding(
-        padding: EdgeInsets.symmetric(horizontal: 8),
-        child: AnimatedBuilder(
-          animation: bounceController,
-          builder: (context, child) {
-            return Transform.translate(
-              offset: Offset(
-                  0,
-                  math.sin((bounceController.value + index * 0.1) * math.pi) *
-                      5),
-              child: child,
-            );
-          },
-          child: InkWell(
-            onTap: () => generateThemedStory(theme['theme']),
-            child: Container(
-              width: 110,
-              height: 110,
-              decoration: BoxDecoration(
-                color: theme['color'],
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
-                    blurRadius: 5,
-                    offset: Offset(0, 3),
-                  ),
-                ],
-                border: Border.all(
-                  color: Colors.white,
-                  width: 2,
+  List<Map<String, dynamic>> storyThemes,
+  Function(String) generateThemedStory,
+) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 12),
+    child: Wrap(
+      spacing: 12,
+      runSpacing: 12,
+      alignment: WrapAlignment.center,
+      children: storyThemes.map((theme) {
+        return InkWell(
+          onTap: () => generateThemedStory(theme['theme']),
+          child: Container(
+            width: 110,
+            height: 110,
+            decoration: BoxDecoration(
+              color: theme['color'],
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 5,
+                  offset: Offset(0, 3),
                 ),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Expanded(
-                  child: Icon(
-                    theme['icon'],
-                    size: 36,
-                    color: Colors.white,
-                  ),
-                  ),
-                  const SizedBox(height: 4),
-                  Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                    child: Text(
+              ],
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(theme['icon'], size: 36, color: Colors.white),
+                const SizedBox(height: 4),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                  child: Text(
                     theme['name'],
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
-                      fontWeight: FontWeight.bold,
+                      fontFamily: GoogleFonts.montserrat(
+                        fontWeight: FontWeight.bold,
+                      ).fontFamily,
                       color: Colors.white,
                     ),
                     textAlign: TextAlign.center,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    ),
                   ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
-        ),
-      );
-    },
+        );
+      }).toList(),
+    ),
   );
 }
