@@ -66,8 +66,8 @@ def generate_meta_prompt():
     if user_input:
         try:
             # Call the meta_prompt_generator function with the user input
-            meta_prompt = meta_prompt_generator(user_input)
-            return jsonify({"response": meta_prompt})
+            meta_prompt, meta_features, meta_vocabulary = meta_prompt_generator(user_input)
+            return jsonify({"response": meta_prompt, 'meta_features': meta_features, 'meta_vocabulary': meta_vocabulary})
         except Exception as e:
             return jsonify({"error": str(e)}), 500
     else:
