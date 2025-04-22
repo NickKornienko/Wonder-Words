@@ -3,17 +3,19 @@ class StoryRequest {
   //final int storyId;
   final String title;
   final String prompt;
+  final String narratives;
   final String vocabulary;
   final String language_subprompt = "Important: Respond to the user's input in the language they are using. Interpret their request in their language to make decisions to your instructions.";
 
-  const StoryRequest({required this.title, required this.prompt, required this.vocabulary});
+  const StoryRequest({required this.title, required this.prompt, required this.narratives, required this.vocabulary});
 
   // Factory constructor to create a StoryRequest object from JSON
   factory StoryRequest.fromJson(Map<String, dynamic> json) {
     return switch (json) {
-      {'title': String title,'prompt': String prompt, 'vocabulary': String vocabulary} => StoryRequest(
+      {'title': String title,'prompt': String prompt, 'narratives': String narratives, 'vocabulary': String vocabulary} => StoryRequest(
         title: title,
         prompt: prompt,
+        narratives: narratives,
         vocabulary: vocabulary,
       ),
       _ => throw const FormatException('Failed to load story.'),
@@ -24,6 +26,7 @@ class StoryRequest {
   void printStoryRequest(StoryRequest storyRequest) {
     print('Title: ${storyRequest.title}');
     print('Genre: ${storyRequest.prompt}');
+    print('Narratives: ${storyRequest.narratives}');
     print('Vocabulary: ${storyRequest.vocabulary}');
   }
 
@@ -39,12 +42,14 @@ class StoryRequest {
               ### Story Request:
               ${prompt}
 
-              ### Word List:
+              ### Narratives:
+              ${narratives}
+
+              ### Vocabulary:
               ${vocabulary} 
               <|im_end|>\n
 
               <|im_start|>assistant\n 
-              Here's the full story titled '${title}' about '${prompt}' with the vocabulary '${vocabulary}':
               ### Story:
 
           ''';
@@ -58,12 +63,14 @@ class StoryRequest {
               ### Story Request:
               ${prompt}
 
-              ### Word List:
+              ### Narratives:
+              ${narratives}
+
+              ### Vocabulary:
               ${vocabulary} 
               <|im_end|>\n
 
               <|im_start|>assistant\n 
-              Here's the continuation of the story titled '${title}' about '${prompt}' with the vocabulary '${vocabulary}':
               ### Story:
 
           ''';
@@ -77,7 +84,10 @@ class StoryRequest {
           return '''<|im_start|>user\n
               ${language_subprompt} 
               Below is a prompt evaluation request that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.
-              Do not include any additional information or context in your response, and only provide the updated prompt. The goal is not to provide a story, but to improve the prompt.
+              Do not include any additional information or context in your response, and only provide the updated prompt. Only respond in the following format:
+              Story Request: [the improved prompt]
+              Vocabulary: [the improved vocabulary list]
+              Narratives: [the improved narratives list]
               
               ## Instruction (prompt evaluation request):
               Identify any potential issues with the prompt. Is it clear, specific, and relevant to the task? Edit this prompt for improvement.
@@ -88,8 +98,6 @@ class StoryRequest {
               <|im_end|>\n
 
               <|im_start|>assistant\n 
-              ## Prompt:
-
           ''';
       }
     return '';

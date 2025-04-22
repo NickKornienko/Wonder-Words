@@ -37,7 +37,6 @@ class _StoryDetailsFormState extends State<StoryDetailsForm> {
   void _handleResponse(String response, String formattedRequest, String promptResponse) {
     setState(() {
       // only set if the parameters are not null or empty strings
-      print('Response: $response');
       if (response.isNotEmpty) {
         _responseText = response;
       }
