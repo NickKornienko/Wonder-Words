@@ -352,8 +352,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         borderRadius: BorderRadius.circular(30),
                         gradient: LinearGradient(
                           colors: [
-                            ColorTheme.accentYellowColor,
-                            ColorTheme.primaryColor,
+                            ColorTheme.pink,
+                            ColorTheme.secondaryColor,
                             ColorTheme.accentBlueColor,
                           ],
                         ),
