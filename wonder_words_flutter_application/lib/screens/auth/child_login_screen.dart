@@ -45,10 +45,8 @@ class _ChildLoginScreenState extends State<ChildLoginScreen> {
         print('Username: ${_usernameController.text.trim()}');
         print('PIN: ${_pinController.text.trim()}');
         // Resolve the device IP from ApiConfig depending on if web environment or device
-        
-        const resolvedUrl = kIsWeb
-            ? ApiConfig.baseUrl
-            : ApiConfig.deviceUrl;
+
+        const resolvedUrl = kIsWeb ? ApiConfig.baseUrl : ApiConfig.deviceUrl;
 
         // Call the backend API to authenticate the child
         final response = await http.post(
