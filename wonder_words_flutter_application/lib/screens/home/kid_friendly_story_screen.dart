@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:wonder_words_flutter_application/colors.dart';
 import 'dart:math' as math;
 import '../../services/auth/auth_provider.dart';
 import '../../services/story_service.dart';
@@ -33,7 +35,7 @@ class _KidFriendlyStoryScreenState extends State<KidFriendlyStoryScreen>
   bool _isSpeaking = false;
   String _pendingQuery = '';
   String _currentStory =
-      'Welcome to Wonder Words! Tap a story button to begin!';
+      'Hi there, I\'m Hopper the story lovin\' Frog. Tap a story button below to begin our wonderful reading journey!';
 
   // List to store assigned stories
   List<AssignedStory> _assignedStories = [];
@@ -50,43 +52,43 @@ class _KidFriendlyStoryScreenState extends State<KidFriendlyStoryScreen>
     {
       'name': 'Space',
       'icon': Icons.rocket_launch,
-      'color': Colors.blue,
+      'color': ColorTheme.accentBlueColor,
       'theme': 'space'
     },
     {
       'name': 'Animals',
       'icon': Icons.pets,
-      'color': Colors.green,
+      'color': ColorTheme.green,
       'theme': 'animals'
     },
     {
       'name': 'Magic',
       'icon': Icons.auto_awesome,
-      'color': Colors.purple,
+      'color': ColorTheme.darkPurple,
       'theme': 'magic'
     },
     {
       'name': 'Pirates',
       'icon': Icons.sailing,
-      'color': Colors.amber,
+      'color': ColorTheme.accentYellowColor,
       'theme': 'pirates'
     },
     {
       'name': 'Dinosaurs',
       'icon': Icons.landscape,
-      'color': Colors.brown,
+      'color': ColorTheme.orange,
       'theme': 'dinosaurs'
     },
     {
       'name': 'Fairy Tales',
       'icon': Icons.castle,
-      'color': Colors.pink,
+      'color': ColorTheme.pink,
       'theme': 'fairy_tale'
     },
     {
       'name': 'Adventure',
       'icon': Icons.explore,
-      'color': Colors.teal,
+      'color': Colors.orangeAccent,
       'theme': 'adventure'
     },
   ];
@@ -136,7 +138,7 @@ class _KidFriendlyStoryScreenState extends State<KidFriendlyStoryScreen>
     )..repeat(reverse: true);
 
     // Listen for TTS state changes
-  
+
     _ttsService.addStateListener((isSpeaking) {
       if (mounted) {
         setState(() {
@@ -430,30 +432,31 @@ class _KidFriendlyStoryScreenState extends State<KidFriendlyStoryScreen>
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: Colors.deepPurple, width: 2),
                       ),
-                        child: DropdownButton<GoogleTtsVoice>(
+                      child: DropdownButton<GoogleTtsVoice>(
                         isExpanded: true,
                         value: currentVoice,
                         underline: Container(),
                         icon: Icon(Icons.arrow_drop_down_circle,
-                          color: Colors.deepPurple),
+                            color: Colors.deepPurple),
                         items: _ttsService.voices.map((voice) {
                           return DropdownMenuItem<GoogleTtsVoice>(
-                          value: voice,
-                          child: Text(
-                            voice.displayName,
-                            style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.deepPurple,
+                            value: voice,
+                            child: Text(
+                              voice.displayName,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.deepPurple,
+                              ),
                             ),
-                          ),
                           );
                         }).toList(),
                         onChanged: (GoogleTtsVoice? newVoice) async {
                           if (newVoice != null) {
-                          await _ttsService.setVoice(newVoice);
-                          setState(() {
-                            currentVoice = newVoice; // Update the selected voice
-                          });
+                            await _ttsService.setVoice(newVoice);
+                            setState(() {
+                              currentVoice =
+                                  newVoice; // Update the selected voice
+                            });
                           }
                         },
                       ),
@@ -503,18 +506,7 @@ class _KidFriendlyStoryScreenState extends State<KidFriendlyStoryScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
-          // More vibrant, kid-friendly gradient background
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Colors.purple[300]!,
-              Colors.indigo[300]!,
-              Colors.blue[300]!,
-            ],
-          ),
-        ),
+        color: ColorTheme.primaryColor,
         child: SafeArea(
           child: Column(
             children: [
@@ -522,11 +514,7 @@ class _KidFriendlyStoryScreenState extends State<KidFriendlyStoryScreen>
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(20),
-                    bottomRight: Radius.circular(20),
-                  ),
+                  color: ColorTheme.accentYellowColor,
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.1),
@@ -540,56 +528,94 @@ class _KidFriendlyStoryScreenState extends State<KidFriendlyStoryScreen>
                   children: [
                     Row(
                       children: [
-                        // Animated app icon
-                        AnimatedBuilder(
-                          animation: _bounceController,
-                          builder: (context, child) {
-                            return Transform.translate(
-                              offset: Offset(0, _bounceController.value * -5),
-                              child: child,
-                            );
-                          },
-                          child: Icon(
-                            Icons.auto_stories,
-                            size: 32,
-                            color: Colors.white,
-                          ),
-                        ),
-                        SizedBox(width: 8),
-                        Text(
-                          'Wonder Words',
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            shadows: [
-                              Shadow(
-                                color: Colors.black.withOpacity(0.3),
-                                blurRadius: 2,
-                                offset: Offset(1, 1),
+                        RichText(
+                          text: TextSpan(
+                            children: [
+                              TextSpan(
+                                text: 'W',
+                                style: TextStyle(
+                                  fontSize: 22,
+                                  color: ColorTheme.textColor,
+                                  fontFamily: GoogleFonts.montserrat(
+                                    fontWeight: FontWeight.bold,
+                                  ).fontFamily,
+                                ),
+                              ),
+                              TextSpan(
+                                text: 'o',
+                                style: TextStyle(
+                                  fontSize: 22,
+                                  color: ColorTheme
+                                      .primaryColor, // Change this to your desired color
+                                  fontFamily: GoogleFonts.montserrat(
+                                    fontWeight: FontWeight.bold,
+                                  ).fontFamily,
+                                ),
+                              ),
+                              TextSpan(
+                                text: 'nd',
+                                style: TextStyle(
+                                  fontSize: 22,
+                                  color: ColorTheme.textColor,
+                                  fontFamily: GoogleFonts.montserrat(
+                                    fontWeight: FontWeight.bold,
+                                  ).fontFamily,
+                                ),
+                              ),
+                              TextSpan(
+                                text: 'e',
+                                style: TextStyle(
+                                  fontSize: 22,
+                                  color: ColorTheme.accentBlueColor,
+                                  fontFamily: GoogleFonts.montserrat(
+                                    fontWeight: FontWeight.bold,
+                                  ).fontFamily,
+                                ),
+                              ),
+                              TextSpan(
+                                text: 'rW',
+                                style: TextStyle(
+                                  fontSize: 22,
+                                  color: ColorTheme.textColor,
+                                  fontFamily: GoogleFonts.montserrat(
+                                    fontWeight: FontWeight.bold,
+                                  ).fontFamily,
+                                ),
+                              ),
+                              TextSpan(
+                                text: 'o',
+                                style: TextStyle(
+                                  fontSize: 22,
+                                  color: ColorTheme
+                                      .secondaryColor, // Change this to your desired color
+                                  fontFamily: GoogleFonts.montserrat(
+                                    fontWeight: FontWeight.bold,
+                                  ).fontFamily,
+                                ),
+                              ),
+                              TextSpan(
+                                text: 'rds',
+                                style: TextStyle(
+                                  fontSize: 22,
+                                  color: ColorTheme.textColor,
+                                  fontFamily: GoogleFonts.montserrat(
+                                    fontWeight: FontWeight.bold,
+                                  ).fontFamily,
+                                ),
                               ),
                             ],
                           ),
-                        ),
+                        )
                       ],
                     ),
                     Row(
                       children: [
                         // Voice selection button
                         IconButton(
-                          icon: AnimatedBuilder(
-                            animation: _rotateController,
-                            builder: (context, child) {
-                              return Transform.rotate(
-                                angle: _rotateController.value * 2 * math.pi,
-                                child: child,
-                              );
-                            },
-                            child: Icon(
-                              Icons.record_voice_over,
-                              color: Colors.white,
-                              size: 28,
-                            ),
+                          icon: Icon(
+                            Icons.record_voice_over,
+                            color: ColorTheme.secondaryColor,
+                            size: 28,
                           ),
                           onPressed: _showVoiceSelectionDialog,
                           tooltip: 'Choose a Voice',
@@ -598,7 +624,7 @@ class _KidFriendlyStoryScreenState extends State<KidFriendlyStoryScreen>
                         IconButton(
                           icon: Icon(
                             Icons.history,
-                            color: Colors.white,
+                            color: Colors.black,
                             size: 28,
                           ),
                           onPressed: () {
@@ -616,13 +642,11 @@ class _KidFriendlyStoryScreenState extends State<KidFriendlyStoryScreen>
                         IconButton(
                           icon: Icon(
                             Icons.refresh,
-                            color: Colors.white,
+                            color: Colors.black,
                             size: 28,
                           ),
                           onPressed: () {
                             setState(() {
-                              _currentStory =
-                                  'Welcome to Wonder Words! Tap a story button to begin!';
                               _conversationId = null;
                               _needsConfirmation = false;
                               _pendingQuery = '';
@@ -637,24 +661,14 @@ class _KidFriendlyStoryScreenState extends State<KidFriendlyStoryScreen>
               ),
 
               // Story display area with animated elements
-              Expanded(
+              Flexible(
+                flex: 3,
                 child: Container(
                   margin: EdgeInsets.all(16),
                   padding: EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.9),
+                    color: ColorTheme.backgroundColor,
                     borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
-                        blurRadius: 10,
-                        offset: Offset(0, 5),
-                      ),
-                    ],
-                    border: Border.all(
-                      color: Colors.purple[300]!,
-                      width: 3,
-                    ),
                   ),
                   child: Stack(
                     children: [
@@ -667,44 +681,20 @@ class _KidFriendlyStoryScreenState extends State<KidFriendlyStoryScreen>
                             // Story title with animated stars
                             Row(
                               children: [
-                                AnimatedBuilder(
-                                  animation: _rotateController,
-                                  builder: (context, child) {
-                                    return Transform.rotate(
-                                      angle:
-                                          _rotateController.value * 2 * math.pi,
-                                      child: Icon(
-                                        Icons.auto_awesome,
-                                        color: Colors.amber,
-                                        size: 24,
-                                      ),
-                                    );
-                                  },
+                                const Image(
+                                  image: AssetImage('assets/frog.png'),
+                                  width: 50,
+                                  height: 50,
                                 ),
-                                SizedBox(width: 8),
                                 Text(
-                                  'Your Story',
+                                  'Welcome Adventurer',
                                   style: TextStyle(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.deepPurple,
+                                    fontSize: 30,
+                                    color: Colors.black,
+                                    fontFamily: GoogleFonts.montserrat(
+                                      fontWeight: FontWeight.bold,
+                                    ).fontFamily,
                                   ),
-                                ),
-                                SizedBox(width: 8),
-                                AnimatedBuilder(
-                                  animation: _rotateController,
-                                  builder: (context, child) {
-                                    return Transform.rotate(
-                                      angle: -_rotateController.value *
-                                          2 *
-                                          math.pi,
-                                      child: Icon(
-                                        Icons.auto_awesome,
-                                        color: Colors.amber,
-                                        size: 24,
-                                      ),
-                                    );
-                                  },
                                 ),
                               ],
                             ),
@@ -714,7 +704,7 @@ class _KidFriendlyStoryScreenState extends State<KidFriendlyStoryScreen>
                             Text(
                               _currentStory,
                               style: TextStyle(
-                                fontSize: 18,
+                                fontSize: 22,
                                 height: 1.5,
                                 color: Colors.black87,
                               ),
@@ -740,7 +730,8 @@ class _KidFriendlyStoryScreenState extends State<KidFriendlyStoryScreen>
                           },
                           child: FloatingActionButton(
                             onPressed: () => _speak(_currentStory),
-                            backgroundColor: Colors.deepPurple,
+                            backgroundColor: ColorTheme.accentBlueColor,
+                            foregroundColor: ColorTheme.darkPurple,
                             child: Icon(
                               _isSpeaking ? Icons.stop : Icons.play_arrow,
                               size: 32,
@@ -807,7 +798,9 @@ class _KidFriendlyStoryScreenState extends State<KidFriendlyStoryScreen>
                           'Your Books',
                           style: TextStyle(
                             fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                            fontFamily: GoogleFonts.montserrat(
+                              fontWeight: FontWeight.bold,
+                            ).fontFamily,
                             color: Colors.white,
                             shadows: [
                               Shadow(
@@ -922,7 +915,9 @@ class _KidFriendlyStoryScreenState extends State<KidFriendlyStoryScreen>
                                 : 'What happens next?'),
                         style: TextStyle(
                           fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                          fontFamily: GoogleFonts.montserrat(
+                            fontWeight: FontWeight.bold,
+                          ).fontFamily,
                           color: Colors.white,
                           shadows: [
                             Shadow(
@@ -952,8 +947,7 @@ class _KidFriendlyStoryScreenState extends State<KidFriendlyStoryScreen>
   }
 
   Widget _buildThemeButtons() {
-    return buildThemeButtons(
-        _storyThemes, _bounceController, _generateThemedStory);
+    return buildThemeButtons(_storyThemes, _generateThemedStory);
   }
 
   Widget _buildContinuationButtons() {
