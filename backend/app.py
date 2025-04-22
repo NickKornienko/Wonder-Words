@@ -4,7 +4,7 @@ from db.db import db
 
 # Clear only the 'story_assignment' table from the metadata
 from db.db import db, init_db, Conversation, Message, SenderType, ChildAccount, StoryAssignment, StoryTheme
-from llm.llm import handler, new_story_generator, add_to_story
+from llm.llm import handler, meta_prompt_generator, new_story_generator, add_to_story
 from firebase_auth import firebase_auth_required
 from child_auth import (
     save_child_account, verify_child_credentials, generate_child_token,
@@ -59,6 +59,19 @@ def fetch_messages_by_user_and_conversation(user_id, conversation_id):
     ).order_by(Message.created_at).all()
     return messages
 
+@app.route('/generate_meta_prompt', methods=['POST'])
+def generate_meta_prompt():
+    data = request.get_json()
+    user_input = data.get('user_input')
+    if user_input:
+        try:
+            # Call the meta_prompt_generator function with the user input
+            meta_prompt = meta_prompt_generator(user_input)
+            return jsonify({"meta_prompt": meta_prompt})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+    else:
+        return jsonify({"error": "User input is required"}), 400
 
 def generate_new_story(query):
     try:
