@@ -108,7 +108,6 @@ class SubmitButton extends StatelessWidget {
           print('Last user input: $lastUserInput');
           // if model = 'llama' don't send confirmation
           if (!(model == 'llama')) {
-            print('here');
             final confirmResponse = await sendConfirmation('y');
             print('Confirmation response: $confirmResponse'); 
             if (confirmResponse != null) {
