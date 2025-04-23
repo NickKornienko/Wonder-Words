@@ -171,6 +171,8 @@ def confirm_new_story_route():
             conversation = Conversation(user_id=user_id)
             db.session.add(conversation)
             db.session.commit()
+            # logging the user message
+            log_message(conversation.id, SenderType.USER, 2, query)
 
             story_data = generate_new_story(query)
             if isinstance(story_data, dict):
