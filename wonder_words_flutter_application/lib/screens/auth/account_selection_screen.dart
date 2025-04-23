@@ -3,6 +3,13 @@ import 'package:provider/provider.dart';
 import '../../services/auth/auth_provider.dart';
 import '../../services/auth/auth_service.dart';
 import '../home/home_screen.dart';
+import '../home/kid_friendly_story_screen.dart';
+import 'dart:convert';
+import '../../config/api_config.dart';
+// kisweb
+import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
+
 
 class AccountSelectionScreen extends StatefulWidget {
   const AccountSelectionScreen({Key? key}) : super(key: key);
@@ -14,12 +21,145 @@ class AccountSelectionScreen extends StatefulWidget {
 class _AccountSelectionScreenState extends State<AccountSelectionScreen> {
   bool _isLoading = false;
   String? _error;
-  List<UserData> _childAccounts = [];
+  var _childAccounts = [];
 
   @override
   void initState() {
     super.initState();
     _loadChildAccounts();
+  }
+
+  Future<List<Map<String, dynamic>>> _fetchChildAccounts() async {
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final token = await authProvider.getIdToken();
+
+      if (token == null) {
+        throw Exception('Failed to get authentication token');
+      }
+
+      // Call the backend API to authenticate the child
+      // Use baseUrl from ApiConfig if running on web, and deviceUrl if running on a device
+      const isWeb = kIsWeb;
+      const url = isWeb ? ApiConfig.baseUrl : ApiConfig.deviceUrl;
+
+      final response = await http.get(
+        Uri.parse('$url/get_child_accounts'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final accounts =
+            List<Map<String, dynamic>>.from(data['child_accounts']);
+        print('Child accounts fetched: ${accounts.length}');
+        print('Child accounts data: $accounts');
+        return accounts;
+      } else {
+        throw Exception(
+            'Failed to fetch child accounts: ${response.statusCode}');
+      }
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+      });
+      return [];
+    }
+  }
+
+  // Navigate to the child's story screen
+  void _navigateToChildStoryScreen(Map<String, dynamic> childAccount) async {
+    try {
+      // Get the child's username and PIN
+      final username = childAccount['username'];
+      final pin =
+          childAccount['pin'] ?? '1234'; // Use actual PIN or default to 1234
+
+      setState(() {
+        _isLoading = true;
+      });
+
+      // Call the backend API to authenticate the child
+      // Use baseUrl from ApiConfig if running on web, and deviceUrl if running on a device
+      const isWeb = kIsWeb;
+      const url = isWeb ? ApiConfig.baseUrl : ApiConfig.deviceUrl;
+
+      final response = await http.post(
+        Uri.parse('$url/child_login'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'username': username,
+          'pin': pin,
+        }),
+      );
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      if (response.statusCode == 200) {
+        // Parse the response
+        final data = json.decode(response.body);
+        final token = data['token'];
+        final displayName = data['display_name'];
+        final age = data['age'];
+
+        // Update the AuthProvider with the child's authentication information
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+        // Create a child user data object
+        final childUserData = UserData(
+          uid:
+              'child-${DateTime.now().millisecondsSinceEpoch}', // Generate a temporary UID
+          email: 'child@example.com', // Placeholder email
+          displayName: displayName,
+          accountType: AccountType.child,
+          username: username,
+          pin: pin,
+          age: age,
+        );
+
+        // Set the user data in the AuthProvider
+        authProvider.setChildUserData(childUserData, token);
+
+        if (mounted) {
+          // Navigate to the KidFriendlyStoryScreen
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const KidFriendlyStoryScreen(),
+            ),
+          );
+        }
+      } else {
+        // Handle authentication error
+        final data = json.decode(response.body);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(data['error'] ?? 'Failed to login as child'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _loadChildAccounts() async {
@@ -32,12 +172,12 @@ class _AccountSelectionScreenState extends State<AccountSelectionScreen> {
       // Simulate network delay
       await Future.delayed(const Duration(milliseconds: 500));
 
-      // Placeholder child accounts
+      // Fetch child accounts outside of setState
+      final fetchedAccounts = await _fetchChildAccounts();
+
       if (mounted) {
         setState(() {
-          _childAccounts = [
-            // These would be fetched from the backend in a real implementation
-          ];
+          _childAccounts = fetchedAccounts;
           _isLoading = false;
         });
       }
@@ -48,31 +188,6 @@ class _AccountSelectionScreenState extends State<AccountSelectionScreen> {
           _isLoading = false;
         });
       }
-    }
-  }
-
-  Future<void> _selectChildAccount(UserData childAccount) async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
-
-    try {
-      // In a real implementation, you would switch to the child account
-      // For now, we'll just navigate to the home screen
-      await Future.delayed(
-          const Duration(milliseconds: 300)); // Simulate network delay
-
-      if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
-        );
-      }
-    } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _isLoading = false;
-      });
     }
   }
 
@@ -220,11 +335,22 @@ class _AccountSelectionScreenState extends State<AccountSelectionScreen> {
           ),
           const SizedBox(height: 8),
 
-          // Child Accounts List
-          _childAccounts.isEmpty
-              ? const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 24.0),
-                  child: Center(
+          // Child Accounts List with FutureBuilder
+          Expanded(
+            child: FutureBuilder<List<Map<String, dynamic>>>(
+              future: _fetchChildAccounts(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                } else if (snapshot.hasError) {
+                  return Center(
+                    child: Text(
+                      'Error: ${snapshot.error}',
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  );
+                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Center(
                     child: Text(
                       'No child accounts yet',
                       style: TextStyle(
@@ -233,13 +359,13 @@ class _AccountSelectionScreenState extends State<AccountSelectionScreen> {
                         color: Colors.grey,
                       ),
                     ),
-                  ),
-                )
-              : Expanded(
-                  child: ListView.builder(
-                    itemCount: _childAccounts.length,
+                  );
+                } else {
+                  final childAccounts = snapshot.data!;
+                  return ListView.builder(
+                    itemCount: childAccounts.length,
                     itemBuilder: (context, index) {
-                      final childAccount = _childAccounts[index];
+                      final childAccount = childAccounts[index];
                       return Card(
                         elevation: 2,
                         margin: const EdgeInsets.symmetric(vertical: 8.0),
@@ -247,7 +373,7 @@ class _AccountSelectionScreenState extends State<AccountSelectionScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: InkWell(
-                          onTap: () => _selectChildAccount(childAccount),
+                          onTap: () => _navigateToChildStoryScreen(childAccount),
                           borderRadius: BorderRadius.circular(12),
                           child: Padding(
                             padding: const EdgeInsets.all(12.0),
@@ -257,8 +383,8 @@ class _AccountSelectionScreenState extends State<AccountSelectionScreen> {
                                   radius: 24,
                                   backgroundColor: Colors.orange,
                                   child: Text(
-                                    childAccount.displayName?.isNotEmpty == true
-                                        ? childAccount.displayName![0]
+                                    childAccount['display_name']?.isNotEmpty == true
+                                        ? childAccount['display_name'][0]
                                             .toUpperCase()
                                         : 'C',
                                     style: const TextStyle(
@@ -271,18 +397,17 @@ class _AccountSelectionScreenState extends State<AccountSelectionScreen> {
                                 const SizedBox(width: 16),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        childAccount.displayName ?? 'Child',
+                                        childAccount['display_name'] ?? 'Child',
                                         style: const TextStyle(
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
                                       Text(
-                                        'Age: ${childAccount.age ?? 'Unknown'}',
+                                        'Age: ${childAccount['age'] ?? 'Unknown'}',
                                         style: const TextStyle(
                                           fontSize: 14,
                                           color: Colors.grey,
@@ -302,8 +427,11 @@ class _AccountSelectionScreenState extends State<AccountSelectionScreen> {
                         ),
                       );
                     },
-                  ),
-                ),
+                  );
+                }
+              },
+            ),
+          ),
 
           // Create Child Account Button
           Padding(
