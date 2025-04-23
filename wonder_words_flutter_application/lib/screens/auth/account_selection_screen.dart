@@ -29,23 +29,25 @@ class _AccountSelectionScreenState extends State<AccountSelectionScreen> {
     });
 
     try {
-      // In a real implementation, you would fetch child accounts from the backend
-      // For now, we'll use a placeholder list
-      await Future.delayed(
-          const Duration(milliseconds: 500)); // Simulate network delay
+      // Simulate network delay
+      await Future.delayed(const Duration(milliseconds: 500));
 
       // Placeholder child accounts
-      setState(() {
-        _childAccounts = [
-          // These would be fetched from the backend in a real implementation
-        ];
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _childAccounts = [
+            // These would be fetched from the backend in a real implementation
+          ];
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _isLoading = false;
+        });
+      }
     }
   }
 
