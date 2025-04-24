@@ -234,10 +234,25 @@ def get_conversations():
     # Use Firebase user ID from the token
     user_id = request.firebase_user.get('localId', 'user_id_placeholder')
 
-    try:
-        conversations = fetch_conversations_by_user(user_id)
-        result = []
+    # Get pagination parameters from the query string
+    page = request.args.get('page')  # Optional
+    limit = request.args.get('limit')  # Optional
 
+    try:
+        # Fetch conversations for the user
+        conversations_query = Conversation.query.filter_by(user_id=user_id)
+
+        if page is not None and limit is not None:
+            # Apply pagination if both page and limit are provided
+            page = int(page)
+            limit = int(limit)
+            conversations = conversations_query.order_by(Conversation.created_at.desc()) \
+                .offset(page * limit).limit(limit).all()
+        else:
+            # Fetch all conversations if pagination is not provided
+            conversations = conversations_query.order_by(Conversation.created_at.desc()).all()
+
+        result = []
         for conversation in conversations:
             # Get the first message (story) for each conversation
             messages = Message.query.filter_by(
@@ -252,7 +267,19 @@ def get_conversations():
                 'message_count': len(messages)
             })
 
-        return jsonify({"conversations": result})
+        # Include pagination metadata only if pagination is applied
+        if page is not None and limit is not None:
+            return jsonify({
+                "conversations": result,
+                "total_conversations": conversations_query.count(),
+                "page": page,
+                "limit": limit
+            })
+        else:
+            # Return all conversations without pagination metadata
+            return jsonify({
+                "conversations": result
+            })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -485,10 +512,42 @@ def get_child_conversations():
     # Use parent UID from the child token for database operations
     parent_uid = request.child_user.get('parent_uid', 'user_id_placeholder')
 
-    try:
-        conversations = fetch_conversations_by_user(parent_uid)
-        result = []
+    # Get pagination parameters from the query string
+    page = request.args.get('page')  # Optional
+    limit = request.args.get('limit')  # Optional
+    if type(page) == str:
+        page = None
+    if type(limit) == str:
+        limit = None
+    
 
+    try:
+        # Fetch conversations for the parent
+        conversations_query = Conversation.query.filter_by(user_id=parent_uid)
+        total_conversations = conversations_query.count()
+
+        if page is not None and limit is not None:
+            # Apply pagination if both page and limit are provided
+            page = int(page)
+            limit = int(limit)
+            # if limit is greather than the total_conversations, set it to total_conversations
+            if limit >= total_conversations:
+                limit = total_conversations
+            # Check if all conversations have already been returned
+            if page * limit > total_conversations:
+                return jsonify({
+                    "conversations": [],
+                    "total_conversations": total_conversations,
+                    "page": page,
+                    "limit": limit
+                })
+            conversations = conversations_query.order_by(Conversation.created_at.desc()) \
+                .offset(page * limit).limit(limit).all()
+        else:
+            # Fetch all conversations if pagination is not provided
+            conversations = conversations_query.order_by(Conversation.created_at.desc()).all()
+
+        result = []
         for conversation in conversations:
             # Get the first message (story) for each conversation
             messages = Message.query.filter_by(
@@ -503,7 +562,19 @@ def get_child_conversations():
                 'message_count': len(messages)
             })
 
-        return jsonify({"conversations": result})
+        # Include pagination metadata only if pagination is applied
+        if page is not None and limit is not None:
+            return jsonify({
+                "conversations": result,
+                "total_conversations": conversations_query.count(),
+                "page": page,
+                "limit": limit
+            })
+        else:
+            # Return all conversations without pagination metadata
+            return jsonify({
+                "conversations": result
+            })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
