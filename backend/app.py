@@ -13,6 +13,7 @@ from child_auth import (
 import os
 from dotenv import load_dotenv
 import random
+import ast
 
 # Load environment variables
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
@@ -509,25 +510,43 @@ def confirm_child_new_story():
 @app.route('/get_child_conversations', methods=['GET'])
 @child_auth_required
 def get_child_conversations():
+    # accepts parent_uid and assigned stories parameters
     # Use parent UID from the child token for database operations
     parent_uid = request.child_user.get('parent_uid', 'user_id_placeholder')
-
     # Get pagination parameters from the query string
     page = request.args.get('page')  # Optional
     limit = request.args.get('limit')  # Optional
+    assigned_stories = request.args.get('assigned_stories')  # Optional
+    # convert string encoded list of strings to python list of strings
+    if assigned_stories:
+        assigned_stories = ast.literal_eval(assigned_stories)
+    # if the args are strings it means they are not passed (type 'null' in dart -> None in python)
     if type(page) == str:
         page = None
     if type(limit) == str:
         limit = None
+    if type(assigned_stories) != list:
+        assigned_stories = None
     
 
     try:
         # Fetch conversations for the parent
         conversations_query = Conversation.query.filter_by(user_id=parent_uid)
         total_conversations = conversations_query.count()
+        # Filter conversations based on assigned stories if provided
+        if assigned_stories:
+            # Fetch only conversations with assigned stories
+            #app.logger.info(f"Assigned stories: {assigned_stories}")
+            assigned_stories = [int(story_id) for story_id in assigned_stories]
+            #app.logger.info(f"Assigned stories: {assigned_stories}")
+            conversations_query = conversations_query.filter(
+                Conversation.id.in_(assigned_stories)
+            )
+            # log message to flask
+            #app.logger.info(f"Conversations query: {conversations_query}")
 
-        if page is not None and limit is not None:
-            # Apply pagination if both page and limit are provided
+        if page is not None and limit is not None and len(assigned_stories) > limit:
+            # Apply pagination if both page and limit are provided & lots of assigned stories
             page = int(page)
             limit = int(limit)
             # if limit is greather than the total_conversations, set it to total_conversations
@@ -781,5 +800,7 @@ def generate_themed_story():
 
 
 if __name__ == '__main__':
-    # app.run(debug=True)
+    import sys
+    import logging
+    logging.basicConfig(level=logging.DEBUG)
     app.run(host='0.0.0.0', port=5000, debug=True)
