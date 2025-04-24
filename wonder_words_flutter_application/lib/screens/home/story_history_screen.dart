@@ -22,6 +22,9 @@ class _StoryHistoryScreenState extends State<StoryHistoryScreen> {
   bool _isLoading = true;
   List<Conversation> _conversations = [];
   String? _error;
+  int _currentPage = 0; // Tracks the current page
+  bool _hasMoreBooks = true; // Indicates if there are more books to load
+  bool _isLoadingMore = false; // Tracks if the next page is being loaded
 
   @override
   void initState() {
@@ -38,45 +41,61 @@ class _StoryHistoryScreenState extends State<StoryHistoryScreen> {
     _loadConversations();
   }
 
-  Future<void> _loadConversations() async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
+  Future<void> _loadConversations({bool isLoadMore = false}) async {
+    if (isLoadMore) {
+      setState(() {
+        _isLoadingMore = true;
+      });
+    } else {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+    }
 
     try {
       // Get the AuthProvider to check if the user is a child
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
       // Load conversations based on account type
+      // if the user is a child, and _isLoadingMore is true, don't load more
+      if (authProvider.isChild && _isLoadingMore) {
+        setState(() {
+          _isLoadingMore = false;
+        });
+        return;
+      }
       List<Conversation> conversations;
       if (authProvider.isChild) {
-        // For child accounts, only show assigned stories and stories they created
         final assignedStories = await _storyService.getAssignedStories();
         final childConversations = await _storyService.getConversations();
 
-        // Create a set of conversation IDs from assigned stories
         final Set<String> assignedConversationIds =
             assignedStories.map((story) => story.conversationId).toSet();
 
-        // Filter conversations to only include assigned ones and ones created by the child
         conversations = childConversations.where((conversation) {
-          // Include if it's in the assigned stories or if it was created by the child
           return assignedConversationIds.contains(conversation.id);
         }).toList();
       } else {
-        // For parent accounts, show all conversations
-        conversations = await _storyService.getConversations();
+        conversations = await _storyService.getConversations(page: _currentPage, limit: 20);
       }
 
       setState(() {
-        _conversations = conversations;
+        if (isLoadMore) {
+          _conversations.addAll(conversations);
+        } else {
+          _conversations = conversations;
+        }
+
+        _hasMoreBooks = conversations.isNotEmpty; // Check if there are more books
         _isLoading = false;
+        _isLoadingMore = false;
       });
     } catch (e) {
       setState(() {
         _error = e.toString();
         _isLoading = false;
+        _isLoadingMore = false;
       });
     }
   }
@@ -386,14 +405,18 @@ class _StoryHistoryScreenState extends State<StoryHistoryScreen> {
     }
 
     return RefreshIndicator(
-      onRefresh: _loadConversations,
+      onRefresh: () async {
+        _currentPage = 0; // Reset to the first page
+        _hasMoreBooks = true;
+        await _loadConversations();
+      },
       color: Colors.deepPurple,
       child: Padding(
         padding:
             const EdgeInsets.all(4.0), // Add a small padding around the grid
         child: LayoutBuilder(builder: (context, constraints) {
           // Limit to maximum 8 books per row, minimum 3
-          int crossAxisCount = 8;
+          int crossAxisCount = 4;
           if (constraints.maxWidth < 800) {
             crossAxisCount = 6;
           }
@@ -404,20 +427,43 @@ class _StoryHistoryScreenState extends State<StoryHistoryScreen> {
             crossAxisCount = 3;
           }
 
-          return GridView.builder(
-            padding: const EdgeInsets.only(
-                bottom: 16), // Add bottom padding to avoid overflow
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: crossAxisCount, // Fixed number of books per row
-              childAspectRatio: 0.75, // Taller than wide for book appearance
-              crossAxisSpacing: 4, // Small horizontal spacing
-              mainAxisSpacing: 4, // Small vertical spacing
-            ),
-            itemCount: _conversations.length,
-            itemBuilder: (context, index) {
-              final conversation = _conversations[index];
-              return _buildConversationCard(conversation);
-            },
+          return Column(
+            children: [
+              Expanded(
+                child: GridView.builder(
+                  padding: const EdgeInsets.only(
+                      bottom: 16), // Add bottom padding to avoid overflow
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: crossAxisCount, // Fixed number of books per row
+                    childAspectRatio: 0.75, // Taller than wide for book appearance
+                    crossAxisSpacing: 4, // Small horizontal spacing
+                    mainAxisSpacing: 4, // Small vertical spacing
+                  ),
+                  itemCount: _conversations.length,
+                  itemBuilder: (context, index) {
+                    final conversation = _conversations[index];
+                    return _buildConversationCard(conversation);
+                  },
+                ),
+              ),
+              if (_hasMoreBooks && !_isLoadingMore)
+                ElevatedButton(
+                  onPressed: () {
+                    _currentPage++;
+                    _loadConversations(isLoadMore: true);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.deepPurple,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('Load More Books'),
+                ),
+              if (_isLoadingMore)
+                const Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: CircularProgressIndicator(),
+                ),
+            ],
           );
         }),
       ),
@@ -478,116 +524,132 @@ class _StoryHistoryScreenState extends State<StoryHistoryScreen> {
         },
         child: Column(
           children: [
-            // Book cover - with proportional sizing
+            // Book cover - with proportional scaling
             Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      bookColor,
-                      bookColor.withOpacity(0.7),
-                    ],
-                  ),
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(4),
-                    topRight: Radius.circular(12),
-                    bottomLeft: Radius.circular(4),
-                    bottomRight: Radius.circular(12),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.3),
-                      blurRadius: 5,
-                      offset: const Offset(3, 3),
+              child: Transform.scale(
+                scale: 0.95, // Adjust this factor to scale the book (e.g., 1.2 = 120% size)
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        bookColor,
+                        bookColor.withOpacity(0.7),
+                      ],
                     ),
-                  ],
-                  border: Border.all(
-                    color: Colors.white,
-                    width: 1,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(4),
+                      topRight: Radius.circular(12),
+                      bottomLeft: Radius.circular(4),
+                      bottomRight: Radius.circular(12),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.3),
+                        blurRadius: 5,
+                        offset: const Offset(3, 3),
+                      ),
+                    ],
+                    border: Border.all(
+                      color: Colors.white,
+                      width: 1,
+                    ),
                   ),
-                ),
-                child: Stack(
-                  children: [
-                    // Book spine
-                    Positioned(
-                      left: 0,
-                      top: 0,
-                      bottom: 0,
-                      width: 12,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: bookColor.withOpacity(0.8),
-                          borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(4),
-                            bottomLeft: Radius.circular(4),
-                          ),
-                          border: Border.all(
-                            color: Colors.white,
-                            width: 1,
+                  child: Stack(
+                    children: [
+                      // Book spine
+                      Positioned(
+                        left: 0,
+                        top: 0,
+                        bottom: 0,
+                        width: 12,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: bookColor.withOpacity(0.8),
+                            borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(4),
+                              bottomLeft: Radius.circular(4),
+                            ),
+                            border: Border.all(
+                              color: Colors.white,
+                              width: 1,
+                            ),
                           ),
                         ),
                       ),
-                    ),
 
-                    // Book content
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 16, 8, 16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Book title
-                          Text(
-                            title,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              shadows: [
-                                Shadow(
-                                  color: Colors.black54,
-                                  blurRadius: 2,
-                                  offset: Offset(1, 1),
+                      // Book content
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(0, 0, 0, 0), // General padding for the column
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Book title
+                            Expanded(
+                              child: Padding(
+                                padding: const EdgeInsets.only(left: 20, top:25,  right: 8, bottom: 2.0), // Add bottom padding for spacing
+                                child: Text(
+                                  title,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                    shadows: [
+                                      Shadow(
+                                        color: Colors.black54,
+                                        blurRadius: 2,
+                                        offset: Offset(1, 1),
+                                      ),
+                                    ],
+                                  ),
+                                  maxLines: 3,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                              ],
+                              ),
                             ),
-                            maxLines: 3,
-                            overflow: TextOverflow.ellipsis,
-                          ),
 
-                          const Spacer(),
+                            // Date
+                            Padding(
+                                padding: const EdgeInsets.only(left: 20, top:6,  right: 8, bottom: 2.0), // Add smaller bottom padding
+                                child: Text(
+                                  formattedDate,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                            ),
 
-                          // Date and message count
-                          Text(
-                            formattedDate,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
+                            // Message count
+                            Expanded(
+                              child: Padding(
+                                padding: const EdgeInsets.only(left: 20, top:0,  right: 8, bottom: 2.0), // Add top padding for spacing
+                                child: Text(
+                                  '${conversation.messageCount} messages',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
                             ),
-                          ),
-                          Text(
-                            '${conversation.messageCount} messages',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
 
-                    // Book icon
-                    Positioned(
-                      right: 8,
-                      bottom: 8,
-                      child: Icon(
-                        Icons.auto_stories,
-                        color: Colors.white.withOpacity(0.7),
-                        size: 24,
+                      // Book icon
+                      Positioned(
+                        right: 8,
+                        bottom: 8,
+                        child: Icon(
+                          Icons.auto_stories,
+                          color: Colors.white.withOpacity(0.7),
+                          size: 24,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
