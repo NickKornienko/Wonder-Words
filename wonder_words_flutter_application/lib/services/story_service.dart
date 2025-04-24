@@ -226,7 +226,7 @@ class StoryService {
   }
 
   // Method to get all conversations for the current user
-  Future<List<Conversation>> getConversations({int? page, int? limit}) async {
+  Future<List<Conversation>> getConversations({int? page, int? limit, List<String>? assignedStories}) async {
     // if page or limit is null, set default values to None
     if (_context == null) {
       throw Exception('Context not initialized');
@@ -244,8 +244,11 @@ class StoryService {
       // if page and limit are null, set default values as 'None' in the Uri
       final String pageParam = page != null ? 'page=$page' : 'page=None';
       final String limitParam = limit != null ? 'limit=$limit' : 'limit=None';
+      final String assignedStoriesParam = assignedStories != null
+          ? 'assigned_stories=${jsonEncode(assignedStories)}'
+          : 'assigned_stories=None';
       final response = await http.get(
-        Uri.parse('$baseUrl/$endpoint?$pageParam&$limitParam'),
+        Uri.parse('$baseUrl/$endpoint?$pageParam&$limitParam&$assignedStoriesParam'),
         headers: {
           'Authorization': 'Bearer $idToken',
         },
