@@ -58,24 +58,32 @@ class _StoryHistoryScreenState extends State<StoryHistoryScreen> {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
       // Load conversations based on account type
-      // if the user is a child, and _isLoadingMore is true, don't load more
-      if (authProvider.isChild && _isLoadingMore) {
+      // if the user is a child, and _isLoadingMore is true & _hasMoreBooks is false, do not load more books
+      if (authProvider.isChild && _isLoadingMore && !_hasMoreBooks) {
         setState(() {
           _isLoadingMore = false;
+
         });
         return;
       }
       List<Conversation> conversations;
       if (authProvider.isChild) {
         final assignedStories = await _storyService.getAssignedStories();
-        final childConversations = await _storyService.getConversations();
-
-        final Set<String> assignedConversationIds =
-            assignedStories.map((story) => story.conversationId).toSet();
-
-        conversations = childConversations.where((conversation) {
-          return assignedConversationIds.contains(conversation.id);
-        }).toList();
+        // convert assignedStories to a list of conversation IDs for use with the API
+        final assignedStoriesIds =
+            assignedStories.map((story) => story.conversationId).toList();
+        final childConversations = await _storyService.getConversations(page:_currentPage, limit:20, assignedStories: assignedStoriesIds);
+        conversations = childConversations;
+        // Check if childConversations is < assignedStoriesIds.length
+        if (childConversations.length < assignedStoriesIds.length) {
+          setState(() {
+            _hasMoreBooks = true; // No more books to load
+          });
+        } else {
+          setState(() {
+            _hasMoreBooks = false; // No more books to load
+          });
+        }
       } else {
         conversations = await _storyService.getConversations(page: _currentPage, limit: 20);
       }
@@ -86,8 +94,10 @@ class _StoryHistoryScreenState extends State<StoryHistoryScreen> {
         } else {
           _conversations = conversations;
         }
-
-        _hasMoreBooks = conversations.isNotEmpty; // Check if there are more books
+        // if account is parent, and conversations is empty, set _hasMoreBooks to false
+        if (!authProvider.isChild && conversations.isEmpty) {
+          _hasMoreBooks = false; // No more books to load
+        }
         _isLoading = false;
         _isLoadingMore = false;
       });
@@ -750,7 +760,7 @@ class _StoryHistoryScreenState extends State<StoryHistoryScreen> {
           context: context,
           barrierDismissible: false,
           builder: (context) => const Center(
-            child: CircularProgressIndicator(),
+        child: CircularProgressIndicator(),
           ),
         );
 
@@ -763,15 +773,17 @@ class _StoryHistoryScreenState extends State<StoryHistoryScreen> {
         // Show success message
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Story deleted successfully'),
-              backgroundColor: Colors.green,
-            ),
+        const SnackBar(
+          content: Text('Story deleted successfully'),
+          backgroundColor: Colors.green,
+        ),
           );
         }
 
-        // Refresh the list
-        _loadConversations();
+        // Remove the deleted conversation from the list
+        setState(() {
+          _conversations.removeWhere((c) => c.id == conversation.id);
+        });
       } catch (e) {
         // Close loading dialog
         if (mounted) Navigator.pop(context);
@@ -779,10 +791,10 @@ class _StoryHistoryScreenState extends State<StoryHistoryScreen> {
         // Show error message
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Failed to delete story: $e'),
-              backgroundColor: Colors.red,
-            ),
+        SnackBar(
+          content: Text('Failed to delete story: $e'),
+          backgroundColor: Colors.red,
+        ),
           );
         }
       }
