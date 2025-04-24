@@ -226,7 +226,8 @@ class StoryService {
   }
 
   // Method to get all conversations for the current user
-  Future<List<Conversation>> getConversations() async {
+  Future<List<Conversation>> getConversations({int? page, int? limit}) async {
+    // if page or limit is null, set default values to None
     if (_context == null) {
       throw Exception('Context not initialized');
     }
@@ -240,9 +241,11 @@ class StoryService {
       final endpoint = authProvider.isChild
           ? 'get_child_conversations'
           : 'get_conversations';
-
+      // if page and limit are null, set default values as 'None' in the Uri
+      final String pageParam = page != null ? 'page=$page' : 'page=None';
+      final String limitParam = limit != null ? 'limit=$limit' : 'limit=None';
       final response = await http.get(
-        Uri.parse('$baseUrl/$endpoint'),
+        Uri.parse('$baseUrl/$endpoint?$pageParam&$limitParam'),
         headers: {
           'Authorization': 'Bearer $idToken',
         },
