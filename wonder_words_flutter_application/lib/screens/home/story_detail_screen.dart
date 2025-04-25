@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 import '../../models/conversation.dart';
 import '../../services/story_service.dart';
 import '../../services/tts/google_tts_service.dart';
@@ -21,6 +22,8 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final GoogleTtsService _ttsService = GoogleTtsService();
+  final stt.SpeechToText _speech = stt.SpeechToText();
+  bool _isListening = false;
 
   bool _isLoading = true;
   List<Message> _messages = [];
@@ -164,6 +167,26 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
       setState(() {
         _isSending = false;
       });
+    }
+  }
+
+  void _startListening() async {
+    if (!_isListening) {
+      bool available = await _speech.initialize(
+        onStatus: (status) => print('Speech status: $status'),
+        onError: (error) => print('Speech error: $error'),
+      );
+      if (available) {
+        setState(() => _isListening = true);
+        _speech.listen(onResult: (result) {
+          setState(() {
+            _messageController.text = result.recognizedWords;
+          });
+        });
+      }
+    } else {
+      setState(() => _isListening = false);
+      _speech.stop();
     }
   }
 
@@ -324,25 +347,24 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
 
   Widget _buildMessageInput() {
     return Container(
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black12,
-            offset: const Offset(0, -1),
-            blurRadius: 4,
-          ),
-        ],
-      ),
+      padding: const EdgeInsets.all(8.0),
+      color: Colors.white,
       child: Row(
         children: [
           Expanded(
             child: TextField(
               controller: _messageController,
-              decoration: const InputDecoration(
-                hintText: 'Add to the story...',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                hintText: 'Ask for a story...',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                filled: true,
+                fillColor: Colors.grey[100],
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
               ),
               maxLines: null,
               textCapitalization: TextCapitalization.sentences,
@@ -350,15 +372,20 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
             ),
           ),
           const SizedBox(width: 8),
-          IconButton(
-            icon: _isSending
-                ? const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.send),
-            onPressed: _isSending ? null : _sendMessage,
+          FloatingActionButton(
+            heroTag: 'micButton',
+            onPressed: _startListening,
+            backgroundColor: _isListening ? Colors.red : Colors.deepPurple,
+            child: Icon(_isListening ? Icons.mic : Icons.mic_none),
+            mini: true,
+          ),
+          const SizedBox(width: 8),
+          FloatingActionButton(
+            heroTag: 'sendButton',
+            onPressed: _sendMessage,
+            backgroundColor: Colors.deepPurple,
+            child: const Icon(Icons.send),
+            mini: true,
           ),
         ],
       ),
