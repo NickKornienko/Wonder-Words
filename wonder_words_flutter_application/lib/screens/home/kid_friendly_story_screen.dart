@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:wonder_words_flutter_application/colors.dart';
-import 'dart:math' as math;
 import '../../services/auth/auth_provider.dart';
 import '../../services/story_service.dart';
 import '../../services/tts/google_tts_service.dart';
