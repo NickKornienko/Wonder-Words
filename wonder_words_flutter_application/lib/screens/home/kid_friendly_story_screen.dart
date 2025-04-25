@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:wonder_words_flutter_application/colors.dart';
-import 'package:speech_to_text/speech_to_text.dart' as stt;
 import '../../services/auth/auth_provider.dart';
 import '../../services/story_service.dart';
 import '../../services/tts/google_tts_service.dart';
@@ -117,10 +116,6 @@ class _KidFriendlyStoryScreenState extends State<KidFriendlyStoryScreen>
     },
   ];
 
-  // Add Speech-to-Text instance and state variables
-  final stt.SpeechToText _speech = stt.SpeechToText();
-  bool _isListening = false;
-
   @override
   void initState() {
     super.initState();
@@ -195,31 +190,8 @@ class _KidFriendlyStoryScreenState extends State<KidFriendlyStoryScreen>
     }
   }
 
-  // Add _startListening method for speech-to-text functionality
-  void _startListening() async {
-    if (!_isListening) {
-      bool available = await _speech.initialize(
-        onStatus: (status) => print('Speech status: $status'),
-        onError: (error) => print('Speech error: $error'),
-      );
-      if (available) {
-        setState(() => _isListening = true);
-        _speech.listen(onResult: (result) {
-          setState(() {
-            _pendingQuery = result.recognizedWords;
-          });
-        });
-      }
-    } else {
-      setState(() => _isListening = false);
-      _speech.stop();
-    }
-  }
-
   @override
   void dispose() {
-    _speech.stop();
-    _speech.cancel();
     _scrollController.dispose();
     _ttsService.dispose();
     _bounceController.dispose();
@@ -765,26 +737,6 @@ class _KidFriendlyStoryScreenState extends State<KidFriendlyStoryScreen>
                             ),
                             tooltip: _isSpeaking ? 'Stop' : 'Play',
                           ),
-                        ),
-                      ),
-
-                      // Add a button to trigger speech-to-text in the UI
-                      Positioned(
-                        bottom: 80,
-                        right: 0,
-                        child: FloatingActionButton(
-                          onPressed: _startListening,
-                          backgroundColor: _isListening
-                              ? Colors.red
-                              : ColorTheme.accentBlueColor,
-                          foregroundColor: Colors.white,
-                          child: Icon(
-                            _isListening ? Icons.mic_off : Icons.mic,
-                            size: 32,
-                          ),
-                          tooltip: _isListening
-                              ? 'Stop Listening'
-                              : 'Start Listening',
                         ),
                       ),
 
