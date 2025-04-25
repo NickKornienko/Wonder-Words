@@ -53,6 +53,7 @@ dependencies:
   crypto: ^3.0.3 # For generating hashes for caching
   connectivity_plus: ^5.0.1 # For checking internet connectivity
   shared_preferences: ^2.2.0 # For persistent storage and usage tracking
+  speech_to_text: ^6.3.0
 
   # web specific html package
 
