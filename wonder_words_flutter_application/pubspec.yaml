@@ -82,6 +82,7 @@ flutter:
     - assets/megafrog.png
     - assets/splashscreen.png
     - assets/.env
+    - assets/words-bg.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware

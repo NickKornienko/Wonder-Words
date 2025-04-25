@@ -690,7 +690,7 @@ class _KidFriendlyStoryScreenState extends State<KidFriendlyStoryScreen>
                                   'Welcome Adventurer',
                                   style: TextStyle(
                                     fontSize: 30,
-                                    color: Colors.black,
+                                    color: ColorTheme.accentBlueColor,
                                     fontFamily: GoogleFonts.montserrat(
                                       fontWeight: FontWeight.bold,
                                     ).fontFamily,
@@ -757,7 +757,7 @@ class _KidFriendlyStoryScreenState extends State<KidFriendlyStoryScreen>
                                 ),
                               ],
                             ),
-                            child: Column(
+                            child: const Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 CircularProgressIndicator(
@@ -785,118 +785,118 @@ class _KidFriendlyStoryScreenState extends State<KidFriendlyStoryScreen>
               ),
 
               // Assigned stories section (if available)
-              if (_assignedStories.isNotEmpty && _conversationId == null)
-                Container(
-                  height: 160,
-                  padding: EdgeInsets.only(bottom: 8),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: EdgeInsets.only(left: 20, bottom: 8),
-                        child: Text(
-                          'Your Books',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontFamily: GoogleFonts.montserrat(
-                              fontWeight: FontWeight.bold,
-                            ).fontFamily,
-                            color: Colors.white,
-                            shadows: [
-                              Shadow(
-                                color: Colors.black.withOpacity(0.3),
-                                blurRadius: 2,
-                                offset: Offset(1, 1),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          padding: EdgeInsets.symmetric(horizontal: 12),
-                          itemCount: _assignedStories.length,
-                          itemBuilder: (context, index) {
-                            final story = _assignedStories[index];
-                            return Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 8),
-                              child: AnimatedBuilder(
-                                animation: _bounceController,
-                                builder: (context, child) {
-                                  return Transform.translate(
-                                    offset: Offset(
-                                        0,
-                                        math.sin((_bounceController.value +
-                                                    index * 0.1) *
-                                                math.pi) *
-                                            3),
-                                    child: child,
-                                  );
-                                },
-                                child: InkWell(
-                                  onTap: () => _openAssignedStory(story),
-                                  child: Container(
-                                    width: 120,
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors: [
-                                          Colors.purple[400]!,
-                                          Colors.purple[200]!
-                                        ],
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                      ),
-                                      borderRadius: BorderRadius.circular(12),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withOpacity(0.2),
-                                          blurRadius: 5,
-                                          offset: Offset(0, 3),
-                                        ),
-                                      ],
-                                      border: Border.all(
-                                        color: Colors.white,
-                                        width: 2,
-                                      ),
-                                    ),
-                                    child: Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Icon(
-                                          Icons.book,
-                                          size: 40,
-                                          color: Colors.white,
-                                        ),
-                                        SizedBox(height: 8),
-                                        Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 8.0),
-                                          child: Text(
-                                            story.title,
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.white,
-                                            ),
-                                            textAlign: TextAlign.center,
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+              // if (_assignedStories.isNotEmpty && _conversationId == null)
+              //   Container(
+              //     height: 160,
+              //     padding: EdgeInsets.only(bottom: 8),
+              //     child: Column(
+              //       crossAxisAlignment: CrossAxisAlignment.start,
+              //       children: [
+              //         Padding(
+              //           padding: EdgeInsets.only(left: 20, bottom: 8),
+              //           child: Text(
+              //             'Your Books',
+              //             style: TextStyle(
+              //               fontSize: 18,
+              //               fontFamily: GoogleFonts.montserrat(
+              //                 fontWeight: FontWeight.bold,
+              //               ).fontFamily,
+              //               color: Colors.white,
+              //               shadows: [
+              //                 Shadow(
+              //                   color: Colors.black.withOpacity(0.3),
+              //                   blurRadius: 2,
+              //                   offset: Offset(1, 1),
+              //                 ),
+              //               ],
+              //             ),
+              //           ),
+              //         ),
+              //         Expanded(
+              //           child: ListView.builder(
+              //             scrollDirection: Axis.horizontal,
+              //             padding: EdgeInsets.symmetric(horizontal: 12),
+              //             itemCount: _assignedStories.length,
+              //             itemBuilder: (context, index) {
+              //               final story = _assignedStories[index];
+              //               return Padding(
+              //                 padding: EdgeInsets.symmetric(horizontal: 8),
+              //                 child: AnimatedBuilder(
+              //                   animation: _bounceController,
+              //                   builder: (context, child) {
+              //                     return Transform.translate(
+              //                       offset: Offset(
+              //                           0,
+              //                           math.sin((_bounceController.value +
+              //                                       index * 0.1) *
+              //                                   math.pi) *
+              //                               3),
+              //                       child: child,
+              //                     );
+              //                   },
+              //                   child: InkWell(
+              //                     onTap: () => _openAssignedStory(story),
+              //                     child: Container(
+              //                       width: 120,
+              //                       decoration: BoxDecoration(
+              //                         gradient: LinearGradient(
+              //                           colors: [
+              //                             Colors.purple[400]!,
+              //                             Colors.purple[200]!
+              //                           ],
+              //                           begin: Alignment.topLeft,
+              //                           end: Alignment.bottomRight,
+              //                         ),
+              //                         borderRadius: BorderRadius.circular(12),
+              //                         boxShadow: [
+              //                           BoxShadow(
+              //                             color: Colors.black.withOpacity(0.2),
+              //                             blurRadius: 5,
+              //                             offset: Offset(0, 3),
+              //                           ),
+              //                         ],
+              //                         border: Border.all(
+              //                           color: Colors.white,
+              //                           width: 2,
+              //                         ),
+              //                       ),
+              //                       child: Column(
+              //                         mainAxisAlignment:
+              //                             MainAxisAlignment.center,
+              //                         children: [
+              //                           Icon(
+              //                             Icons.book,
+              //                             size: 40,
+              //                             color: Colors.white,
+              //                           ),
+              //                           SizedBox(height: 8),
+              //                           Padding(
+              //                             padding: const EdgeInsets.symmetric(
+              //                                 horizontal: 8.0),
+              //                             child: Text(
+              //                               story.title,
+              //                               style: TextStyle(
+              //                                 fontSize: 14,
+              //                                 fontWeight: FontWeight.bold,
+              //                                 color: Colors.white,
+              //                               ),
+              //                               textAlign: TextAlign.center,
+              //                               maxLines: 2,
+              //                               overflow: TextOverflow.ellipsis,
+              //                             ),
+              //                           ),
+              //                         ],
+              //                       ),
+              //                     ),
+              //                   ),
+              //                 ),
+              //               );
+              //             },
+              //           ),
+              //         ),
+              //       ],
+              //     ),
+              //   ),
 
               // Story theme selection or continuation options
               Container(
@@ -911,10 +911,10 @@ class _KidFriendlyStoryScreenState extends State<KidFriendlyStoryScreen>
                         _needsConfirmation
                             ? 'Do you want a new story?'
                             : (_conversationId == null
-                                ? 'Choose a theme!'
+                                ? 'Choose a theme'
                                 : 'What happens next?'),
                         style: TextStyle(
-                          fontSize: 18,
+                          fontSize: 20,
                           fontFamily: GoogleFonts.montserrat(
                             fontWeight: FontWeight.bold,
                           ).fontFamily,
