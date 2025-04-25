@@ -327,6 +327,7 @@ def create_child_account():
     pin = data.get('pin')
     display_name = data.get('display_name')
     age = data.get('age')
+    data = request.get_json()
     parent_uid = data.get('parent_uid')  # Parent UID passed from the frontend
     print('parent_uid from frontend:', parent_uid)
     if not parent_uid:
@@ -379,11 +380,11 @@ def child_login():
     })
 
 
-@app.route('/get_child_accounts', methods=['GET'])
+@app.route('/get_child_accounts', methods=['POST'])
 @firebase_auth_required
 def get_child_accounts():
-    # Use Firebase user ID from the token
-    parent_uid = request.firebase_user.get('localId')
+    data = request.get_json()
+    parent_uid = data.get('parent_uid')  # Parent UID passed from the frontend
     # get the firebase user using the parent_uid
     parent = request.firebase_user.get(parent_uid)
     print(parent)
@@ -391,8 +392,10 @@ def get_child_accounts():
     # Print the parent_uid for debugging
     print(f"Parent UID: {parent_uid}")
 
-    # Query all child accounts (temporarily removed parent_uid filter)
+    # Query all child accounts 
     child_accounts = ChildAccount.query.all()
+    # Filter child accounts by parent UID
+    child_accounts = [account for account in child_accounts if account.parent_uid == parent_uid]
 
     # Print the number of child accounts found
     print(f"Found {len(child_accounts)} child accounts (all)")
