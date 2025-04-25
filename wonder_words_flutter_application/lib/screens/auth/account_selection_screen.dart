@@ -42,13 +42,18 @@ class _AccountSelectionScreenState extends State<AccountSelectionScreen> {
       // Use baseUrl from ApiConfig if running on web, and deviceUrl if running on a device
       const isWeb = kIsWeb;
       const url = isWeb ? ApiConfig.baseUrl : ApiConfig.deviceUrl;
+      // use the parentID to get the child accounts
+      final parentId = authProvider.userData?.uid;
 
-      final response = await http.get(
+      final response = await http.post(
         Uri.parse('$url/get_child_accounts'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
+        body: json.encode({
+          'parent_uid': parentId,
+        }),
       );
 
       if (response.statusCode == 200) {
