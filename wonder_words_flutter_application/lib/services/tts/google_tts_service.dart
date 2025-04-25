@@ -10,7 +10,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
-
 /// Voice model for Google Cloud TTS
 class GoogleTtsVoice {
   final String name;
@@ -34,7 +33,6 @@ class GoogleTtsService {
   final AudioPlayer _audioPlayer = AudioPlayer();
   final FlutterTts _flutterTts = FlutterTts(); // Fallback TTS
 
-
   bool isSpeaking = false;
   final List<Function(bool)> _stateListeners = [];
 
@@ -49,101 +47,23 @@ class GoogleTtsService {
   // Available voices
   final List<GoogleTtsVoice> _voices = [
     GoogleTtsVoice(
-      name: 'en-US-Neural2-F',
-      displayName: 'Female (Neural)',
+      name: "en-US-Chirp3-HD-Achernar",
+      displayName: 'Female 1',
       languageCode: 'en-US',
       gender: 'FEMALE',
       isNeural: true,
     ),
     GoogleTtsVoice(
-      name: 'en-US-Neural2-A',
-      displayName: 'Male (Neural)',
+      name: "en-US-Chirp3-HD-Enceladus",
+      displayName: 'Male 1',
       languageCode: 'en-US',
       gender: 'MALE',
       isNeural: true,
-    ),
-    GoogleTtsVoice(
-      name: 'en-US-Chirp3-HD-Zephyr',
-      displayName: 'Child (Neural)',
-      languageCode: 'en-US',
-      gender: 'FEMALE',
-      isNeural: true,
-    ),
-    GoogleTtsVoice(
-      name: 'en-US-Neural2-D',
-      displayName: 'Male 2 (Neural)',
-      languageCode: 'en-US',
-      gender: 'MALE',
-      isNeural: true,
-    ),
-    GoogleTtsVoice(
-      name: 'en-US-Neural2-E',
-      displayName: 'Female 2 (Neural)',
-      languageCode: 'en-US',
-      gender: 'FEMALE',
-      isNeural: true,
-    ),
-    GoogleTtsVoice(
-      name: 'en-US-Neural2-G',
-      displayName: 'Female 3 (Neural)',
-      languageCode: 'en-US',
-      gender: 'FEMALE',
-      isNeural: true,
-    ),
-    GoogleTtsVoice(
-      name: 'en-US-Neural2-H',
-      displayName: 'Female 4 (Neural)',
-      languageCode: 'en-US',
-      gender: 'FEMALE',
-      isNeural: true,
-    ),
-    GoogleTtsVoice(
-      name: 'en-US-Neural2-I',
-      displayName: 'Male 3 (Neural)',
-      languageCode: 'en-US',
-      gender: 'MALE',
-      isNeural: true,
-    ),
-    GoogleTtsVoice(
-      name: 'en-US-Neural2-J',
-      displayName: 'Male 4 (Neural)',
-      languageCode: 'en-US',
-      gender: 'MALE',
-      isNeural: true,
-    ),
-    GoogleTtsVoice(
-      name: 'en-GB-Neural2-B',
-      displayName: 'Male (British)',
-      languageCode: 'en-GB',
-      gender: 'MALE',
-      isNeural: true,
-    ),
-    GoogleTtsVoice(
-      name: 'en-GB-Neural2-A',
-      displayName: 'Female (British)',
-      languageCode: 'en-GB',
-      gender: 'FEMALE',
-      isNeural: true,
-    ),
-    GoogleTtsVoice(
-      name: 'en-AU-Neural2-A',
-      displayName: 'Female (Australian)',
-      languageCode: 'en-AU',
-      gender: 'FEMALE',
-      isNeural: true,
-    ),
-    GoogleTtsVoice(
-      name: 'en-AU-Neural2-B',
-      displayName: 'Male (Australian)',
-      languageCode: 'en-AU',
-      gender: 'MALE',
-      isNeural: true,
-    ),
+    )
   ];
 
   // Currently selected voice (default to first voice)
   late GoogleTtsVoice _selectedVoice;
-
 
   // Private constructor
   GoogleTtsService() {
@@ -314,7 +234,6 @@ class GoogleTtsService {
       final hasInternet = connectivityResult != ConnectivityResult.none;
 
       if (hasInternet) {
-
         await _speakWithGoogleTts(text);
         // Update usage only if Google TTS was used successfully
         await _updateUsage(text.length);
@@ -346,7 +265,8 @@ class GoogleTtsService {
 
     try {
       // Generate a hash of the text combined with the selected voice
-      final textHash = md5.convert(utf8.encode('$text|${_selectedVoice.name}')).toString();
+      final textHash =
+          md5.convert(utf8.encode('$text|${_selectedVoice.name}')).toString();
       String? audioPath = _audioCache[textHash];
 
       // If not cached, or if the voice has changed, call the API to synthesize speech
@@ -380,7 +300,8 @@ class GoogleTtsService {
             print('Playing audio using flutterTts for web playback...');
             await _flutterTts.speak(text); // Use fallback TTS for web
           } else {
-            throw Exception('Base64 content not found in cache for web playback.');
+            throw Exception(
+                'Base64 content not found in cache for web playback.');
           }
         } else {
           print('Playing audio using just_audio...');
@@ -408,7 +329,6 @@ class GoogleTtsService {
     }
   }
 
-
   /// Speak using the device's built-in TTS
   Future<void> _speakWithFallbackTts(String text) async {
     print('Using fallback TTS...');
@@ -432,7 +352,8 @@ class GoogleTtsService {
       // Loading the API key from the .env file
       final String apiKey = dotenv.env['GOOGLE_CLOUD_API_KEY'] ?? '';
       if (apiKey.isEmpty) {
-        throw Exception('Google Cloud API key is not set. Please configure it in the .env file.');
+        throw Exception(
+            'Google Cloud API key is not set. Please configure it in the .env file.');
       }
       final url =
           'https://texttospeech.googleapis.com/v1/text:synthesize?key=$apiKey';
@@ -470,7 +391,8 @@ class GoogleTtsService {
           } else {
             // Save to a temporary file for non-web platforms
             final tempDir = await getTemporaryDirectory();
-            final file = File('${tempDir.path}/tts_${DateTime.now().millisecondsSinceEpoch}.mp3');
+            final file = File(
+                '${tempDir.path}/tts_${DateTime.now().millisecondsSinceEpoch}.mp3');
             await file.writeAsBytes(bytes);
 
             // Save to persistent cache
