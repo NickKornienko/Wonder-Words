@@ -158,8 +158,8 @@ Widget buildThemeButtons(
         return InkWell(
           onTap: () => generateThemedStory(theme['theme']),
           child: Container(
-            width: 110,
-            height: 110,
+            width: 150,
+            height: 150,
             decoration: BoxDecoration(
               color: theme['color'],
               borderRadius: BorderRadius.circular(16),
@@ -174,7 +174,7 @@ Widget buildThemeButtons(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(theme['icon'], size: 36, color: Colors.white),
+                Icon(theme['icon'], size: 50, color: Colors.white),
                 const SizedBox(height: 4),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 4.0),
