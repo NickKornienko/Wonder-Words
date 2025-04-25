@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 import '../../services/auth/auth_provider.dart';
 import '../../services/story_service.dart';
 import '../../services/tts/google_tts_service.dart';
@@ -19,7 +20,9 @@ class StoryScreen extends StatefulWidget {
   @override
   State<StoryScreen> createState() => StoryScreenState();
 
-  static AppBar buildAppBar(BuildContext context, Function showVoiceInfoDialog, Function refreshMessages, {bool isStoryDetailsForm = false}) {
+  static AppBar buildAppBar(BuildContext context, Function showVoiceInfoDialog,
+      Function refreshMessages,
+      {bool isStoryDetailsForm = false}) {
     return AppBar(
       title: const Text('Wonder Words'),
       backgroundColor: Colors.deepPurple,
@@ -79,6 +82,8 @@ class StoryScreenState extends State<StoryScreen> {
   final StoryService _storyService = StoryService();
   final GoogleTtsService _ttsService = GoogleTtsService();
   final ScrollController _scrollController = ScrollController();
+  final stt.SpeechToText _speech = stt.SpeechToText();
+  bool _isListening = false;
 
   String? _conversationId;
   bool _isLoading = false;
@@ -321,7 +326,8 @@ class StoryScreenState extends State<StoryScreen> {
                     if (newVoice != null) {
                       await _ttsService.setVoice(newVoice);
                       print('Set voice as: ${newVoice.displayName}');
-                      currentVoice = newVoice; // Update the current voice for the dialog
+                      currentVoice =
+                          newVoice; // Update the current voice for the dialog
                       setState(() {}); // Update the dialog state
                     }
                   },
@@ -345,13 +351,34 @@ class StoryScreenState extends State<StoryScreen> {
     );
   }
 
+  void _startListening() async {
+    if (!_isListening) {
+      bool available = await _speech.initialize(
+        onStatus: (status) => print('Speech status: $status'),
+        onError: (error) => print('Speech error: $error'),
+      );
+      if (available) {
+        setState(() => _isListening = true);
+        _speech.listen(onResult: (result) {
+          setState(() {
+            _promptController.text = result.recognizedWords;
+          });
+        });
+      }
+    } else {
+      setState(() => _isListening = false);
+      _speech.stop();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
     final isChild = authProvider.isChild;
 
     return Scaffold(
-      appBar: StoryScreen.buildAppBar(context, _showVoiceInfoDialog, _refreshMessages),
+      appBar: StoryScreen.buildAppBar(
+          context, _showVoiceInfoDialog, _refreshMessages),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -433,6 +460,15 @@ class StoryScreenState extends State<StoryScreen> {
                       textCapitalization: TextCapitalization.sentences,
                       onSubmitted: (_) => _sendMessage(),
                     ),
+                  ),
+                  const SizedBox(width: 8),
+                  FloatingActionButton(
+                    heroTag: 'micButton',
+                    onPressed: _startListening,
+                    backgroundColor:
+                        _isListening ? Colors.red : Colors.deepPurple,
+                    child: Icon(_isListening ? Icons.mic : Icons.mic_none),
+                    mini: true,
                   ),
                   const SizedBox(width: 8),
                   FloatingActionButton(
