@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:crypto/crypto.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:just_audio/just_audio.dart';
 import 'package:path_provider/path_provider.dart';
@@ -8,7 +9,9 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, Uint8List;
+import '../../config/api_config.dart';
+// import 'package:dio_interceptor/dio_interceptor.dart'; // Removed as the package is not found
 
 /// Voice model for Google Cloud TTS
 class GoogleTtsVoice {
@@ -167,8 +170,36 @@ class GoogleTtsService {
       }
 
       await prefs.setString('tts_cache_$textHash', audioPath);
+
     } catch (e) {
       print('Error saving to TTS cache: $e');
+    }
+  }
+
+  // save to backend
+  Future<String> _saveToBackend({required String filename, required String bytes}) async {
+    try {
+      // Implement your backend saving logic here
+      // For example, using Dio or http package to send a POST request
+      //print('filename: $filename');
+      //print('bytes: $bytes');
+      const String backendUrl = kIsWeb ? ApiConfig.baseUrl : ApiConfig.deviceUrl;
+      final response = await http.post(
+        Uri.parse('$backendUrl/upload_audio'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'filename': filename,
+          'bytes': bytes,
+        }),
+      );
+      
+      final responseBody = json.decode(response.body);
+      return responseBody['file_path'];
+    } catch (e) {
+      print('Error saving to backend: $e');
+      throw Exception('Failed to save to backend');
     }
   }
 
@@ -254,7 +285,7 @@ class GoogleTtsService {
     await _flutterTts.stop();
     notifyListeners();
   }
-
+  
   /// Speak using Google Cloud TTS
   Future<void> _speakWithGoogleTts(String text) async {
     print('Using Google TTS...');
@@ -293,30 +324,46 @@ class GoogleTtsService {
       notifyListeners();
 
       try {
-        if (kIsWeb && audioPath.startsWith('memory://')) {
-          // For web, use the base64 content directly with _flutterTts
-          final base64Content = _audioCache[textHash];
-          if (base64Content != null) {
-            print('Playing audio using flutterTts for web playback...');
+        if (kIsWeb) {
+          try {
+            // format the apiurl for download_audio from app.py
+            const String backendUrl = kIsWeb ? ApiConfig.baseUrl : ApiConfig.deviceUrl;
+            // Use the backend URL to get the audio file
+            String audio_url = '$backendUrl/download_audio?file_path=$audioPath';
+            // saving the 
+            // Set the audio source
+            print('Setting audio source for web playback...');
+            print('using URL instead of file path');
+            // Use just_audio to play the audio
+            await _audioPlayer.setUrl(audio_url, headers: {'Content-Type': 'application/json'});
+            _audioPlayer.play();
+            // Listen for completion
+            _audioPlayer.playerStateStream.listen((state) {
+              if (state.processingState == ProcessingState.completed) {
+                isSpeaking = false;
+                notifyListeners();
+              }
+            });
+          } catch (e) {
+            print('Error playing audio using just_audio: $e');
+            // Fallback to flutterTts for web playback
             await _flutterTts.speak(text); // Use fallback TTS for web
-          } else {
-            throw Exception(
-                'Base64 content not found in cache for web playback.');
           }
+          // Fallback to flutterTts for web playback
         } else {
-          print('Playing audio using just_audio...');
-          // For non-web platforms, play the audio file
-          await _audioPlayer.setFilePath(audioPath);
-          await _audioPlayer.play();
+        print('Playing audio using just_audio...');
+        // For non-web platforms, play the audio file
+        await _audioPlayer.setFilePath(audioPath);
+        await _audioPlayer.play();
 
-          // Listen for completion
-          _audioPlayer.playerStateStream.listen((state) {
-            if (state.processingState == ProcessingState.completed) {
-              isSpeaking = false;
-              notifyListeners();
-            }
-          });
-        }
+        // Listen for completion
+        _audioPlayer.playerStateStream.listen((state) {
+          if (state.processingState == ProcessingState.completed) {
+            isSpeaking = false;
+            notifyListeners();
+          }
+        });
+      }
       } catch (e) {
         print('Error playing audio: $e');
         // Fallback to device TTS
@@ -377,36 +424,40 @@ class GoogleTtsService {
           }
         }),
       );
+      try {
 
-      if (response.statusCode == 200) {
-        // Decode the base64-encoded audio content
-        final audioContent = json.decode(response.body)['audioContent'];
-        final bytes = base64.decode(audioContent);
-
-        try {
+        if (response.statusCode == 200) {
+          // Decode the base64-encoded audio content
+          final audioContent = json.decode(response.body)['audioContent'];
+          final bytes = base64.decode(audioContent);
+          // Save to a temporary file for non-web platforms
           if (kIsWeb) {
-            // For web, return the base64 string directly
-            _audioCache[textHash] = audioContent; // Cache the base64 content
-            return 'memory://$textHash'; // Return a placeholder path
+            // For web, we save the file to backend
+            print('Saving audio to backend...');
+            String filename = await _saveToBackend(filename: textHash, bytes: audioContent);
+            return filename;
           } else {
-            // Save to a temporary file for non-web platforms
-            final tempDir = await getTemporaryDirectory();
-            final file = File(
-                '${tempDir.path}/tts_${DateTime.now().millisecondsSinceEpoch}.mp3');
-            await file.writeAsBytes(bytes);
+            // For non-web platforms, save to a temporary file
+            print('Saving audio to temporary file...');
+          
+          final tempDir = await getTemporaryDirectory();
+          final file = File(
+              '${tempDir.path}/tts_${DateTime.now().millisecondsSinceEpoch}.mp3');
+          await file.writeAsBytes(bytes);
 
-            // Save to persistent cache
-            await _saveToCacheStorage(textHash, file.path);
+          // Save to persistent cache
+          await _saveToCacheStorage(textHash, file.path);
 
-            return file.path;
+          return file.path;
           }
-        } catch (e) {
-          // If we can't access the file system (e.g., on web), fall back to device TTS
-          print('Error accessing file system: $e');
-          throw Exception('File system access error');
-        }
-      } else {
+        } else {
         throw Exception('Failed to synthesize speech: ${response.body}');
+        }
+        
+      } catch (e) {
+        // If we can't access the file system (e.g., on web), fall back to device TTS
+        print('Error accessing file system: $e');
+        throw Exception('File system access error');
       }
     } catch (e) {
       print('Error in _synthesizeSpeech: $e');
@@ -418,7 +469,7 @@ class GoogleTtsService {
   void dispose() {
     if (!kIsWeb) {
       _flutterTts.stop();
+      _audioPlayer.dispose();
     }
-    _audioPlayer.dispose();
   }
 }
