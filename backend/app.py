@@ -1,6 +1,9 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_file
 from flask_cors import CORS
 from db.db import db
+from pydub import AudioSegment
+import io
+import base64
 
 # Clear only the 'story_assignment' table from the metadata
 from db.db import db, init_db, Conversation, Message, SenderType, ChildAccount, StoryAssignment, StoryTheme
@@ -800,6 +803,53 @@ def generate_themed_story():
         "title": title,
         "theme": theme
     })
+
+# post method to recieve bytes of audio file from the frontend and save it to the server
+@app.route('/upload_audio', methods=['POST'])
+def upload_audio():
+    request_data = request.get_json()
+    # Get the audio file bytes and filename from the request
+    audio_bytes = request_data.get('bytes')  # 'bytes' should match the key used in the frontend
+    audio_filename = request_data.get('filename')
+
+    if not audio_bytes:
+        return jsonify({"error": "No audio file provided"}), 400
+
+    if not audio_filename:
+        return jsonify({"error": "No filename provided"}), 400
+
+    # Ensure the 'uploads' directory exists
+    upload_dir = 'uploads'
+    if not os.path.exists(upload_dir):
+        os.makedirs(upload_dir)
+
+    # Decode the bytes (if they are base64-encoded)
+    audio_data = base64.b64decode(audio_bytes)
+
+    # Convert the bytes to an MP3 file
+    try:
+        audio = AudioSegment.from_file(io.BytesIO(audio_data), format="mp3")
+        save_path = os.path.join(upload_dir, audio_filename) + '.mp3'
+        audio.export(save_path, format="mp3")
+    except Exception as e:
+        return jsonify({"error": f"Failed to process audio file: {e}"}), 500
+
+    return jsonify({"message": "Audio file uploaded successfully", "file_path": save_path}), 200
+
+# get method to download the audio file from the server
+@app.route('/download_audio', methods=['GET'])
+def download_audio():
+    file_path = request.args.get('file_path')
+    print(f"Received file path: {file_path}")
+    if not file_path:
+        return jsonify({"error": "No file path provided"}), 400
+
+    # Check if the file exists
+    if not os.path.exists(file_path):
+        return jsonify({"error": "File not found"}), 404
+
+    # Send the mp3 back
+    return send_file(file_path, as_attachment=True, mimetype='audio/mpeg')
 
 
 if __name__ == '__main__':
