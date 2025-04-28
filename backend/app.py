@@ -17,6 +17,7 @@ import os
 from dotenv import load_dotenv
 import random
 import ast
+import heapq
 
 # Load environment variables
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
@@ -804,6 +805,31 @@ def generate_themed_story():
         "theme": theme
     })
 
+# heap data structure to store the audio files based on their filesize and the time they were created to delete the oldest & largest files first
+class AudioHeap:
+    def __init__(self):
+        self.heap = []
+
+    def push(self, file_path):
+        file_size = os.path.getsize(file_path)
+        created_at = os.path.getctime(file_path)
+        heapq.heappush(self.heap, (file_size, created_at, file_path))
+
+    def pop(self):
+        return heapq.heappop(self.heap)[2]  # Return only the file path
+
+    def remove(self, file_path):
+        self.heap = [item for item in self.heap if item[2] != file_path]
+        heapq.heapify(self.heap)
+
+    # return size of the heap
+    def size(self):
+        return len(self.heap)
+# Initialize the heap
+audio_heap = AudioHeap()
+# Set the maximum size of the heap
+MAX_HEAP_SIZE = 10  # Maximum number of audio files to keep
+
 # post method to recieve bytes of audio file from the frontend and save it to the server
 @app.route('/upload_audio', methods=['POST'])
 def upload_audio():
@@ -811,26 +837,41 @@ def upload_audio():
     # Get the audio file bytes and filename from the request
     audio_bytes = request_data.get('bytes')  # 'bytes' should match the key used in the frontend
     audio_filename = request_data.get('filename')
-
     if not audio_bytes:
         return jsonify({"error": "No audio file provided"}), 400
-
     if not audio_filename:
         return jsonify({"error": "No filename provided"}), 400
-
+    
     # Ensure the 'uploads' directory exists
     upload_dir = 'uploads'
+    save_path = os.path.join(upload_dir, audio_filename) + '.mp3'
     if not os.path.exists(upload_dir):
         os.makedirs(upload_dir)
+    # base case check if the filename is in the heap
+    if save_path in [item[2] for item in audio_heap.heap]:
+        print(f"File {audio_filename} already cached. Returning existing file.")
+        return jsonify({"message": "File already cached", "file_path": save_path}), 200
 
     # Decode the bytes (if they are base64-encoded)
     audio_data = base64.b64decode(audio_bytes)
-
     # Convert the bytes to an MP3 file
     try:
         audio = AudioSegment.from_file(io.BytesIO(audio_data), format="mp3")
-        save_path = os.path.join(upload_dir, audio_filename) + '.mp3'
-        audio.export(save_path, format="mp3")
+        try:
+            audio.export(save_path, format="mp3")
+            # check if the size of the heap is greater than the max size
+            if audio_heap.size() >= MAX_HEAP_SIZE:
+                # remove the largest file from the heap
+                largest_file = audio_heap.pop()
+                os.remove(largest_file)
+                print(f"Removed file {largest_file} from the server to make space for new files.")
+            # add the new file to the heap
+            audio_heap.push(save_path)
+            print(f"File {audio_filename} saved to {save_path}")
+        except Exception as e:
+            print(f"Error exporting audio: {e}")
+            return jsonify({"error": "Failed to save audio file"}), 500
+
     except Exception as e:
         return jsonify({"error": f"Failed to process audio file: {e}"}), 500
 

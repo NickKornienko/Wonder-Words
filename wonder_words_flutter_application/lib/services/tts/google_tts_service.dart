@@ -180,9 +180,6 @@ class GoogleTtsService {
   Future<String> _saveToBackend({required String filename, required String bytes}) async {
     try {
       // Implement your backend saving logic here
-      // For example, using Dio or http package to send a POST request
-      //print('filename: $filename');
-      //print('bytes: $bytes');
       const String backendUrl = kIsWeb ? ApiConfig.baseUrl : ApiConfig.deviceUrl;
       final response = await http.post(
         Uri.parse('$backendUrl/upload_audio'),
