@@ -5,10 +5,11 @@ import '../../models/conversation.dart';
 import '../../services/story_service.dart';
 import '../../services/tts/google_tts_service.dart';
 
+
 class StoryDetailScreen extends StatefulWidget {
   final String conversationId;
 
-  const StoryDetailScreen({
+  StoryDetailScreen({
     super.key,
     required this.conversationId,
   });
@@ -34,6 +35,12 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
   @override
   void initState() {
     super.initState();
+    // Initialize StoryService and set the context
+    _storyService = StoryService();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadMessages(); // Load messages after setting the context
+    });
+
     // Listen for TTS state changes
     _ttsService.addStateListener((isSpeaking) {
       if (mounted) {
@@ -47,11 +54,10 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Create a new instance of StoryService and set the context
-    _storyService = StoryService();
     _storyService.setContext(context);
-    // Load messages after setting the context
-    _loadMessages();
+    // No longer initialize service here
+    // previously '_storyService' init and _loadMessages() were called here
+    // it caused a context setting loop and graphical issues in ipad
   }
 
   @override
@@ -148,12 +154,12 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
       _isSending = true;
     });
     _messageController.clear();
-
+    final userID = await _storyService.getIdToken();
     try {
       // Use a placeholder user ID since the actual ID is retrieved from Firebase token
       final response = await _storyService.addToStory(
         message,
-        'placeholder',
+        userID,
         widget.conversationId,
       );
 
@@ -206,6 +212,8 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
             onPressed: _loadMessages,
           ),
         ],
+        backgroundColor: Colors.deepPurple,
+        foregroundColor: Colors.white,
       ),
       body: _buildBody(),
     );
@@ -287,9 +295,16 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
         ),
         decoration: BoxDecoration(
           color: isUser
-              ? Theme.of(context).colorScheme.primary.withOpacity(0.8)
-              : Theme.of(context).colorScheme.secondary.withOpacity(0.8),
+              ? Colors.deepPurple
+              : Colors.white,
           borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
