@@ -5,10 +5,11 @@ import '../../models/conversation.dart';
 import '../../services/story_service.dart';
 import '../../services/tts/google_tts_service.dart';
 
+
 class StoryDetailScreen extends StatefulWidget {
   final String conversationId;
 
-  const StoryDetailScreen({
+  StoryDetailScreen({
     super.key,
     required this.conversationId,
   });
@@ -34,6 +35,13 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
   @override
   void initState() {
     super.initState();
+    // Initialize StoryService and set the context
+    _storyService = StoryService();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _storyService.setContext(context);
+      _loadMessages(); // Load messages after setting the context
+    });
+
     // Listen for TTS state changes
     _ttsService.addStateListener((isSpeaking) {
       if (mounted) {
@@ -47,11 +55,9 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Create a new instance of StoryService and set the context
-    _storyService = StoryService();
-    _storyService.setContext(context);
-    // Load messages after setting the context
-    _loadMessages();
+    // No longer initialize or set context here
+    // previously '_storyService' and _loadMessages() were called here
+    // it caused a context setting loop and graphical issues in ipad
   }
 
   @override
@@ -148,12 +154,12 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
       _isSending = true;
     });
     _messageController.clear();
-
+    final userID = await _storyService.getIdToken();
     try {
       // Use a placeholder user ID since the actual ID is retrieved from Firebase token
       final response = await _storyService.addToStory(
         message,
-        'placeholder',
+        userID,
         widget.conversationId,
       );
 
