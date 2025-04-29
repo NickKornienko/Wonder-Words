@@ -38,7 +38,6 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
     // Initialize StoryService and set the context
     _storyService = StoryService();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _storyService.setContext(context);
       _loadMessages(); // Load messages after setting the context
     });
 
@@ -55,8 +54,9 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // No longer initialize or set context here
-    // previously '_storyService' and _loadMessages() were called here
+    _storyService.setContext(context);
+    // No longer initialize service here
+    // previously '_storyService' init and _loadMessages() were called here
     // it caused a context setting loop and graphical issues in ipad
   }
 
@@ -212,6 +212,8 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
             onPressed: _loadMessages,
           ),
         ],
+        backgroundColor: Colors.deepPurple,
+        foregroundColor: Colors.white,
       ),
       body: _buildBody(),
     );
@@ -293,9 +295,16 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
         ),
         decoration: BoxDecoration(
           color: isUser
-              ? Theme.of(context).colorScheme.primary.withOpacity(0.8)
-              : Theme.of(context).colorScheme.secondary.withOpacity(0.8),
+              ? Colors.deepPurple
+              : Colors.white,
           borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

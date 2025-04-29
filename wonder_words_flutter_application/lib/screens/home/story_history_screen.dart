@@ -32,7 +32,6 @@ class _StoryHistoryScreenState extends State<StoryHistoryScreen> {
     // Initialize StoryService and set the context
     _storyService = StoryService();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _storyService.setContext(context);
       _loadConversations();
     });
   }
@@ -40,6 +39,7 @@ class _StoryHistoryScreenState extends State<StoryHistoryScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    _storyService.setContext(context);
     // No longer initialize or set context here
     // previously '_storyService' and _loadMessages() were called here
     // it caused a context setting loop and graphical issues in ipad
