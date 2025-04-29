@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'dart:convert';
 import '../../models/conversation.dart';
 import '../../services/story_service.dart';
 import '../../services/tts/google_tts_service.dart';
@@ -162,7 +163,6 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
         userID,
         widget.conversationId,
       );
-
       // Reload messages to get the updated conversation
       await _loadMessages();
     } catch (e) {

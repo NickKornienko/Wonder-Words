@@ -6,6 +6,7 @@ from db.db import db, Conversation, Message, SenderType
 import mysql
 from mysql.connector import Error
 import pandas as pd
+import re
 
 model = "gpt-4o-mini"
 
@@ -320,7 +321,8 @@ def new_story_generator(query):
     # Parse the response to extract title and story
     try:
         # Split by the STORY: marker
-        parts = response.split("STORY:", 1)
+        parts = response.split(f"STORY:", 1)
+
 
         # Extract title from the first part
         title_part = parts[0].strip()
@@ -328,7 +330,6 @@ def new_story_generator(query):
         
         # Extract story from the second part (if it exists)
         story = parts[1].strip() if len(parts) > 1 else response
-
         # If we couldn't parse properly, just return the original response
         if not title or not story:
             return response
@@ -362,21 +363,32 @@ def update_conversation_history(conversation_id, extended_story):
 def add_to_story(conversation_id, query):
     # Fetch the existing conversation history from the database using conversation_id
     conversation_history = fetch_conversation_history(conversation_id)
-
-    # Extract the most recent story from the conversation history
+    ### print the conversation history and length
+    # Extract the story and combine all messages into a single story string
     existing_story = ""
     existing_title = "Continued Story"
+    story_chunks = []
+    part_number = 0
     for message in reversed(conversation_history):
         if message.sender_type == SenderType.MODEL and message.code in [2, 3]:
             # Check if the content has a title format
-            if "TITLE:" in message.content and "STORY:" in message.content:
-                parts = message.content.split("STORY:", 1)
+            if "TITLE:" in message.content and "STORY," in message.content:
+                
+                parts = re.split(r"STORY, PART #\d+:", message.content, maxsplit=1)
                 title_part = parts[0].strip()
                 existing_title = title_part.replace("TITLE:", "").strip()
-                existing_story = parts[1].strip()
+                story_part = parts[1].strip()
+                # Append the story part to the list
+                story_chunks.append(story_part)
+                # Increment the part number
+                part_number += 1
             else:
                 existing_story = message.content
-            break
+                part_number += 1
+
+    # Combine the story chunks into a single string
+    if story_chunks:
+        existing_story = "\n".join(reversed(story_chunks))
 
     if not existing_story:
         return jsonify({"message": "No existing story found in the conversation history."})
@@ -399,7 +411,7 @@ def add_to_story(conversation_id, query):
                     "TITLE: [Keep the original title]\n\n"
                     "STORY: [The extended story content]\n\n"
                     "Limit the extended part of the story to 100 words."
-                    "This should be a full rewrite of the story, not just a continuation, but it should be consistent with the existing story."
+                    "This should be a NEW addition to the story, and it should be consistent with the existing story. Avoid reiterating previously mentioned details."
                     
                 ),
             },
@@ -424,7 +436,7 @@ def add_to_story(conversation_id, query):
     # Parse the response to extract title and story
     try:
         # Split by the STORY: marker
-        parts = response.split("STORY:", 1)
+        parts = response.split(f"STORY:", 1)
 
         # Extract title from the first part
         title_part = parts[0].strip()
@@ -438,7 +450,7 @@ def add_to_story(conversation_id, query):
             return response
 
         # Return both title and story
-        return {"title": title, "story": story}
+        return {"title": title, "story": story, "part": part_number+1}
     except:
         # If parsing fails, return the original response
         return {"title": existing_title, "story": response}

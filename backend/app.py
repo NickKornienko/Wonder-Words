@@ -109,6 +109,11 @@ def handle_request():
             print(f"Handler returned code: {code}")
         except ValueError:
             return jsonify({"message": "Invalid response from handler"})
+        
+        if code == 2 and not conversation_id:  # If the user asks for a new story and there is not existing conversation
+            return jsonify({"confirmation": "Are you sure you want to start a new story? Please respond with 'yes' or 'no'.", "conversation_id": conversation_id})
+        if code == 2 and conversation_id:  # If the user asks for a new story and there is an existing conversation
+            code = 3 # set the code to 3 to add to the existing story
 
         if conversation_id:
             conversation = Conversation.query.get(conversation_id)
@@ -120,13 +125,10 @@ def handle_request():
             db.session.commit()
             conversation_id = conversation.id
 
-        if code == 2 and conversation_id:  # If the user asks for a new story and there is an existing conversation
-            return jsonify({"confirmation": "Are you sure you want to start a new story? Please respond with 'yes' or 'no'.", "conversation_id": conversation_id})
-
         print(
             f"Calling log_message with conversation_id: {conversation.id}, sender_type: {SenderType.USER}, code: {code}, query: {query}")
         log_message(conversation.id, SenderType.USER, code, query)
-
+        ### the following is never reached if the code is 2 and is handled in CONFIRM_NEW_STORY_ROUTE ###
         if code == 0:  # If the user asks for something unrelated to telling a story
             response = "Sorry, I can only tell stories. Please ask me to tell you a story."
         elif code == 1:  # If the user asks for something related to a story but violates safety rules
@@ -137,20 +139,22 @@ def handle_request():
                 title = story_data.get("title", "New Story")
                 story = story_data.get("story", "")
                 # Format the response with title and story
-                response = f"TITLE: {title}\n\nSTORY: {story}"
+                response = f"TITLE: {title}\n\n STORY, PART #1: {story}"
                 log_message(conversation.id, SenderType.MODEL, code, response)
             else:
-                response = story_data
+                response = story_data.replace('STORY:', 'STORY, PART #1:')
                 log_message(conversation.id, SenderType.MODEL, code, response)
         elif code == 3:  # If the user asks for an addition to an existing story
             story_data = add_to_existing_story(conversation.id, query)
             if isinstance(story_data, dict):
                 title = story_data.get("title", "Continued Story")
                 story = story_data.get("story", "")
+                part = story_data.get("part", 1)
                 # Format the response with title and story
-                response = f"TITLE: {title}\n\nSTORY: {story}"
+                response = f"TITLE: {title}\n\n STORY, PART #{part}: {story}"
                 log_message(conversation.id, SenderType.MODEL, code, response)
             else:
+                print('continued story data:', story_data)
                 response = story_data
                 log_message(conversation.id, SenderType.MODEL, code, response)
         else:
@@ -184,10 +188,10 @@ def confirm_new_story_route():
                 title = story_data.get("title", "New Story")
                 story = story_data.get("story", "")
                 # Format the response with title and story
-                response = f"TITLE: {title}\n\nSTORY: {story}"
+                response = f"TITLE: {title}\n\n STORY, PART #1: {story}"
                 log_message(conversation.id, SenderType.MODEL, 2, response)
             else:
-                response = story_data
+                response = story_data.replace('STORY:', 'STORY, PART #1:')
                 log_message(conversation.id, SenderType.MODEL, 2, response)
 
             return jsonify({"message": "New story initiated.", "response": response, "conversation_id": conversation.id})
@@ -896,5 +900,7 @@ def download_audio():
 if __name__ == '__main__':
     import sys
     import logging
-    logging.basicConfig(level=logging.DEBUG)
+    log = logging.getLogger('werkzeug')
+    log.setLevel(logging.ERROR)
+    logging.basicConfig(level=logging.INFO)
     app.run(host='0.0.0.0', port=5000, debug=True)
