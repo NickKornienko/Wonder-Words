@@ -538,9 +538,16 @@ def get_child_conversations():
         limit = None
     if type(assigned_stories) != list:
         assigned_stories = None
-    
-
+    if (type(assigned_stories) != None) & (len(assigned_stories) == 0):
+        print('returning none')
+        return jsonify({
+            "conversations": [],
+            "total_conversations": 0,
+            "page": page,
+            "limit": limit
+        })
     try:
+    
         # Fetch conversations for the parent
         conversations_query = Conversation.query.filter_by(user_id=parent_uid)
         total_conversations = conversations_query.count()
@@ -555,14 +562,16 @@ def get_child_conversations():
             )
             # log message to flask
             #app.logger.info(f"Conversations query: {conversations_query}")
-
         if page is not None and limit is not None and len(assigned_stories) > limit:
             # Apply pagination if both page and limit are provided & lots of assigned stories
             page = int(page)
             limit = int(limit)
+            
             # if limit is greather than the total_conversations, set it to total_conversations
             if limit >= total_conversations:
                 limit = total_conversations
+            print(f"Page: {page}, Limit: {limit}")
+            print(f"Total conversations: {total_conversations}")
             # Check if all conversations have already been returned
             if page * limit > total_conversations:
                 return jsonify({

@@ -157,14 +157,54 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
     _messageController.clear();
     final userID = await _storyService.getIdToken();
     try {
+      // user message
+      final newUserMessage = Message(
+        id: widget.conversationId,
+        content: message,
+        senderType: SenderType.USER,
+        createdAt: DateTime.now(),
+        code: 1
+      );
+      // Add the new message to the _messages list
+      setState(() {
+        _messages.add(newUserMessage);
+        _isLoading = false;
+      });
       // Use a placeholder user ID since the actual ID is retrieved from Firebase token
       final response = await _storyService.addToStory(
         message,
         userID,
         widget.conversationId,
       );
-      // Reload messages to get the updated conversation
-      await _loadMessages();
+
+      // ai response
+      final newMessage = Message(
+        id: response['conversation_id'], // Replace with the actual key from the response
+        content: response['response'],
+        senderType: SenderType.MODEL,
+        createdAt: DateTime.now(),
+        code:3
+      );
+
+      // speak the AI response
+      _speak(response['response']);
+
+      // Add the new message to the _messages list
+      setState(() {
+        _messages.add(newMessage);
+        _isLoading = false;
+      });
+
+      // Scroll to the bottom to show the new message
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_scrollController.hasClients) {
+          _scrollController.animateTo(
+            _scrollController.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+          );
+        }
+      });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: ${e.toString()}')),

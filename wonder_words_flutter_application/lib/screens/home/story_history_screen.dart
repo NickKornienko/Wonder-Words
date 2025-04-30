@@ -163,12 +163,15 @@ class _StoryHistoryScreenState extends State<StoryHistoryScreen> {
       const isWeb = kIsWeb;
       const url = isWeb ? ApiConfig.baseUrl : ApiConfig.deviceUrl;
 
-      final response = await http.get(
+      final response = await http.post(
         Uri.parse('$url/get_child_accounts'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
+        body: json.encode({
+          'parent_uid': authProvider.userData?.uid,
+        }),
       );
 
       if (response.statusCode == 200) {
