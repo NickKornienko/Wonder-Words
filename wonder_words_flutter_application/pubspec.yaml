@@ -85,6 +85,7 @@ flutter:
     - assets/splashscreen.png
     - assets/.env
     - assets/words-bg.png
+    - assets/bottomFrog.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware

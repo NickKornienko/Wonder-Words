@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
+import 'package:wonder_words_flutter_application/colors.dart';
 import '../../models/conversation.dart';
 import '../../services/story_service.dart';
 import '../../services/auth/auth_provider.dart';
@@ -66,7 +68,6 @@ class _StoryHistoryScreenState extends State<StoryHistoryScreen> {
       if (authProvider.isChild && _isLoadingMore && !_hasMoreBooks) {
         setState(() {
           _isLoadingMore = false;
-
         });
         return;
       }
@@ -76,7 +77,8 @@ class _StoryHistoryScreenState extends State<StoryHistoryScreen> {
         // convert assignedStories to a list of conversation IDs for use with the API
         final assignedStoriesIds =
             assignedStories.map((story) => story.conversationId).toList();
-        final childConversations = await _storyService.getConversations(page:_currentPage, limit:20, assignedStories: assignedStoriesIds);
+        final childConversations = await _storyService.getConversations(
+            page: _currentPage, limit: 20, assignedStories: assignedStoriesIds);
         conversations = childConversations;
         // Check if childConversations is < assignedStoriesIds.length
         if (childConversations.length < assignedStoriesIds.length) {
@@ -89,7 +91,8 @@ class _StoryHistoryScreenState extends State<StoryHistoryScreen> {
           });
         }
       } else {
-        conversations = await _storyService.getConversations(page: _currentPage, limit: 20);
+        conversations =
+            await _storyService.getConversations(page: _currentPage, limit: 20);
       }
 
       setState(() {
@@ -122,28 +125,38 @@ class _StoryHistoryScreenState extends State<StoryHistoryScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(isChild ? 'My Books' : 'My Stories'),
+        automaticallyImplyLeading: false,
+        title: Text(
+          isChild ? 'My Stories' : 'Library',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            fontFamily: GoogleFonts.montserrat(
+              fontWeight: FontWeight.bold,
+            ).fontFamily,
+            color: Colors.black,
+          ),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadConversations,
           ),
         ],
-        backgroundColor: Colors.deepPurple,
-        foregroundColor: Colors.white,
+        backgroundColor: ColorTheme.accentYellowColor,
+        foregroundColor: Colors.black,
       ),
       body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.purple[50]!,
-              Colors.purple[100]!,
-            ],
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: ColorTheme.backgroundColor,
+            image: const DecorationImage(
+              image: AssetImage('assets/bottomFrog.png'),
+              fit: BoxFit.cover,
+            ),
           ),
+          child: _buildBody(),
         ),
-        child: _buildBody(),
       ),
     );
   }
@@ -448,20 +461,19 @@ class _StoryHistoryScreenState extends State<StoryHistoryScreen> {
             children: [
               Expanded(
                 child: GridView.builder(
-                  padding: const EdgeInsets.only(
-                      bottom: 16), // Add bottom padding to avoid overflow
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: crossAxisCount, // Fixed number of books per row
-                    childAspectRatio: 0.75, // Taller than wide for book appearance
-                    crossAxisSpacing: 4, // Small horizontal spacing
-                    mainAxisSpacing: 4, // Small vertical spacing
-                  ),
-                  itemCount: _conversations.length,
-                  itemBuilder: (context, index) {
-                    final conversation = _conversations[index];
-                    return _buildConversationCard(conversation);
-                  },
-                ),
+                    padding: const EdgeInsets.only(bottom: 16),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount:
+                          (constraints.maxWidth / 180).floor().clamp(2, 4),
+                      childAspectRatio: 0.6,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 16,
+                    ),
+                    itemCount: _conversations.length,
+                    itemBuilder: (context, index) {
+                      final conversation = _conversations[index];
+                      return _buildConversationCard(conversation, index);
+                    }),
               ),
               if (_hasMoreBooks && !_isLoadingMore)
                 ElevatedButton(
@@ -487,248 +499,119 @@ class _StoryHistoryScreenState extends State<StoryHistoryScreen> {
     );
   }
 
-  Widget _buildConversationCard(Conversation conversation) {
+  Widget _buildConversationCard(Conversation conversation, int index) {
     final dateFormat = DateFormat('MMM d, yyyy');
     final formattedDate = dateFormat.format(conversation.createdAt);
 
-    // Generate a random color for the book cover
-    final List<Color> bookColors = [
-      Colors.red[400]!,
-      Colors.blue[400]!,
-      Colors.green[400]!,
-      Colors.orange[400]!,
-      Colors.purple[400]!,
-      Colors.teal[400]!,
-      Colors.indigo[400]!,
-      Colors.pink[400]!,
+    final bookColors = [
+      ColorTheme.accentBlueColor,
+      ColorTheme.darkPurple,
+      ColorTheme.primaryColor,
+      ColorTheme.secondaryColor,
     ];
 
-    // Use the conversation ID to consistently select a color
-    final colorIndex = conversation.id.hashCode % bookColors.length;
-    final bookColor = bookColors[colorIndex.abs()];
+    final bookColor = bookColors[index % bookColors.length];
+    final preview = conversation.preview.trim();
+    final titleMatch =
+        RegExp(r'TITLE:\s*(.*?)\s*STORY.*', dotAll: true, caseSensitive: false)
+            .firstMatch(preview);
+    final title = titleMatch != null ? titleMatch.group(1)!.trim() : preview;
 
-    // Extract title from the preview if it's in the TITLE: STORY: format
-    String title;
-    if (conversation.preview.contains("TITLE:") &&
-        conversation.preview.contains("STORY:")) {
-      final parts = conversation.preview.split("STORY:");
-      final titlePart = parts[0].trim();
-      title = titlePart.replaceFirst("TITLE:", "").trim();
-    } else {
-      // Fallback to the old method if the format is not found
-      final previewWords = conversation.preview.split(' ');
-      title = previewWords.length > 5
-          ? '${previewWords.take(5).join(' ')}...'
-          : conversation.preview;
-    }
-
-    return Card(
-      margin: const EdgeInsets.all(1), // Small margin
-      elevation: 2, // Slight elevation for depth
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(4), // Slightly rounded corners
-      ),
+    return Container(
+      margin: const EdgeInsets.all(8),
       child: InkWell(
         onTap: () {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => StoryDetailScreen(
-                conversationId: conversation.id,
-              ),
+              builder: (context) =>
+                  StoryDetailScreen(conversationId: conversation.id),
             ),
           );
         },
         child: Column(
           children: [
-            // Book cover - with proportional scaling
-            Expanded(
-              child: Transform.scale(
-                scale: 0.95, // Adjust this factor to scale the book (e.g., 1.2 = 120% size)
+            // Book Cover — full width, flush to sides
+            SizedBox(
+              height: 260,
+              child: ClipRRect(
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(16),
+                  topRight: Radius.circular(16),
+                ),
                 child: Container(
+                  width: double.infinity,
                   decoration: BoxDecoration(
+                    color: bookColor,
                     gradient: LinearGradient(
+                      colors: [bookColor, bookColor.withOpacity(0.8)],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: [
-                        bookColor,
-                        bookColor.withOpacity(0.7),
-                      ],
-                    ),
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(4),
-                      topRight: Radius.circular(12),
-                      bottomLeft: Radius.circular(4),
-                      bottomRight: Radius.circular(12),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.3),
-                        blurRadius: 5,
-                        offset: const Offset(3, 3),
-                      ),
-                    ],
-                    border: Border.all(
-                      color: Colors.white,
-                      width: 1,
                     ),
                   ),
-                  child: Stack(
-                    children: [
-                      // Book spine
-                      Positioned(
-                        left: 0,
-                        top: 0,
-                        bottom: 0,
-                        width: 12,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: bookColor.withOpacity(0.8),
-                            borderRadius: const BorderRadius.only(
-                              topLeft: Radius.circular(4),
-                              bottomLeft: Radius.circular(4),
-                            ),
-                            border: Border.all(
-                              color: Colors.white,
-                              width: 1,
-                            ),
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          title,
+                          style: GoogleFonts.montserrat(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
                           ),
+                          textAlign:
+                              TextAlign.center, // centers lines if multiline
                         ),
-                      ),
-
-                      // Book content
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(0, 0, 0, 0), // General padding for the column
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Book title
-                            Expanded(
-                              child: Padding(
-                                padding: const EdgeInsets.only(left: 20, top:25,  right: 8, bottom: 2.0), // Add bottom padding for spacing
-                                child: Text(
-                                  title,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12,
-                                    shadows: [
-                                      Shadow(
-                                        color: Colors.black54,
-                                        blurRadius: 2,
-                                        offset: Offset(1, 1),
-                                      ),
-                                    ],
-                                  ),
-                                  maxLines: 3,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ),
-
-                            // Date
-                            Padding(
-                                padding: const EdgeInsets.only(left: 20, top:6,  right: 8, bottom: 2.0), // Add smaller bottom padding
-                                child: Text(
-                                  formattedDate,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                            ),
-
-                            // Message count
-                            Expanded(
-                              child: Padding(
-                                padding: const EdgeInsets.only(left: 20, top:0,  right: 8, bottom: 2.0), // Add top padding for spacing
-                                child: Text(
-                                  '${conversation.messageCount} messages',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      // Book icon
-                      Positioned(
-                        right: 8,
-                        bottom: 8,
-                        child: Icon(
-                          Icons.auto_stories,
-                          color: Colors.white.withOpacity(0.7),
-                          size: 24,
-                        ),
-                      ),
-                    ],
-                  ),
+                      ]),
                 ),
               ),
             ),
 
-            // Action buttons - more compact and better aligned
-            Container(
-              width: double.infinity,
-              height: 30,
-              color: Colors.grey[100],
-              child: Consumer<AuthProvider>(
-                builder: (context, authProvider, child) {
-                  return Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            // White "page base"
+            SizedBox(
+              height: 60,
+              child: Material(
+                elevation: 5,
+                shadowColor: Colors.black.withOpacity(0.15),
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(16),
+                  bottomRight: Radius.circular(16),
+                ),
+                clipBehavior: Clip.antiAlias, // adjust as needed
+                child: Container(
+                  width: double.infinity,
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.only(
+                      bottomLeft: Radius.circular(16),
+                      bottomRight: Radius.circular(16),
+                    ),
+                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment:
+                        CrossAxisAlignment.center, // vertical alignment
                     children: [
-                      // Assign button - only show for parent accounts
-                      if (!authProvider.isChild)
-                        Expanded(
-                          child: IconButton(
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                            onPressed: () => _showAssignStoryDialog(conversation),
-                            icon: const Icon(Icons.child_care, size: 16),
-                            color: Colors.deepPurple,
-                            tooltip: 'Assign to Child',
-                          ),
-                        ),
-                      // View button
-                      Expanded(
-                        child: IconButton(
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => StoryDetailScreen(
-                                  conversationId: conversation.id,
-                                ),
-                              ),
-                            );
-                          },
-                          icon: const Icon(Icons.visibility, size: 16),
-                          color: Colors.deepPurple,
-                          tooltip: 'View Story',
+                      Text(
+                        'read story',
+                        style: GoogleFonts.montserrat(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w400,
+                          color: Colors.black54,
                         ),
                       ),
-                      // Delete button - only show for parent accounts
-                      if (!authProvider.isChild)
-                        Expanded(
-                          child: IconButton(
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                            onPressed: () =>
-                                _showDeleteConfirmationDialog(conversation),
-                            icon: const Icon(Icons.delete, size: 16),
-                            color: Colors.red,
-                            tooltip: 'Delete Story',
-                          ),
-                        ),
+                      const Spacer(),
+                      const Image(
+                        image: AssetImage('assets/frog.png'),
+                        width: 40,
+                        height: 40,
+                      ),
                     ],
-                  );
-                },
+                  ),
+                ),
               ),
             ),
           ],
@@ -767,7 +650,7 @@ class _StoryHistoryScreenState extends State<StoryHistoryScreen> {
           context: context,
           barrierDismissible: false,
           builder: (context) => const Center(
-        child: CircularProgressIndicator(),
+            child: CircularProgressIndicator(),
           ),
         );
 
@@ -780,10 +663,10 @@ class _StoryHistoryScreenState extends State<StoryHistoryScreen> {
         // Show success message
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Story deleted successfully'),
-          backgroundColor: Colors.green,
-        ),
+            const SnackBar(
+              content: Text('Story deleted successfully'),
+              backgroundColor: Colors.green,
+            ),
           );
         }
 
@@ -798,10 +681,10 @@ class _StoryHistoryScreenState extends State<StoryHistoryScreen> {
         // Show error message
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to delete story: $e'),
-          backgroundColor: Colors.red,
-        ),
+            SnackBar(
+              content: Text('Failed to delete story: $e'),
+              backgroundColor: Colors.red,
+            ),
           );
         }
       }

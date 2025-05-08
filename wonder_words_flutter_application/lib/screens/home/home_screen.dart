@@ -43,6 +43,7 @@ class _HomeScreenState extends State<HomeScreen> {
     // Screens for child account
     final List<Widget> childScreens = [
       const KidFriendlyStoryScreen(),
+      const StoryHistoryScreen(),
       const ProfileScreen(),
     ];
 
@@ -66,8 +67,8 @@ class _HomeScreenState extends State<HomeScreen> {
         destinations: [
           // Story destination (for both parent and child)
           const NavigationDestination(
-            icon: Icon(Icons.auto_stories),
-            label: 'Stories',
+            icon: Icon(Icons.home),
+            label: 'Home',
           ),
 
           // Child accounts destination (parent only)
@@ -75,6 +76,11 @@ class _HomeScreenState extends State<HomeScreen> {
             const NavigationDestination(
               icon: Icon(Icons.family_restroom),
               label: 'Children',
+            ),
+          if (authProvider.isChild)
+            const NavigationDestination(
+              icon: Icon(Icons.auto_stories),
+              label: 'Library',
             ),
 
           // Profile destination (for both parent and child)
