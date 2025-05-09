@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:wonder_words_flutter_application/colors.dart';
 import '../../services/auth/auth_provider.dart';
 import '../auth/login_screen.dart';
 import 'story_screen.dart';
@@ -56,6 +57,9 @@ class _HomeScreenState extends State<HomeScreen> {
         children: screens,
       ),
       bottomNavigationBar: NavigationBar(
+        surfaceTintColor: ColorTheme.accentBlueColor,
+        indicatorColor: ColorTheme.accentBlueColor,
+        indicatorShape: const CircleBorder(),
         selectedIndex: _selectedIndex,
         onDestinationSelected: (index) {
           setState(() {
@@ -67,8 +71,8 @@ class _HomeScreenState extends State<HomeScreen> {
         destinations: [
           // Story destination (for both parent and child)
           const NavigationDestination(
-            icon: Icon(Icons.home),
-            label: 'Home',
+            icon: Icon(Icons.book),
+            label: 'Create',
           ),
 
           // Child accounts destination (parent only)
@@ -79,7 +83,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           if (authProvider.isChild)
             const NavigationDestination(
-              icon: Icon(Icons.auto_stories),
+              icon: Icon(Icons.bookmark),
               label: 'Library',
             ),
 

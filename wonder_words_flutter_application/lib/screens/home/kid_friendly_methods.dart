@@ -108,10 +108,6 @@ Widget buildContinuationButtons(List<Map<String, dynamic>> continuationOptions,
                     offset: Offset(0, 3),
                   ),
                 ],
-                border: Border.all(
-                  color: Colors.white,
-                  width: 2,
-                ),
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -126,10 +122,11 @@ Widget buildContinuationButtons(List<Map<String, dynamic>> continuationOptions,
                   Expanded(
                       child: Text(
                     option['name'],
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
+                      fontFamily: GoogleFonts.montserrat().fontFamily,
                     ),
                     textAlign: TextAlign.center,
                   )),

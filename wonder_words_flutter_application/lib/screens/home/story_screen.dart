@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'package:wonder_words_flutter_application/colors.dart';
 import '../../services/auth/auth_provider.dart';
 import '../../services/story_service.dart';
 import '../../services/tts/google_tts_service.dart';
@@ -24,15 +26,20 @@ class StoryScreen extends StatefulWidget {
       Function refreshMessages,
       {bool isStoryDetailsForm = false}) {
     return AppBar(
-      title: const Text('Wonder Words'),
-      backgroundColor: Colors.deepPurple,
-      foregroundColor: Colors.white,
+      title: Text('WonderWords',
+          style: TextStyle(
+              color: ColorTheme.darkPurple,
+              fontFamily: GoogleFonts.montserrat(fontWeight: FontWeight.bold)
+                  .fontFamily)),
+      backgroundColor: ColorTheme.accentYellowColor,
+      foregroundColor: Colors.black,
       leading: isStoryDetailsForm
           ? IconButton(
               icon: const Icon(Icons.arrow_back),
               onPressed: () {
                 Navigator.pop(context);
               },
+              color: ColorTheme.accentBlueColor,
             )
           : null,
       actions: [
@@ -41,6 +48,7 @@ class StoryScreen extends StatefulWidget {
             icon: const Icon(Icons.record_voice_over),
             onPressed: () => showVoiceInfoDialog(),
             tooltip: 'Select Voice',
+            color: ColorTheme.accentBlueColor,
           ),
         IconButton(
           icon: const Icon(Icons.history),
@@ -380,16 +388,7 @@ class StoryScreenState extends State<StoryScreen> {
       appBar: StoryScreen.buildAppBar(
           context, _showVoiceInfoDialog, _refreshMessages),
       body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.purple[50]!,
-              Colors.purple[100]!,
-            ],
-          ),
-        ),
+        decoration: BoxDecoration(color: ColorTheme.backgroundColor),
         child: Column(
           children: [
             // Story suggestions for children
@@ -466,7 +465,8 @@ class StoryScreenState extends State<StoryScreen> {
                     heroTag: 'micButton',
                     onPressed: _startListening,
                     backgroundColor:
-                        _isListening ? Colors.red : Colors.deepPurple,
+                        _isListening ? Colors.red : ColorTheme.accentBlueColor,
+                    foregroundColor: ColorTheme.darkPurple,
                     child: Icon(_isListening ? Icons.mic : Icons.mic_none),
                     mini: true,
                   ),
@@ -474,7 +474,8 @@ class StoryScreenState extends State<StoryScreen> {
                   FloatingActionButton(
                     heroTag: 'sendButton',
                     onPressed: _sendMessage,
-                    backgroundColor: Colors.deepPurple,
+                    backgroundColor: ColorTheme.accentBlueColor,
+                    foregroundColor: ColorTheme.darkPurple,
                     child: const Icon(Icons.send),
                     mini: true,
                   ),
@@ -511,7 +512,7 @@ class StoryScreenState extends State<StoryScreen> {
         margin: const EdgeInsets.symmetric(vertical: 8),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: message.isUser ? Colors.deepPurple : Colors.white,
+          color: message.isUser ? ColorTheme.accentBlueColor : Colors.white,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
@@ -530,7 +531,7 @@ class StoryScreenState extends State<StoryScreen> {
             Text(
               message.content,
               style: TextStyle(
-                color: message.isUser ? Colors.white : Colors.black87,
+                color: message.isUser ? ColorTheme.darkPurple : Colors.black87,
                 fontSize: 16,
               ),
             ),
@@ -540,7 +541,7 @@ class StoryScreenState extends State<StoryScreen> {
                 child: IconButton(
                   icon: Icon(
                     _isSpeaking ? Icons.stop : Icons.volume_up,
-                    color: Colors.deepPurple,
+                    color: ColorTheme.darkPurple,
                     size: 20,
                   ),
                   onPressed: () => _speak(message.content),

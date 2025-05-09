@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
+import 'package:wonder_words_flutter_application/colors.dart';
 import 'dart:convert';
 import '../../services/auth/auth_provider.dart';
 import '../../services/auth/auth_service.dart';
@@ -8,7 +10,6 @@ import '../../config/api_config.dart';
 import 'kid_friendly_story_screen.dart';
 // kisweb
 import 'package:flutter/foundation.dart';
-
 
 class ChildAccountsScreen extends StatefulWidget {
   const ChildAccountsScreen({Key? key}) : super(key: key);
@@ -198,20 +199,18 @@ class _ChildAccountsScreenState extends State<ChildAccountsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Child Accounts'),
-        backgroundColor: Colors.deepPurple,
-        foregroundColor: Colors.white,
+        title: Text(
+          'Child Accounts',
+          style: TextStyle(
+              fontFamily: GoogleFonts.montserrat(fontWeight: FontWeight.bold)
+                  .fontFamily),
+        ),
+        backgroundColor: ColorTheme.accentYellowColor,
+        foregroundColor: Colors.black,
       ),
       body: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.purple[50]!,
-              Colors.purple[100]!,
-            ],
-          ),
+          color: ColorTheme.backgroundColor,
         ),
         child: Column(
           children: [
@@ -347,8 +346,8 @@ class _ChildAccountsScreenState extends State<ChildAccountsScreen> {
                           ElevatedButton(
                             onPressed: _isLoading ? null : _createChildAccount,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.deepPurple,
-                              foregroundColor: Colors.white,
+                              backgroundColor: ColorTheme.accentBlueColor,
+                              foregroundColor: ColorTheme.darkPurple,
                             ),
                             child: _isLoading
                                 ? const SizedBox(
@@ -392,7 +391,7 @@ class _ChildAccountsScreenState extends State<ChildAccountsScreen> {
                   _isCreating = true;
                 });
               },
-              backgroundColor: Colors.deepPurple,
+              backgroundColor: ColorTheme.accentBlueColor,
               child: const Icon(Icons.add),
             )
           : null,
@@ -487,21 +486,24 @@ class _ChildAccountsScreenState extends State<ChildAccountsScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(
-                  Icons.family_restroom,
-                  size: 80,
-                  color: Colors.deepPurple,
+                const Image(
+                  image: AssetImage('assets/frog.png'),
+                  width: 200, // Set the desired width
+                  height: 200, // Set the desired height
                 ),
-                const SizedBox(height: 24),
-                const Text(
+                const SizedBox(height: 5),
+                Text(
                   'Child Accounts',
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: Colors.deepPurple,
+                    color: ColorTheme.darkPurple,
+                    fontFamily: GoogleFonts.montserrat(
+                      fontWeight: FontWeight.bold,
+                    ).fontFamily,
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 5),
                 const Text(
                   'Create child accounts to let your children enjoy personalized stories.',
                   textAlign: TextAlign.center,
@@ -510,7 +512,7 @@ class _ChildAccountsScreenState extends State<ChildAccountsScreen> {
                     color: Colors.black87,
                   ),
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 10),
                 const Text(
                   'No child accounts yet',
                   style: TextStyle(
@@ -519,18 +521,26 @@ class _ChildAccountsScreenState extends State<ChildAccountsScreen> {
                     color: Colors.grey,
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 5),
                 ElevatedButton.icon(
                   onPressed: () {
                     setState(() {
                       _isCreating = true;
                     });
                   },
-                  icon: const Icon(Icons.add),
-                  label: const Text('Create Child Account'),
+                  icon: Icon(
+                    Icons.add,
+                    color: ColorTheme.darkPurple,
+                  ),
+                  label: Text(
+                    'Create Child Account',
+                    style: TextStyle(
+                      fontFamily: GoogleFonts.montserrat().fontFamily,
+                    ),
+                  ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.deepPurple,
-                    foregroundColor: Colors.white,
+                    backgroundColor: ColorTheme.accentBlueColor,
+                    foregroundColor: ColorTheme.darkPurple,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 24,
                       vertical: 12,
@@ -548,6 +558,7 @@ class _ChildAccountsScreenState extends State<ChildAccountsScreen> {
           itemBuilder: (context, index) {
             final account = childAccounts[index];
             return Card(
+              color: Colors.white,
               elevation: 2,
               margin: const EdgeInsets.only(bottom: 16),
               shape: RoundedRectangleBorder(
@@ -558,22 +569,22 @@ class _ChildAccountsScreenState extends State<ChildAccountsScreen> {
                 child: ListTile(
                   contentPadding: const EdgeInsets.all(16),
                   leading: CircleAvatar(
-                    backgroundColor: Colors.orange,
+                    backgroundColor: ColorTheme.orange,
                     radius: 24,
-                    child: Text(
-                      account['display_name']?[0]?.toUpperCase() ?? 'C',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
+                    child: const Image(
+                      image: AssetImage('assets/frog.png'),
+                      width: 40, // Set the desired width
+                      height: 40, // Set the desired height
                     ),
                   ),
                   title: Text(
                     account['display_name'] ?? 'Child',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
+                      fontFamily:
+                          GoogleFonts.montserrat(fontWeight: FontWeight.bold)
+                              .fontFamily,
                     ),
                   ),
                   subtitle: Column(
@@ -584,9 +595,9 @@ class _ChildAccountsScreenState extends State<ChildAccountsScreen> {
                       Text('Age: ${account['age']}'),
                     ],
                   ),
-                  trailing: const Icon(
+                  trailing: Icon(
                     Icons.arrow_forward_ios,
-                    color: Colors.deepPurple,
+                    color: ColorTheme.accentBlueColor,
                     size: 16,
                   ),
                 ),

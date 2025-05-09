@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'package:wonder_words_flutter_application/colors.dart';
 import 'dart:convert';
 import '../../models/conversation.dart';
 import '../../services/story_service.dart';
 import '../../services/tts/google_tts_service.dart';
-
 
 class StoryDetailScreen extends StatefulWidget {
   final String conversationId;
@@ -159,12 +160,11 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
     try {
       // user message
       final newUserMessage = Message(
-        id: widget.conversationId,
-        content: message,
-        senderType: SenderType.USER,
-        createdAt: DateTime.now(),
-        code: 1
-      );
+          id: widget.conversationId,
+          content: message,
+          senderType: SenderType.USER,
+          createdAt: DateTime.now(),
+          code: 1);
       // Add the new message to the _messages list
       setState(() {
         _messages.add(newUserMessage);
@@ -179,12 +179,12 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
 
       // ai response
       final newMessage = Message(
-        id: response['conversation_id'], // Replace with the actual key from the response
-        content: response['response'],
-        senderType: SenderType.MODEL,
-        createdAt: DateTime.now(),
-        code:3
-      );
+          id: response[
+              'conversation_id'], // Replace with the actual key from the response
+          content: response['response'],
+          senderType: SenderType.MODEL,
+          createdAt: DateTime.now(),
+          code: 3);
 
       // speak the AI response
       _speak(response['response']);
@@ -240,20 +240,28 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Story Details'),
+        title: Text(
+          'Story Details',
+          style: TextStyle(
+            fontFamily: GoogleFonts.montserrat(
+              fontWeight: FontWeight.bold,
+            ).fontFamily,
+          ),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.record_voice_over),
             onPressed: _showVoiceInfoDialog,
             tooltip: 'Voice Information',
+            color: ColorTheme.accentBlueColor,
           ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadMessages,
           ),
         ],
-        backgroundColor: Colors.deepPurple,
-        foregroundColor: Colors.white,
+        backgroundColor: ColorTheme.accentYellowColor,
+        foregroundColor: Colors.black,
       ),
       body: _buildBody(),
     );
@@ -261,8 +269,11 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(),
+      return Container(
+        color: ColorTheme.backgroundColor, // 👈 Set your theme background
+        child: const Center(
+          child: CircularProgressIndicator(),
+        ),
       );
     }
 
@@ -287,23 +298,26 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
       );
     }
 
-    return Column(
-      children: [
-        Expanded(
-          child: _messages.isEmpty
-              ? const Center(child: Text('No messages yet'))
-              : ListView.builder(
-                  controller: _scrollController,
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _messages.length,
-                  itemBuilder: (context, index) {
-                    final message = _messages[index];
-                    return _buildMessageBubble(message);
-                  },
-                ),
-        ),
-        _buildMessageInput(),
-      ],
+    return Container(
+      color: ColorTheme.backgroundColor, // 👈 Set background here
+      child: Column(
+        children: [
+          Expanded(
+            child: _messages.isEmpty
+                ? const Center(child: Text('No messages yet'))
+                : ListView.builder(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _messages.length,
+                    itemBuilder: (context, index) {
+                      final message = _messages[index];
+                      return _buildMessageBubble(message);
+                    },
+                  ),
+          ),
+          _buildMessageInput(),
+        ],
+      ),
     );
   }
 
@@ -319,10 +333,13 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
     if (!isUser &&
         message.content.contains("TITLE:") &&
         message.content.contains("STORY:")) {
-      final parts = message.content.split("STORY:");
-      final titlePart = parts[0].trim();
-      title = titlePart.replaceFirst("TITLE:", "").trim();
-      content = parts[1].trim();
+      final match = RegExp(r'TITLE:\s*(.*?)\s*STORY:\s*(.*)',
+              dotAll: true, caseSensitive: false)
+          .firstMatch(message.content);
+      if (match != null) {
+        title = match.group(1)?.trim();
+        content = match.group(2)?.trim() ?? '';
+      }
     }
 
     return Align(
@@ -334,9 +351,7 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
           maxWidth: MediaQuery.of(context).size.width * 0.75,
         ),
         decoration: BoxDecoration(
-          color: isUser
-              ? Colors.deepPurple
-              : Colors.white,
+          color: isUser ? ColorTheme.accentBlueColor : Colors.white,
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
@@ -356,9 +371,10 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
                 child: Text(
                   title,
                   style: TextStyle(
-                    color: isUser ? Colors.white : Colors.black,
+                    color: isUser ? ColorTheme.darkPurple : Colors.black,
                     fontWeight: FontWeight.bold,
-                    fontSize: 16,
+                    fontSize: 20,
+                    fontFamily: GoogleFonts.montserrat().fontFamily,
                   ),
                 ),
               ),
@@ -430,7 +446,8 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
           FloatingActionButton(
             heroTag: 'micButton',
             onPressed: _startListening,
-            backgroundColor: _isListening ? Colors.red : Colors.deepPurple,
+            backgroundColor: ColorTheme.accentBlueColor,
+            foregroundColor: ColorTheme.darkPurple,
             child: Icon(_isListening ? Icons.mic : Icons.mic_none),
             mini: true,
           ),
@@ -438,7 +455,8 @@ class _StoryDetailScreenState extends State<StoryDetailScreen> {
           FloatingActionButton(
             heroTag: 'sendButton',
             onPressed: _sendMessage,
-            backgroundColor: Colors.deepPurple,
+            backgroundColor: ColorTheme.accentBlueColor,
+            foregroundColor: ColorTheme.darkPurple,
             child: const Icon(Icons.send),
             mini: true,
           ),

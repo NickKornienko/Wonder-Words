@@ -69,7 +69,7 @@ class _KidFriendlyStoryScreenState extends State<KidFriendlyStoryScreen>
     {
       'name': 'Pirates',
       'icon': Icons.sailing,
-      'color': ColorTheme.accentYellowColor,
+      'color': Colors.brown,
       'theme': 'pirates'
     },
     {
@@ -97,22 +97,22 @@ class _KidFriendlyStoryScreenState extends State<KidFriendlyStoryScreen>
     {
       'name': 'What happens next?',
       'icon': Icons.arrow_forward,
-      'color': Colors.blue,
+      'color': ColorTheme.accentBlueColor,
     },
     {
       'name': 'Different ending',
       'icon': Icons.auto_awesome,
-      'color': Colors.purple,
+      'color': ColorTheme.secondaryColor,
     },
     {
       'name': 'Make it funny!',
       'icon': Icons.emoji_emotions,
-      'color': Colors.amber,
+      'color': ColorTheme.orange,
     },
     {
       'name': 'Add a twist!',
       'icon': Icons.loop,
-      'color': Colors.red,
+      'color': ColorTheme.pink,
     },
   ];
 
@@ -507,421 +507,322 @@ class _KidFriendlyStoryScreenState extends State<KidFriendlyStoryScreen>
       body: Container(
         color: ColorTheme.primaryColor,
         child: SafeArea(
-          child: Column(
-            children: [
-              // Animated app bar with bouncing elements
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: ColorTheme.accentYellowColor,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 8,
-                      offset: Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: SingleChildScrollView(
+            controller: _scrollController,
+            physics: const BouncingScrollPhysics(),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: MediaQuery.of(context).size.height,
+              ),
+              child: IntrinsicHeight(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Row(
-                      children: [
-                        RichText(
-                          text: TextSpan(
+                    // Animated app bar with bouncing elements
+                    Container(
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: ColorTheme.accentYellowColor,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 8,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
                             children: [
-                              TextSpan(
-                                text: 'W',
-                                style: TextStyle(
-                                  fontSize: 22,
-                                  color: ColorTheme.textColor,
-                                  fontFamily: GoogleFonts.montserrat(
-                                    fontWeight: FontWeight.bold,
-                                  ).fontFamily,
+                              RichText(
+                                text: TextSpan(
+                                  children: [
+                                    TextSpan(
+                                      text: 'W',
+                                      style: TextStyle(
+                                        fontSize: 22,
+                                        color: ColorTheme.textColor,
+                                        fontFamily: GoogleFonts.montserrat(
+                                          fontWeight: FontWeight.bold,
+                                        ).fontFamily,
+                                      ),
+                                    ),
+                                    TextSpan(
+                                      text: 'o',
+                                      style: TextStyle(
+                                        fontSize: 22,
+                                        color: ColorTheme
+                                            .primaryColor, // Change this to your desired color
+                                        fontFamily: GoogleFonts.montserrat(
+                                          fontWeight: FontWeight.bold,
+                                        ).fontFamily,
+                                      ),
+                                    ),
+                                    TextSpan(
+                                      text: 'nd',
+                                      style: TextStyle(
+                                        fontSize: 22,
+                                        color: ColorTheme.textColor,
+                                        fontFamily: GoogleFonts.montserrat(
+                                          fontWeight: FontWeight.bold,
+                                        ).fontFamily,
+                                      ),
+                                    ),
+                                    TextSpan(
+                                      text: 'e',
+                                      style: TextStyle(
+                                        fontSize: 22,
+                                        color: ColorTheme.accentBlueColor,
+                                        fontFamily: GoogleFonts.montserrat(
+                                          fontWeight: FontWeight.bold,
+                                        ).fontFamily,
+                                      ),
+                                    ),
+                                    TextSpan(
+                                      text: 'rW',
+                                      style: TextStyle(
+                                        fontSize: 22,
+                                        color: ColorTheme.textColor,
+                                        fontFamily: GoogleFonts.montserrat(
+                                          fontWeight: FontWeight.bold,
+                                        ).fontFamily,
+                                      ),
+                                    ),
+                                    TextSpan(
+                                      text: 'o',
+                                      style: TextStyle(
+                                        fontSize: 22,
+                                        color: ColorTheme
+                                            .secondaryColor, // Change this to your desired color
+                                        fontFamily: GoogleFonts.montserrat(
+                                          fontWeight: FontWeight.bold,
+                                        ).fontFamily,
+                                      ),
+                                    ),
+                                    TextSpan(
+                                      text: 'rds',
+                                      style: TextStyle(
+                                        fontSize: 22,
+                                        color: ColorTheme.textColor,
+                                        fontFamily: GoogleFonts.montserrat(
+                                          fontWeight: FontWeight.bold,
+                                        ).fontFamily,
+                                      ),
+                                    ),
+                                  ],
                                 ),
+                              )
+                            ],
+                          ),
+                          Row(
+                            children: [
+                              // Voice selection button
+                              IconButton(
+                                icon: Icon(
+                                  Icons.record_voice_over,
+                                  color: ColorTheme.secondaryColor,
+                                  size: 28,
+                                ),
+                                onPressed: _showVoiceSelectionDialog,
+                                tooltip: 'Choose a Voice',
                               ),
-                              TextSpan(
-                                text: 'o',
-                                style: TextStyle(
-                                  fontSize: 22,
-                                  color: ColorTheme
-                                      .primaryColor, // Change this to your desired color
-                                  fontFamily: GoogleFonts.montserrat(
-                                    fontWeight: FontWeight.bold,
-                                  ).fontFamily,
+
+                              // New story button
+                              IconButton(
+                                icon: Icon(
+                                  Icons.refresh,
+                                  color: Colors.black,
+                                  size: 28,
                                 ),
-                              ),
-                              TextSpan(
-                                text: 'nd',
-                                style: TextStyle(
-                                  fontSize: 22,
-                                  color: ColorTheme.textColor,
-                                  fontFamily: GoogleFonts.montserrat(
-                                    fontWeight: FontWeight.bold,
-                                  ).fontFamily,
-                                ),
-                              ),
-                              TextSpan(
-                                text: 'e',
-                                style: TextStyle(
-                                  fontSize: 22,
-                                  color: ColorTheme.accentBlueColor,
-                                  fontFamily: GoogleFonts.montserrat(
-                                    fontWeight: FontWeight.bold,
-                                  ).fontFamily,
-                                ),
-                              ),
-                              TextSpan(
-                                text: 'rW',
-                                style: TextStyle(
-                                  fontSize: 22,
-                                  color: ColorTheme.textColor,
-                                  fontFamily: GoogleFonts.montserrat(
-                                    fontWeight: FontWeight.bold,
-                                  ).fontFamily,
-                                ),
-                              ),
-                              TextSpan(
-                                text: 'o',
-                                style: TextStyle(
-                                  fontSize: 22,
-                                  color: ColorTheme
-                                      .secondaryColor, // Change this to your desired color
-                                  fontFamily: GoogleFonts.montserrat(
-                                    fontWeight: FontWeight.bold,
-                                  ).fontFamily,
-                                ),
-                              ),
-                              TextSpan(
-                                text: 'rds',
-                                style: TextStyle(
-                                  fontSize: 22,
-                                  color: ColorTheme.textColor,
-                                  fontFamily: GoogleFonts.montserrat(
-                                    fontWeight: FontWeight.bold,
-                                  ).fontFamily,
-                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    _conversationId = null;
+                                    _needsConfirmation = false;
+                                    _pendingQuery = '';
+                                  });
+                                },
+                                tooltip: 'New Story',
                               ),
                             ],
                           ),
-                        )
-                      ],
+                        ],
+                      ),
                     ),
-                    Row(
-                      children: [
-                        // Voice selection button
-                        IconButton(
-                          icon: Icon(
-                            Icons.record_voice_over,
-                            color: ColorTheme.secondaryColor,
-                            size: 28,
-                          ),
-                          onPressed: _showVoiceSelectionDialog,
-                          tooltip: 'Choose a Voice',
-                        ),
 
-                        // New story button
-                        IconButton(
-                          icon: Icon(
-                            Icons.refresh,
-                            color: Colors.black,
-                            size: 28,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              _conversationId = null;
-                              _needsConfirmation = false;
-                              _pendingQuery = '';
-                            });
-                          },
-                          tooltip: 'New Story',
+                    // Story display area with animated elements
+                    Flexible(
+                      flex: 3,
+                      child: Container(
+                        margin: EdgeInsets.all(16),
+                        padding: EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: ColorTheme.backgroundColor,
+                          borderRadius: BorderRadius.circular(24),
                         ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-
-              // Story display area with animated elements
-              Flexible(
-                flex: 3,
-                child: Container(
-                  margin: EdgeInsets.all(16),
-                  padding: EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: ColorTheme.backgroundColor,
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                  child: Stack(
-                    children: [
-                      // Story text with scroll
-                      SingleChildScrollView(
-                        controller: _scrollController,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        child: Stack(
                           children: [
-                            // Story title with animated stars
-                            Row(
-                              children: [
-                                const Image(
-                                  image: AssetImage('assets/frog.png'),
-                                  width: 50,
-                                  height: 50,
-                                ),
-                                Text(
-                                  'Welcome Adventurer',
-                                  style: TextStyle(
-                                    fontSize: 30,
-                                    color: ColorTheme.accentBlueColor,
-                                    fontFamily: GoogleFonts.montserrat(
-                                      fontWeight: FontWeight.bold,
-                                    ).fontFamily,
+                            // Story text with scroll
+                            SingleChildScrollView(
+                              controller: _scrollController,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Story title with animated stars
+                                  Row(
+                                    children: [
+                                      const Image(
+                                        image: AssetImage('assets/frog.png'),
+                                        width: 50,
+                                        height: 50,
+                                      ),
+                                      Text(
+                                        'Welcome Adventurer',
+                                        style: TextStyle(
+                                          fontSize: 30,
+                                          color: ColorTheme.accentBlueColor,
+                                          fontFamily: GoogleFonts.montserrat(
+                                            fontWeight: FontWeight.bold,
+                                          ).fontFamily,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: 16),
+                                  SizedBox(height: 16),
 
-                            // Story content
-                            Text(
-                              _currentStory,
-                              style: TextStyle(
-                                fontSize: 22,
-                                height: 1.5,
-                                color: Colors.black87,
+                                  // Story content
+                                  Text(
+                                    _currentStory,
+                                    style: TextStyle(
+                                      fontSize: 22,
+                                      height: 1.5,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+
+                                  // Add some space at the bottom for better scrolling
+                                  SizedBox(height: 60),
+                                ],
                               ),
                             ),
 
-                            // Add some space at the bottom for better scrolling
-                            SizedBox(height: 60),
-                          ],
-                        ),
-                      ),
-
-                      // Play/Stop button (floating)
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: AnimatedBuilder(
-                          animation: _scaleController,
-                          builder: (context, child) {
-                            return Transform.scale(
-                              scale: 1.0 + (_scaleController.value * 0.1),
-                              child: child,
-                            );
-                          },
-                          child: FloatingActionButton(
-                            onPressed: () => _speak(_currentStory),
-                            backgroundColor: ColorTheme.accentBlueColor,
-                            foregroundColor: ColorTheme.darkPurple,
-                            child: Icon(
-                              _isSpeaking ? Icons.stop : Icons.play_arrow,
-                              size: 32,
-                            ),
-                            tooltip: _isSpeaking ? 'Stop' : 'Play',
-                          ),
-                        ),
-                      ),
-
-                      // Loading indicator
-                      if (_isLoading)
-                        Center(
-                          child: Container(
-                            padding: EdgeInsets.all(20),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.9),
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.2),
-                                  blurRadius: 10,
-                                  offset: Offset(0, 5),
-                                ),
-                              ],
-                            ),
-                            child: const Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                CircularProgressIndicator(
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    Colors.deepPurple,
+                            // Play/Stop button (floating)
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: AnimatedBuilder(
+                                animation: _scaleController,
+                                builder: (context, child) {
+                                  return Transform.scale(
+                                    scale: 1.0 + (_scaleController.value * 0.1),
+                                    child: child,
+                                  );
+                                },
+                                child: FloatingActionButton(
+                                  onPressed: () => _speak(_currentStory),
+                                  backgroundColor: ColorTheme.accentBlueColor,
+                                  foregroundColor: ColorTheme.darkPurple,
+                                  child: Icon(
+                                    _isSpeaking ? Icons.stop : Icons.play_arrow,
+                                    size: 32,
                                   ),
-                                  strokeWidth: 5,
+                                  tooltip: _isSpeaking ? 'Stop' : 'Play',
                                 ),
-                                SizedBox(height: 16),
-                                Text(
-                                  'Creating your story...',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.deepPurple,
+                              ),
+                            ),
+
+                            // Loading indicator
+                            if (_isLoading)
+                              Center(
+                                child: Container(
+                                  padding: EdgeInsets.all(20),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.9),
+                                    borderRadius: BorderRadius.circular(16),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.2),
+                                        blurRadius: 10,
+                                        offset: Offset(0, 5),
+                                      ),
+                                    ],
+                                  ),
+                                  child: const Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      CircularProgressIndicator(
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                          Colors.deepPurple,
+                                        ),
+                                        strokeWidth: 5,
+                                      ),
+                                      SizedBox(height: 16),
+                                      Text(
+                                        'Creating your story...',
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.deepPurple,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                              ],
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // Assigned stories section (if available)
-              // if (_assignedStories.isNotEmpty && _conversationId == null)
-              //   Container(
-              //     height: 160,
-              //     padding: EdgeInsets.only(bottom: 8),
-              //     child: Column(
-              //       crossAxisAlignment: CrossAxisAlignment.start,
-              //       children: [
-              //         Padding(
-              //           padding: EdgeInsets.only(left: 20, bottom: 8),
-              //           child: Text(
-              //             'Your Books',
-              //             style: TextStyle(
-              //               fontSize: 18,
-              //               fontFamily: GoogleFonts.montserrat(
-              //                 fontWeight: FontWeight.bold,
-              //               ).fontFamily,
-              //               color: Colors.white,
-              //               shadows: [
-              //                 Shadow(
-              //                   color: Colors.black.withOpacity(0.3),
-              //                   blurRadius: 2,
-              //                   offset: Offset(1, 1),
-              //                 ),
-              //               ],
-              //             ),
-              //           ),
-              //         ),
-              //         Expanded(
-              //           child: ListView.builder(
-              //             scrollDirection: Axis.horizontal,
-              //             padding: EdgeInsets.symmetric(horizontal: 12),
-              //             itemCount: _assignedStories.length,
-              //             itemBuilder: (context, index) {
-              //               final story = _assignedStories[index];
-              //               return Padding(
-              //                 padding: EdgeInsets.symmetric(horizontal: 8),
-              //                 child: AnimatedBuilder(
-              //                   animation: _bounceController,
-              //                   builder: (context, child) {
-              //                     return Transform.translate(
-              //                       offset: Offset(
-              //                           0,
-              //                           math.sin((_bounceController.value +
-              //                                       index * 0.1) *
-              //                                   math.pi) *
-              //                               3),
-              //                       child: child,
-              //                     );
-              //                   },
-              //                   child: InkWell(
-              //                     onTap: () => _openAssignedStory(story),
-              //                     child: Container(
-              //                       width: 120,
-              //                       decoration: BoxDecoration(
-              //                         gradient: LinearGradient(
-              //                           colors: [
-              //                             Colors.purple[400]!,
-              //                             Colors.purple[200]!
-              //                           ],
-              //                           begin: Alignment.topLeft,
-              //                           end: Alignment.bottomRight,
-              //                         ),
-              //                         borderRadius: BorderRadius.circular(12),
-              //                         boxShadow: [
-              //                           BoxShadow(
-              //                             color: Colors.black.withOpacity(0.2),
-              //                             blurRadius: 5,
-              //                             offset: Offset(0, 3),
-              //                           ),
-              //                         ],
-              //                         border: Border.all(
-              //                           color: Colors.white,
-              //                           width: 2,
-              //                         ),
-              //                       ),
-              //                       child: Column(
-              //                         mainAxisAlignment:
-              //                             MainAxisAlignment.center,
-              //                         children: [
-              //                           Icon(
-              //                             Icons.book,
-              //                             size: 40,
-              //                             color: Colors.white,
-              //                           ),
-              //                           SizedBox(height: 8),
-              //                           Padding(
-              //                             padding: const EdgeInsets.symmetric(
-              //                                 horizontal: 8.0),
-              //                             child: Text(
-              //                               story.title,
-              //                               style: TextStyle(
-              //                                 fontSize: 14,
-              //                                 fontWeight: FontWeight.bold,
-              //                                 color: Colors.white,
-              //                               ),
-              //                               textAlign: TextAlign.center,
-              //                               maxLines: 2,
-              //                               overflow: TextOverflow.ellipsis,
-              //                             ),
-              //                           ),
-              //                         ],
-              //                       ),
-              //                     ),
-              //                   ),
-              //                 ),
-              //               );
-              //             },
-              //           ),
-              //         ),
-              //       ],
-              //     ),
-              //   ),
-
-              // Story theme selection or continuation options
-              Container(
-                height: 180,
-                padding: EdgeInsets.symmetric(vertical: 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: EdgeInsets.only(left: 20, bottom: 8),
-                      child: Text(
-                        _needsConfirmation
-                            ? 'Do you want a new story?'
-                            : (_conversationId == null
-                                ? 'Choose a theme'
-                                : 'What happens next?'),
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontFamily: GoogleFonts.montserrat(
-                            fontWeight: FontWeight.bold,
-                          ).fontFamily,
-                          color: Colors.white,
-                          shadows: [
-                            Shadow(
-                              color: Colors.black.withOpacity(0.3),
-                              blurRadius: 2,
-                              offset: Offset(1, 1),
-                            ),
+                              ),
                           ],
                         ),
                       ),
                     ),
-                    Expanded(
-                      child: _needsConfirmation
-                          ? _buildConfirmationButtons()
-                          : (_conversationId == null
-                              ? _buildThemeButtons()
-                              : _buildContinuationButtons()),
+
+                    // Story theme selection or continuation options
+                    Container(
+                      height: 180,
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: EdgeInsets.only(left: 20, bottom: 8),
+                            child: Text(
+                              _needsConfirmation
+                                  ? 'Do you want a new story?'
+                                  : (_conversationId == null
+                                      ? 'Choose a theme'
+                                      : 'What happens next?'),
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontFamily: GoogleFonts.montserrat(
+                                  fontWeight: FontWeight.bold,
+                                ).fontFamily,
+                                color: Colors.white,
+                                shadows: [
+                                  Shadow(
+                                    color: Colors.black.withOpacity(0.3),
+                                    blurRadius: 2,
+                                    offset: Offset(1, 1),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: _needsConfirmation
+                                ? _buildConfirmationButtons()
+                                : (_conversationId == null
+                                    ? _buildThemeButtons()
+                                    : _buildContinuationButtons()),
+                          ),
+                        ],
+                      ),
                     ),
+                    SizedBox(height: 250),
                   ],
                 ),
               ),
-            ],
+            ),
           ),
         ),
       ),

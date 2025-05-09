@@ -74,8 +74,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   Text(
                     'Join Wonder Words',
                     style: TextStyle(
-                      fontSize: 32,
-                      color: ColorTheme.textColor,
+                      fontSize: 48,
+                      color: ColorTheme.accentBlueColor,
                       fontFamily: GoogleFonts.montserrat(
                         fontWeight: FontWeight.bold,
                       ).fontFamily,
