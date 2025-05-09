@@ -614,6 +614,66 @@ class _StoryHistoryScreenState extends State<StoryHistoryScreen> {
                 ),
               ),
             ),
+            // Action buttons - more compact and better aligned
+            Container(
+              width: double.infinity,
+              height: 30,
+              color: Colors.grey[100],
+              child: Consumer<AuthProvider>(
+                builder: (context, authProvider, child) {
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      // Assign button - only show for parent accounts
+                      if (!authProvider.isChild)
+                        Expanded(
+                          child: IconButton(
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            onPressed: () => _showAssignStoryDialog(conversation),
+                            icon: const Icon(Icons.child_care, size: 16),
+                            color: Colors.deepPurple,
+                            tooltip: 'Assign to Child',
+                          ),
+                        ),
+                      // View button
+                      Expanded(
+                        child: IconButton(
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => StoryDetailScreen(
+                                  conversationId: conversation.id,
+                                ),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.visibility, size: 16),
+                          color: Colors.deepPurple,
+                          tooltip: 'View Story',
+                        ),
+                      ),
+                      // Delete button - only show for parent accounts
+                      if (!authProvider.isChild)
+                        Expanded(
+                          child: IconButton(
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            onPressed: () =>
+                                _showDeleteConfirmationDialog(conversation),
+                            icon: const Icon(Icons.delete, size: 16),
+                            color: Colors.red,
+                            tooltip: 'Delete Story',
+                          ),
+                        ),
+                    ],
+                  );
+                },
+              ),
+            ),
           ],
         ),
       ),
