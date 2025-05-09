@@ -181,7 +181,7 @@ class _ChildLoginScreenState extends State<ChildLoginScreen> {
                           TextFormField(
                             controller: _usernameController,
                             decoration: InputDecoration(
-                              labelText: 'Your Name',
+                              labelText: 'Username',
                               labelStyle: TextStyle(
                                 fontSize: 16,
                                 color: ColorTheme.textColor,
