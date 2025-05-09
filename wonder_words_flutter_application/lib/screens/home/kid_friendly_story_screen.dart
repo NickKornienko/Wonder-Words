@@ -619,10 +619,27 @@ class _KidFriendlyStoryScreenState extends State<KidFriendlyStoryScreen>
                           onPressed: _showVoiceSelectionDialog,
                           tooltip: 'Choose a Voice',
                         ),
-
+                        // Story history button
+                        IconButton(
+                          icon: const Icon(
+                            Icons.history,
+                            color: Colors.black,
+                            size: 28,
+                          ),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const StoryHistoryScreen(),
+                              ),
+                            );
+                          },
+                          tooltip: 'Story History',
+                        ),
                         // New story button
                         IconButton(
-                          icon: Icon(
+                          icon: const Icon(
                             Icons.refresh,
                             color: Colors.black,
                             size: 28,
