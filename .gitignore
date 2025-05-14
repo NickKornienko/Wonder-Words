@@ -179,3 +179,4 @@ wonder_words_flutter_application/windows/flutter/generated_plugin_registrant.cc
 wonder_words_flutter_application/windows/flutter/generated_plugin_registrant.h
 wonder_words_flutter_application/windows/flutter/generated_plugins.cmake
 backend/conversations.db
+.env 
